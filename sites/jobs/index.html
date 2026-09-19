@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Los Santos Careers</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root { --accent: #0f766e; --accent-fg: #fff; --hero-a: #0b4f4a; --hero-b: #14b8a6; }
+    :root[data-theme="dark"] { --accent: #2dd4bf; --accent-fg: #042f2c; --hero-a: #08312e; --hero-b: #0f766e; }
+    .bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 5; }
+    .logo { font-weight: 800; font-size: 18px; letter-spacing: -.02em; cursor: pointer; }
+    .logo b { color: var(--accent); }
+    .bar button.pill { padding: 7px 12px; border-radius: 999px; font-weight: 600; font-size: 14px; background: var(--surface); }
+    .hero { background: linear-gradient(140deg, var(--hero-a), var(--hero-b)); color: #fff; padding: 28px 18px 30px; }
+    .hero h1 { font-size: 28px; margin-bottom: 6px; }
+    .hero p { opacity: .93; margin: 0; }
+    .grp { margin: 22px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+    .job { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
+    .job .ic { width: 46px; height: 46px; border-radius: 12px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 24px; flex: 0 0 auto; }
+    .job .go { color: var(--muted); font-size: 22px; }
+    .counter { text-align: right; font-size: 12.5px; color: var(--muted); }
+    .checkrow { display: flex; gap: 10px; align-items: flex-start; }
+    .checkrow input { width: 22px; height: 22px; margin-top: 2px; flex: 0 0 auto; }
+    .done { text-align: center; padding: 26px 16px; border-radius: var(--radius); background: var(--good-bg); color: var(--good); }
+    .done h1 { color: var(--good); }
+    .foot { padding: 20px 16px 30px; text-align: center; color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="bar"><div class="logo" data-go="/">LS <b>Careers</b></div><button class="pill" data-go="/applications">My applications</button></div>
+<div id="app"><div class="spinner"></div></div>
+<div class="foot">Los Santos Careers · roleplay use only</div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc;
+    var app = document.getElementById('app');
+    var home = null, token = 0;
+    var drafts = {};       // form id -> answers, so a half-written application survives a redraw
+    var sent = null;
+
+    function wrap(inner) { return '<div class="wrap">' + inner + '</div>'; }
+    function loading() { app.innerHTML = '<div class="spinner"></div>'; }
+    function setPage(title, html) { Site.title(title + ' – Los Santos Careers'); app.innerHTML = html; window.scrollTo(0, 0); }
+    function failure(e) { app.innerHTML = wrap('<div class="notice bad">' + esc(e && e.message ? e.message : 'Something went wrong.') + '</div><p style="margin-top:14px"><button class="btn ghost" data-go="/">Back to jobs</button></p>'); }
+    function formById(id) { for (var i = 0; i < home.forms.length; i++) if (home.forms[i].id === id) return home.forms[i]; return null; }
+
+    function reload() { return Site.call('home').then(function (h) { home = h; return h; }); }
+
+    function status(f) {
+        if (!f.open) return '<span class="tag">Closed</span>';
+        if (f.wait > 0) return '<span class="tag warn">Applied</span>';
+        return '<span class="tag good">Open</span>';
+    }
+
+    function pHome() {
+        var groups = home.groups.map(function (g) {
+            var list = home.forms.filter(function (f) { return (f.group || 'Other') === g; });
+            return '<div class="grp">' + esc(g) + '</div><div class="stack">' + list.map(function (f) {
+                return '<button class="card link job" data-go="/apply/' + esc(f.id) + '"><span class="ic">' + esc(f.icon || '💼') + '</span><span class="grow"><b>' + esc(f.title) + '</b><div class="muted small">' + esc(f.description) + '</div></span>' + status(f) + '</button>';
+            }).join('') + '</div>';
+        }).join('');
+        setPage('Jobs and careers', '<div class="hero"><h1>' + esc(home.name) + '</h1><p>' + esc(home.tagline) + '</p></div>' + wrap(groups));
+    }
+
+    function fieldHtml(fld, val) {
+        var id = 'f_' + fld.id, req = fld.required !== false;
+        var lbl = '<span class="lbl">' + esc(fld.label) + (req ? '' : ' <span class="muted small">(optional)</span>') + '</span>' + (fld.hint ? '<span class="hint">' + esc(fld.hint) + '</span>' : '');
+        val = val === undefined ? '' : val;
+        if (fld.type === 'checkbox') {
+            return '<div class="field"><label class="checkrow"><input type="checkbox" id="' + id + '"' + (val === true ? ' checked' : '') + '><span>' + esc(fld.label) + '</span></label><div class="err" id="e_' + fld.id + '"></div></div>';
+        }
+        var input;
+        if (fld.type === 'textarea') {
+            input = '<textarea id="' + id + '" maxlength="' + (fld.max || 1000) + '">' + esc(val) + '</textarea>' + (fld.max ? '<div class="counter" id="c_' + fld.id + '"></div>' : '');
+        } else if (fld.type === 'select') {
+            input = '<select id="' + id + '"><option value="">Choose…</option>' + (fld.options || []).map(function (o) { return '<option' + (o === val ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
+        } else if (fld.type === 'number') {
+            input = '<input type="number" id="' + id + '" inputmode="numeric" value="' + esc(val) + '">';
+        } else {
+            input = '<input type="text" id="' + id + '" maxlength="' + (fld.max || 200) + '" value="' + esc(val) + '">';
+        }
+        return '<label class="field">' + lbl + input + '<div class="err" id="e_' + fld.id + '"></div></label>';
+    }
+
+    function collect(f) {
+        var a = {};
+        f.fields.forEach(function (fld) {
+            var el = document.getElementById('f_' + fld.id);
+            if (!el) return;
+            a[fld.id] = fld.type === 'checkbox' ? el.checked : el.value;
+        });
+        return a;
+    }
+
+    // Same rules the server applies, so people see problems before sending. The server checks again.
+    function check(f, a) {
+        var bad = {};
+        f.fields.forEach(function (fld) {
+            var v = a[fld.id], req = fld.required !== false;
+            if (fld.type === 'checkbox') { if (req && v !== true) bad[fld.id] = 'Please tick this box.'; return; }
+            v = String(v == null ? '' : v).trim();
+            if (v === '') { if (req) bad[fld.id] = 'This is required.'; return; }
+            if (fld.type === 'number') {
+                var n = Number(v);
+                if (isNaN(n)) bad[fld.id] = 'Enter a number.';
+                else if (fld.min != null && n < fld.min) bad[fld.id] = 'Must be at least ' + fld.min + '.';
+                else if (fld.max != null && n > fld.max) bad[fld.id] = 'Must be ' + fld.max + ' or less.';
+            } else if (fld.type !== 'select') {
+                if (fld.min && v.length < fld.min) bad[fld.id] = 'Write at least ' + fld.min + ' characters (' + v.length + ' so far).';
+            }
+        });
+        return bad;
+    }
+
+    function pApply(id, err) {
+        var f = formById(id);
+        if (!f) return Site.go('/');
+        var head = '<h1>' + esc(f.title) + '</h1><p class="muted">' + esc(f.description) + '</p>';
+        if (!f.open) return setPage(f.title, wrap('<button class="btn ghost" data-go="/" style="margin-bottom:12px">‹ All jobs</button>' + head + '<div class="notice">Applications for this role are closed right now.</div>'));
+        if (f.wait > 0) return setPage(f.title, wrap('<button class="btn ghost" data-go="/" style="margin-bottom:12px">‹ All jobs</button>' + head + '<div class="notice">You have already applied. You can apply again in ' + Math.ceil(f.wait / 3600) + ' hour(s).</div>'));
+
+        var d = drafts[id] || {};
+        setPage(f.title, wrap('<button class="btn ghost" data-go="/" style="margin-bottom:12px">‹ All jobs</button>' + head +
+            (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+            '<form id="form" novalidate>' + f.fields.map(function (fld) { return fieldHtml(fld, d[fld.id]); }).join('') +
+            '<button class="btn block" type="submit" id="send">Send application</button></form>'));
+
+        f.fields.forEach(function (fld) {
+            var el = document.getElementById('f_' + fld.id), c = document.getElementById('c_' + fld.id);
+            if (!el) return;
+            var upd = function () {
+                drafts[id] = collect(f);
+                var eb = document.getElementById('e_' + fld.id); if (eb) eb.textContent = '';
+                if (c) c.textContent = el.value.length + ' / ' + fld.max + (fld.min ? ' (min ' + fld.min + ')' : '');
+            };
+            el.addEventListener('input', upd); el.addEventListener('change', upd); upd();
+        });
+
+        document.getElementById('form').onsubmit = function (e) {
+            e.preventDefault();
+            var a = collect(f), bad = check(f, a), first = null;
+            f.fields.forEach(function (fld) {
+                var box = document.getElementById('e_' + fld.id);
+                if (box) box.textContent = bad[fld.id] || '';
+                if (bad[fld.id] && !first) first = fld.id;
+            });
+            if (first) { var el = document.getElementById('f_' + first); if (el) { el.scrollIntoView({ block: 'center' }); } return; }
+            var btn = document.getElementById('send');
+            btn.disabled = true; btn.textContent = 'Sending…';
+            Site.call('apply', { form: id, answers: a }).then(function (r) {
+                sent = r; delete drafts[id];
+                return reload().then(function () { Site.go('/sent'); });
+            }).catch(function (er) { pApply(id, er.message); });
+        };
+    }
+
+    function pSent() {
+        if (!sent) return Site.go('/');
+        setPage('Application sent', wrap('<div class="done"><h1>Application sent</h1><p>Your ' + esc(sent.title.toLowerCase()) + ' has gone to the team. We will be in touch on Discord, and you will get a confirmation email.</p></div>' +
+            '<p style="margin-top:14px"><button class="btn block" data-go="/">Back to jobs</button></p>'));
+    }
+
+    function pMine() {
+        var my = ++token; loading();
+        Site.call('mine').then(function (r) {
+            if (my !== token) return;
+            var list = r.applications;
+            setPage('My applications', wrap('<h1>My applications</h1>' + (list.length ? '<div class="stack">' + list.map(function (a) {
+                return '<div class="card row between"><b>' + esc(a.title) + '</b><span class="muted small">' + Site.date(a.sentAt) + '</span></div>';
+            }).join('') + '</div>' : '<div class="card muted">You have not sent any applications yet.</div>')));
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function render(path) {
+        if (!home) return;
+        var p = path.split('/').filter(Boolean);
+        token++;
+        if (p[0] === 'apply') return pApply(p[1]);
+        if (p[0] === 'sent') return pSent();
+        if (p[0] === 'applications') return pMine();
+        // Coming back to the list: refresh so the "Applied" tags stay right.
+        reload().then(pHome).catch(failure);
+    }
+
+    document.addEventListener('click', function (e) {
+        var t = e.target;
+        while (t && t !== document.body) {
+            if (t.getAttribute) {
+                var g = t.getAttribute('data-go');
+                if (g) { e.preventDefault(); return Site.go(g); }
+            }
+            t = t.parentNode;
+        }
+    });
+
+    reload().then(function () { Site.onRoute(render); }).catch(failure);
+})();
+</script>
+</body>
+</html>

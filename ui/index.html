@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body data-theme="light">
+<div id="root">
+    <div id="topbar">
+        <div id="urlbar">
+            <span class="lockicon" id="lockIcon"></span>
+            <input id="urlInput" type="text" placeholder="Search or enter address" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
+            <button class="iconbtn" id="reloadBtn" aria-label="Reload"></button>
+        </div>
+        <div id="progress"><i></i></div>
+    </div>
+
+    <div id="viewport"></div>
+
+    <div id="toolbar">
+        <button id="backBtn" aria-label="Back"></button>
+        <button id="fwdBtn" aria-label="Forward"></button>
+        <button id="starBtn" aria-label="Bookmark"></button>
+        <button id="tabBtn" aria-label="Tabs"><span id="tabCount">1</span></button>
+        <button id="menuBtn" aria-label="Menu"></button>
+    </div>
+
+    <div id="tabsOverlay">
+        <div class="head"><b id="tabsTitle">Tabs</b></div>
+        <div id="tabsGrid"></div>
+        <div id="tabsFoot">
+            <button class="linkbtn" id="newTabBtn">New tab</button>
+            <button class="linkbtn" id="tabsDoneBtn">Done</button>
+        </div>
+    </div>
+
+    <div id="scrim"></div>
+    <div id="sheet"></div>
+    <div id="toast"></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

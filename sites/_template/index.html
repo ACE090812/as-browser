@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Example Site</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root { --accent: #2563eb; }          /* your brand colour */
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script src="/sdk/site.js"></script>
+<script>
+    // Pages are hash routes: Site.go('/about') changes the page, Site.onRoute runs on every change.
+    Site.onRoute(function (path) {
+        var app = document.getElementById('app');
+        if (path === '/about') {
+            Site.title('About');
+            app.innerHTML = '<h1>About</h1><p>This is the about page.</p><button class="btn ghost" id="back">Back</button>';
+            document.getElementById('back').onclick = function () { Site.go('/'); };
+            return;
+        }
+        Site.title('Example Site');
+        app.innerHTML = '<h1>Example Site</h1>' +
+            '<label class="field"><span class="lbl">Your name</span><input type="text" id="n"></label>' +
+            '<button class="btn block" id="hi">Say hello</button><p id="out" class="muted" style="margin-top:12px"></p>' +
+            '<p><a id="about">About</a></p>';
+        document.getElementById('about').onclick = function () { Site.go('/about'); };
+        document.getElementById('hi').onclick = function () {
+            Site.call('hello', { name: document.getElementById('n').value })
+                .then(function (r) { document.getElementById('out').textContent = r.message; })
+                .catch(function (e) { document.getElementById('out').textContent = e.message; });
+        };
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+/* Shared styles for website pages. Each site sets --accent (and anything else it wants) on :root. */
+:root {
+    --bg: #ffffff;
+    --surface: #f4f5f7;
+    --surface-2: #e9ebef;
+    --fg: #14171c;
+    --muted: #5b6472;
+    --line: #dfe3e8;
+    --accent: #0a6cf0;
+    --accent-fg: #ffffff;
+    --good: #0a7d3b;
+    --good-bg: #dcf5e6;
+    --bad: #c0262d;
+    --bad-bg: #fde4e4;
+    --warn: #9a5b00;
+    --warn-bg: #fdf0d5;
+    --radius: 14px;
+}
+:root[data-theme="dark"] {
+    --bg: #111318;
+    --surface: #1a1d24;
+    --surface-2: #252932;
+    --fg: #f1f2f4;
+    --muted: #9aa3b0;
+    --line: #2b303a;
+    --accent: #5aa2ff;
+    --accent-fg: #061428;
+    --good: #4cd58a;
+    --good-bg: #0f3321;
+    --bad: #ff7a72;
+    --bad-bg: #3a1614;
+    --warn: #f3b752;
+    --warn-bg: #3a2a08;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); color: var(--fg); }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px; line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+}
+body::-webkit-scrollbar { width: 0; }
+h1, h2, h3 { line-height: 1.2; margin: 0 0 8px; letter-spacing: -.01em; }
+h1 { font-size: 26px; } h2 { font-size: 20px; } h3 { font-size: 16px; }
+p { margin: 0 0 12px; }
+a, .link { color: var(--accent); text-decoration: none; cursor: pointer; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input, select, textarea { font: inherit; color: inherit; }
+
+.wrap { padding: 16px; max-width: 640px; margin: 0 auto; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.center { text-align: center; }
+.stack > * + * { margin-top: 12px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.between { justify-content: space-between; }
+.grow { flex: 1; min-width: 0; }
+.hidden { display: none !important; }
+
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 20px; border-radius: 12px; font-weight: 600;
+    background: var(--accent); color: var(--accent-fg);
+}
+.btn:active { filter: brightness(.92); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.block { display: flex; width: 100%; }
+.btn.ghost { background: var(--surface); color: var(--fg); }
+.btn.danger { background: var(--bad); color: #fff; }
+
+.card { background: var(--surface); border-radius: var(--radius); padding: 14px; }
+.card.link { display: block; color: inherit; text-align: left; width: 100%; }
+.card.link:active { background: var(--surface-2); }
+
+.field { display: block; margin-bottom: 14px; }
+.field > .lbl { display: block; font-weight: 600; margin-bottom: 4px; }
+.field > .hint { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.field .err { color: var(--bad); font-size: 13px; margin-top: 4px; }
+input[type=text], input[type=number], input[type=search], select, textarea {
+    width: 100%; min-height: 44px; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); outline: 0;
+}
+textarea { min-height: 110px; resize: vertical; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+
+.tag {
+    display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+    background: var(--surface-2); color: var(--muted);
+}
+.tag.good { background: var(--good-bg); color: var(--good); }
+.tag.bad { background: var(--bad-bg); color: var(--bad); }
+.tag.warn { background: var(--warn-bg); color: var(--warn); }
+
+.notice { padding: 12px 14px; border-radius: 12px; background: var(--warn-bg); color: var(--warn); font-weight: 500; }
+.notice.bad { background: var(--bad-bg); color: var(--bad); }
+.notice.good { background: var(--good-bg); color: var(--good); }
+
+.kv { width: 100%; border-collapse: collapse; }
+.kv th, .kv td { text-align: left; padding: 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.kv th { color: var(--muted); font-weight: 500; width: 42%; padding-right: 12px; }
+.kv tr:last-child th, .kv tr:last-child td { border-bottom: 0; }
+
+.spinner {
+    width: 26px; height: 26px; border-radius: 50%; margin: 30px auto;
+    border: 3px solid var(--surface-2); border-top-color: var(--accent); animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

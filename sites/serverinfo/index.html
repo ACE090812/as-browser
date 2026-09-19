@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Life In The 90s</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root { --accent: #7c3aed; --accent-fg: #fff; }
+    :root[data-theme="dark"] { --accent: #a78bfa; --accent-fg: #170a36; }
+    .hero { background: linear-gradient(135deg, #5b21b6, #7c3aed 60%, #a855f7); color: #fff; padding: 34px 20px 26px; }
+    .hero h1 { font-size: 30px; margin-bottom: 6px; }
+    .hero p { opacity: .92; margin: 0; }
+    .nav { display: flex; gap: 6px; padding: 10px 12px; overflow-x: auto; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 5; }
+    .nav::-webkit-scrollbar { height: 0; }
+    .nav button { flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; background: var(--surface); font-weight: 600; font-size: 14px; }
+    .nav button.on { background: var(--accent); color: var(--accent-fg); }
+    .acc { border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+    .acc summary { list-style: none; padding: 14px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; }
+    .acc summary::-webkit-details-marker { display: none; }
+    .acc summary::after { content: '+'; color: var(--muted); font-weight: 400; font-size: 20px; line-height: 1; }
+    .acc[open] summary::after { content: '\2212'; }
+    .acc ol { margin: 0; padding: 0 16px 14px 34px; }
+    .acc li { margin-bottom: 8px; }
+    .person { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .ver { font-weight: 800; }
+    .code { font-family: ui-monospace, Consolas, monospace; background: var(--bg); border: 1px dashed var(--line); padding: 10px 12px; border-radius: 10px; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="hero"><h1 id="name">Life In The 90s</h1><p id="tagline"></p></div>
+<div class="nav" id="nav"></div>
+<div class="wrap" id="app"><div class="spinner"></div></div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc;
+    var info = null;
+    var TABS = [['/', 'Home'], ['/rules', 'Rules'], ['/staff', 'Staff'], ['/changelog', 'Changelog'], ['/discord', 'Discord']];
+
+    function nav(path) {
+        var root = '/' + (path.split('/')[1] || '');
+        document.getElementById('nav').innerHTML = TABS.map(function (t) {
+            return '<button data-p="' + t[0] + '" class="' + (t[0] === root ? 'on' : '') + '">' + t[1] + '</button>';
+        }).join('');
+        Array.prototype.forEach.call(document.querySelectorAll('#nav button'), function (b) {
+            b.onclick = function () { Site.go(b.getAttribute('data-p')); };
+        });
+    }
+
+    function home() {
+        return '<div class="stack">' +
+            TABS.slice(1).map(function (t) {
+                var blurb = { '/rules': 'Read the rulebook before you play.', '/staff': 'Meet the people who run the server.', '/changelog': 'See what is new.', '/discord': 'Join the community.' }[t[0]];
+                return '<button class="card link" data-p="' + t[0] + '"><h3>' + t[1] + '</h3><div class="muted">' + blurb + '</div></button>';
+            }).join('') + '</div>';
+    }
+
+    function rules() {
+        return '<h2>Server rules</h2><div class="stack">' + (info.rules || []).map(function (sec, i) {
+            return '<details class="acc"' + (i === 0 ? ' open' : '') + '><summary>' + esc(sec.title) + '</summary><ol>' +
+                (sec.items || []).map(function (it) { return '<li>' + esc(it) + '</li>'; }).join('') + '</ol></details>';
+        }).join('') + '</div>';
+    }
+
+    function staff() {
+        return '<h2>Staff team</h2><div class="stack">' + (info.staff || []).map(function (p) {
+            return '<div class="card person"><div class="avatar">' + esc((p.name || '?').charAt(0).toUpperCase()) + '</div>' +
+                '<div><b>' + esc(p.name) + '</b><div class="muted small">' + esc(p.role) + '</div></div></div>';
+        }).join('') + '</div>';
+    }
+
+    function changelog() {
+        return '<h2>Changelog</h2><div class="stack">' + (info.changelog || []).map(function (c) {
+            return '<div class="card"><div class="row between"><span class="ver">v' + esc(c.version) + '</span><span class="muted small">' + esc(c.date) + '</span></div>' +
+                '<ul style="margin:8px 0 0;padding-left:20px">' + (c.items || []).map(function (it) { return '<li>' + esc(it) + '</li>'; }).join('') + '</ul></div>';
+        }).join('') + '</div>';
+    }
+
+    function discord() {
+        var d = info.discord || {};
+        return '<h2>' + esc(d.label || 'Discord') + '</h2><p class="muted">' + esc(d.text || '') + '</p>' +
+            '<div class="code" id="invite">' + esc(d.invite || '') + '</div>' +
+            '<p style="margin-top:12px"><button class="btn block" id="copyInvite">Copy invite</button></p>';
+    }
+
+    function render(path) {
+        if (!info) return;
+        var section = path.split('/')[1] || '';
+        nav(path);
+        var view = { '': home, rules: rules, staff: staff, changelog: changelog, discord: discord }[section] || home;
+        var titles = { '': info.name, rules: 'Server rules', staff: 'Staff team', changelog: 'Changelog', discord: 'Discord' };
+        Site.title((titles[section] || info.name) + (section ? ' – ' + info.name : ''));
+        document.getElementById('app').innerHTML = view();
+        Array.prototype.forEach.call(document.querySelectorAll('[data-p]'), function (b) {
+            if (b.parentNode.id !== 'nav') b.onclick = function () { Site.go(b.getAttribute('data-p')); };
+        });
+        var copy = document.getElementById('copyInvite');
+        if (copy) copy.onclick = function () { Site.copy(info.discord.invite); };
+    }
+
+    Site.call('info').then(function (res) {
+        info = res || {};
+        document.getElementById('name').textContent = info.name || 'Life In The 90s';
+        document.getElementById('tagline').textContent = info.tagline || '';
+        Site.onRoute(render);
+    }).catch(function (e) {
+        document.getElementById('app').innerHTML = '<div class="notice bad">' + esc(e.message) + '</div>';
+    });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Los Santos Government</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root { --accent: #1d70b8; --accent-fg: #fff; --gov: #0b0c0c; --focus: #ffdd00; }
+    :root[data-theme="dark"] { --accent: #6bb3f5; --accent-fg: #06121f; --gov: #000; }
+    body { font-size: 16px; }
+    .top { background: var(--gov); color: #fff; padding: 10px 16px; border-bottom: 10px solid var(--accent); }
+    .top .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -.01em; cursor: pointer; }
+    .top svg { width: 30px; height: 30px; flex: 0 0 auto; }
+    .top .sub { font-weight: 400; font-size: 12.5px; opacity: .75; display: block; }
+    .banner { background: var(--surface); border-bottom: 1px solid var(--line); padding: 8px 16px; font-size: 13px; color: var(--muted); }
+    .crumbs { padding: 12px 16px 0; font-size: 14px; }
+    .crumbs a { text-decoration: underline; }
+    .crumbs span { color: var(--muted); }
+    .page { padding: 16px; max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 30px; font-weight: 800; margin-bottom: 14px; }
+    h2 { font-size: 22px; font-weight: 800; margin: 22px 0 10px; }
+    .lead { font-size: 18px; color: var(--muted); }
+    .glink { color: var(--accent); text-decoration: underline; font-weight: 600; cursor: pointer; display: block; text-align: left; }
+    .glist > * { padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .glist .desc { color: var(--muted); font-size: 14.5px; margin-top: 2px; }
+    .gbtn { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 22px; background: #00703c; color: #fff; font-weight: 700; font-size: 17px; border-radius: 0; box-shadow: 0 2px 0 #002d18; }
+    .gbtn:active { transform: translateY(2px); box-shadow: none; }
+    .gbtn:disabled { opacity: .55; }
+    .gbtn.block { display: flex; width: 100%; }
+    .gbtn.grey { background: var(--surface-2); color: var(--fg); box-shadow: 0 2px 0 var(--line); }
+    input:focus, select:focus, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 0; box-shadow: none; }
+    .search { display: flex; }
+    .search input { border-radius: 0; border: 2px solid var(--fg); }
+    .search button { flex: 0 0 54px; background: var(--accent); color: var(--accent-fg); font-size: 18px; }
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .tile { background: var(--surface); padding: 14px 12px; border-top: 4px solid var(--accent); text-align: left; }
+    .tile b { display: block; font-size: 15.5px; margin: 4px 0 2px; }
+    .tile span { font-size: 13px; color: var(--muted); }
+    .tile .ic { font-size: 22px; }
+    .plate { display: inline-flex; align-items: stretch; border-radius: 6px; overflow: hidden; border: 2px solid #111; background: #f7d117; box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+    .plate .gb { background: #0a3d91; color: #fff; font-size: 10px; font-weight: 800; padding: 4px 6px; display: flex; align-items: flex-end; }
+    .plate .reg { color: #111; font-family: "Arial Black", Impact, Arial, sans-serif; font-weight: 900; font-size: 30px; letter-spacing: .06em; padding: 4px 14px; text-transform: uppercase; }
+    .plate.small .reg { font-size: 20px; padding: 2px 10px; }
+    .plate.small .gb { font-size: 8px; padding: 2px 4px; }
+    .status { padding: 16px; margin: 12px 0; border-left: 10px solid var(--line); background: var(--surface); }
+    .status.good { border-color: #00703c; }
+    .status.bad { border-color: #d4351c; }
+    .status.warn { border-color: #f47738; }
+    .status h3 { font-size: 20px; margin: 0 0 4px; }
+    .status .k { font-size: 14px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+    .panel { border: 4px solid var(--accent); padding: 16px; margin: 12px 0; }
+    .vrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .veh { padding: 14px; background: var(--surface); margin-bottom: 10px; }
+    .veh .meta { color: var(--muted); font-size: 14px; margin: 6px 0 10px; }
+    .receipt { text-align: center; background: #00703c; color: #fff; padding: 26px 16px; margin-bottom: 14px; }
+    .receipt h1 { color: #fff; margin: 0 0 6px; }
+    .foot { margin-top: 34px; padding: 16px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 13px; }
+    .foot b { color: var(--fg); }
+    .fine { font-size: 13.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="top">
+    <div class="brand" data-go="/">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 6v9c0 7 5 12 12 15 7-3 12-8 12-15V6z" fill="#fff"/><path d="M16 6 8 9v6c0 4.6 3.2 8 8 10.2 4.8-2.2 8-5.6 8-10.2V9z" fill="#0b0c0c"/><path d="M16 9l1.6 3.4 3.7.4-2.8 2.5.8 3.6L16 17.100l-3.300 1.800.8-3.600-2.800-2.500 3.700-.4z" fill="#fff"/></svg>
+        <div><span id="govName">Los Santos Government</span><span class="sub">lsgov.co.uk</span></div>
+    </div>
+</div>
+<div class="banner">A fictional service for the Life In The 90s server. Not connected to any real government.</div>
+<div class="crumbs" id="crumbs"></div>
+<div class="page" id="app"><div class="spinner"></div></div>
+<div class="foot" id="foot"><b>Los Santos Government</b><br>Roleplay use only</div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc;
+    var home = null;              // { name, categories, services, mot, tax }
+    var app = document.getElementById('app');
+    var crumbsEl = document.getElementById('crumbs');
+    var token = 0;                // drops results of a page the player already left
+    var garage = null;            // cached myVehicles result
+    var receipt = null;           // last tax receipt
+
+    // ------------------------------------------------------------------ helpers
+
+    function byId(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
+    function findService(id) { return byId(home.services, id); }
+    function findCat(id) { return byId(home.categories, id); }
+    function plateKey(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    function plateHtml(p, small) {
+        return '<span class="plate' + (small ? ' small' : '') + '"><span class="gb">GB</span><span class="reg">' + esc(p) + '</span></span>';
+    }
+    function crumbs(items) {
+        crumbsEl.innerHTML = items.map(function (c, i) {
+            return c.go ? '<a data-go="' + esc(c.go) + '">' + esc(c.t) + '</a>' : '<span>' + esc(c.t) + '</span>';
+        }).join(' <span>›</span> ');
+    }
+    function setPage(title, html, trail) {
+        Site.title(title + ' – ' + (home ? home.name : 'Los Santos Government'));
+        crumbs(trail || []);
+        app.innerHTML = html;
+        window.scrollTo(0, 0);
+    }
+    function loading() { app.innerHTML = '<div class="spinner"></div>'; }
+    function failure(e) {
+        app.innerHTML = '<div class="notice bad">' + esc(e && e.message ? e.message : 'Something went wrong.') + '</div>' +
+            '<p style="margin-top:14px"><a class="glink" data-go="/">Back to the homepage</a></p>';
+    }
+    function days(ts, now) { return Math.ceil((ts - now) / 86400); }
+
+    // ------------------------------------------------------------------ pages
+
+    function pHome() {
+        var popular = home.services.filter(function (s) { return s.popular; });
+        setPage('Home',
+            '<h1>' + esc(home.name) + '</h1>' +
+            '<p class="lead">Find government services and information.</p>' +
+            '<form class="search" id="q"><input type="search" id="qi" placeholder="Search services" aria-label="Search services"><button type="submit" aria-label="Search">&#128269;</button></form>' +
+            '<h2>Popular services</h2><div class="glist">' +
+            popular.map(function (s) { return '<div><a class="glink" data-go="' + esc(s.path) + '">' + esc(s.title) + '</a><div class="desc">' + esc(s.description) + '</div></div>'; }).join('') +
+            '</div>' +
+            '<h2>Services and information</h2><div class="tiles">' +
+            home.categories.map(function (c) {
+                return '<button class="tile" data-go="/browse/' + esc(c.id) + '"><span class="ic">' + esc(c.icon || '') + '</span><b>' + esc(c.title) + '</b><span>' + esc(c.description || '') + '</span></button>';
+            }).join('') + '</div>');
+        document.getElementById('q').onsubmit = function (e) {
+            e.preventDefault();
+            var v = document.getElementById('qi').value.trim();
+            if (v) Site.go('/search/' + encodeURIComponent(v));
+        };
+    }
+
+    function pCategory(id) {
+        var c = findCat(id);
+        if (!c) return pNotFound();
+        var list = home.services.filter(function (s) { return s.category === id; });
+        setPage(c.title,
+            '<h1>' + esc(c.title) + '</h1><p class="lead">' + esc(c.description || '') + '</p>' +
+            '<div class="glist">' + (list.length ? list.map(serviceRow).join('') : '<div class="muted">Nothing here yet.</div>') + '</div>',
+            [{ t: 'Home', go: '/' }, { t: c.title }]);
+    }
+
+    function serviceRow(s) {
+        var soon = s.status !== 'live';
+        return '<div><a class="glink" data-go="' + esc(s.path) + '">' + esc(s.title) + '</a>' +
+            '<div class="desc">' + esc(s.description) + (soon ? ' <span class="tag">Not available yet</span>' : '') + '</div></div>';
+    }
+
+    function pSearch(q) {
+        q = decodeURIComponent(q || '');
+        var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+        var hits = home.services.filter(function (s) {
+            var hay = (s.title + ' ' + s.description).toLowerCase();
+            return terms.every(function (t) { return hay.indexOf(t) !== -1; });
+        });
+        setPage('Search', '<h1>Search results</h1><p class="muted">' + hits.length + ' result' + (hits.length === 1 ? '' : 's') + ' for “' + esc(q) + '”</p>' +
+            '<div class="glist">' + hits.map(serviceRow).join('') + '</div>', [{ t: 'Home', go: '/' }, { t: 'Search' }]);
+    }
+
+    function pService(id) {
+        var s = findService(id);
+        if (!s) return pNotFound();
+        if (s.status === 'live' && !s.link && s.path && s.path !== '/s/' + s.id) return Site.go(s.path);
+        var cat = findCat(s.category);
+        var trail = [{ t: 'Home', go: '/' }, cat ? { t: cat.title, go: '/browse/' + cat.id } : { t: 'Services' }, { t: s.title }];
+        var body;
+        if (s.link) {
+            body = '<p class="lead">' + esc(s.description) + '</p><p><button class="gbtn" data-open="' + esc(s.link) + '">Continue</button></p>' +
+                '<p class="fine">You will go to ' + esc(s.link) + '</p>';
+        } else if (s.id === 'book-mot' && !home.mot.enabled) {
+            body = '<div class="status warn"><h3>MOT booking opens soon</h3><p>Booking is not open yet. You can still check a vehicle’s details.</p></div>' +
+                '<p><a class="glink" data-go="/vehicle-checker">Check vehicle information</a></p>';
+        } else {
+            body = '<div class="status warn"><h3>This service is not available yet</h3><p>We are still building this service. Please check back later.</p></div>';
+        }
+        setPage(s.title, '<h1>' + esc(s.title) + '</h1>' + body, trail);
+    }
+
+    function pNotFound() {
+        setPage('Page not found', '<h1>Page not found</h1><p>If you typed the web address, check it is correct.</p><p><a class="glink" data-go="/">Go to the homepage</a></p>');
+    }
+
+    // ------------------------------------------------------------------ vehicle checker
+
+    function pCheckerForm(err, val) {
+        setPage('Check vehicle information',
+            '<h1>Check vehicle information</h1>' +
+            '<p class="lead">Find out if a vehicle is taxed' + (home.mot.enabled ? ' and has an MOT' : '') + ' using its registration number.</p>' +
+            '<form id="f"><label class="field"><span class="lbl">Enter the registration number of the vehicle</span>' +
+            '<span class="hint">For example, CW54 XYZ or LS90 ABC</span>' +
+            '<input type="text" id="p" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-transform:uppercase;font-size:24px;font-weight:800;letter-spacing:.06em;max-width:280px;border:2px solid var(--fg);border-radius:0" value="' + esc(val || '') + '">' +
+            (err ? '<span class="err">' + esc(err) + '</span>' : '') + '</label>' +
+            '<button class="gbtn" type="submit">Continue</button></form>',
+            [{ t: 'Home', go: '/' }, { t: 'Driving and transport', go: '/browse/driving' }, { t: 'Check vehicle information' }]);
+        var f = document.getElementById('f');
+        f.onsubmit = function (e) {
+            e.preventDefault();
+            var k = plateKey(document.getElementById('p').value);
+            if (k.length < 2) return pCheckerForm('Enter a registration number.', '');
+            Site.go('/vehicle-checker/' + k);
+        };
+    }
+
+    function taxBlock(v, now) {
+        var t = v.tax;
+        if (t.status === 'exempt') return '<div class="status good"><span class="k">Vehicle tax</span><h3>Exempt</h3><p>This vehicle does not need to be taxed.</p></div>';
+        if (t.status === 'taxed') {
+            var left = days(t.expiry, now);
+            return '<div class="status good"><span class="k">Vehicle tax</span><h3>Taxed</h3><p>Tax due: <b>' + Site.date(t.expiry) + '</b>' +
+                (left <= 7 ? ' <span class="tag warn">' + left + ' day' + (left === 1 ? '' : 's') + ' left</span>' : '') + '</p></div>';
+        }
+        return '<div class="status bad"><span class="k">Vehicle tax</span><h3>Untaxed</h3><p>Tax expired on <b>' + Site.date(t.expiry) + '</b>. You can’t drive this vehicle on the road until it is taxed.</p></div>';
+    }
+
+    function motBlock(v, now) {
+        var m = v.mot;
+        if (!m.enabled) return '<div class="status"><span class="k">MOT</span><h3>Not required yet</h3><p>MOT tests are not available in the city yet.</p></div>';
+        if (m.status === 'valid') return '<div class="status good"><span class="k">MOT</span><h3>Valid</h3><p>Expires: <b>' + Site.date(m.expiry) + '</b></p></div>';
+        if (m.status === 'expired') return '<div class="status bad"><span class="k">MOT</span><h3>Expired</h3><p>Expired on <b>' + Site.date(m.expiry) + '</b>.</p></div>';
+        if (m.status === 'failed') return '<div class="status bad"><span class="k">MOT</span><h3>No valid MOT</h3><p>The vehicle failed its last MOT test.</p></div>';
+        return '<div class="status warn"><span class="k">MOT</span><h3>No MOT recorded</h3><p>No MOT test has been recorded for this vehicle.</p></div>';
+    }
+
+    function insBlock(v) {
+        if (!v.insurance) return '';
+        var ok = v.insurance.status === 'insured';
+        return '<div class="status ' + (ok ? 'good' : 'bad') + '"><span class="k">Insurance</span><h3>' + (ok ? 'Insured' : 'Not insured') + '</h3>' +
+            (ok && v.insurance.endsAt ? '<p>Cover ends: <b>' + Site.date(v.insurance.endsAt) + '</b></p>' : '') + '</div>';
+    }
+
+    function historyBlock(v) {
+        if (!home.mot.enabled) return '';
+        var h = v.motHistory || [];
+        if (!h.length) return '<h2>MOT history</h2><p class="muted">No MOT tests recorded.</p>';
+        return '<h2>MOT history</h2><div class="glist">' + h.map(function (r) {
+            return '<div><div class="vrow"><b>' + Site.date(r.testedAt) + '</b><span class="tag ' + (r.passed ? 'good' : 'bad') + '">' + (r.passed ? 'Pass' : 'Fail') + '</span></div>' +
+                (r.details ? '<div class="desc">' + esc(r.details) + '</div>' : '') + '</div>';
+        }).join('') + '</div>';
+    }
+
+    function pCheckerResult(key) {
+        var my = ++token;
+        loading();
+        Site.call('lookup', { plate: key }).then(function (v) {
+            if (my !== token) return;
+            var trail = [{ t: 'Home', go: '/' }, { t: 'Driving and transport', go: '/browse/driving' }, { t: 'Check vehicle information', go: '/vehicle-checker' }, { t: v.plate || key }];
+            if (!v.found) {
+                setPage('Vehicle not found',
+                    '<h1>We couldn’t find that vehicle</h1><p>' + plateHtml(key) + '</p>' +
+                    '<div class="status bad"><h3>No record for this registration number</h3><p>Check it is correct and try again.</p></div>' +
+                    '<p><a class="gbtn" data-go="/vehicle-checker">Try another registration</a></p>', trail);
+                return;
+            }
+            setPage(v.plate,
+                '<h1>Vehicle details</h1><p>' + plateHtml(v.plate) + '</p>' +
+                '<table class="kv"><tr><th>Make</th><td>' + esc(v.make) + '</td></tr><tr><th>Model</th><td>' + esc(v.model) + '</td></tr>' +
+                '<tr><th>Colour</th><td>' + esc(v.colour) + '</td></tr><tr><th>Type</th><td>' + esc(v.class) + '</td></tr></table>' +
+                taxBlock(v, v.now) + motBlock(v, v.now) + insBlock(v) + historyBlock(v) +
+                (v.owned && v.tax.status !== 'exempt' ? '<p style="margin-top:16px"><a class="gbtn" data-go="/tax-vehicle/' + esc(plateKey(v.plate)) + '">Tax this vehicle</a></p>' : '') +
+                '<p style="margin-top:16px"><a class="glink" data-go="/vehicle-checker">Check another vehicle</a></p>', trail);
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    // ------------------------------------------------------------------ tax a vehicle
+
+    var TAX_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Driving and transport', go: '/browse/driving' }, { t: 'Tax your vehicle', go: '/tax-vehicle' }];
+
+    function loadGarage() {
+        return Site.call('myVehicles').then(function (g) { garage = g; return g; });
+    }
+
+    function pTaxList() {
+        var my = ++token;
+        loading();
+        loadGarage().then(function (g) {
+            if (my !== token) return;
+            var html = '<h1>Tax your vehicle</h1><p class="lead">Choose the vehicle you want to tax. You can only tax vehicles you own.</p>';
+            if (!g.vehicles.length) {
+                html += '<div class="status warn"><h3>You don’t have any vehicles</h3><p>Vehicles registered to you will appear here.</p></div>';
+            } else {
+                html += g.vehicles.map(function (v) {
+                    var t = v.tax, left = t.expiry ? days(t.expiry, g.now) : 0, st;
+                    if (t.status === 'exempt') st = '<span class="tag good">Exempt</span>';
+                    else if (t.status === 'taxed') st = '<span class="tag good">Taxed until ' + Site.date(t.expiry) + '</span>';
+                    else st = '<span class="tag bad">Untaxed</span>';
+                    var action = t.status === 'exempt' ? '' :
+                        v.canRenew ? '<button class="gbtn" data-go="/tax-vehicle/' + esc(v.plateKey) + '">Tax this vehicle · ' + Site.money(t.rate) + '</button>' :
+                        '<span class="fine">You can tax this vehicle again in the last ' + g.renewWindowDays + ' days (' + Math.max(0, left - g.renewWindowDays) + ' days from now).</span>';
+                    return '<div class="veh"><div class="vrow">' + plateHtml(v.plate, true) + st + '</div>' +
+                        '<div class="meta">' + esc(v.colour) + ' ' + esc(v.make) + ' ' + esc(v.model) + ' · ' + esc(v.class) + '</div>' + action + '</div>';
+                }).join('');
+            }
+            setPage('Tax your vehicle', html, TAX_TRAIL.slice(0, 2).concat([{ t: 'Tax your vehicle' }]));
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pTaxConfirm(key, err) {
+        var my = ++token;
+        var draw = function (g) {
+            if (my !== token) return;
+            var v = null;
+            for (var i = 0; i < g.vehicles.length; i++) if (g.vehicles[i].plateKey === key) v = g.vehicles[i];
+            if (!v || v.tax.status === 'exempt') return pNotFound();
+            if (!v.canRenew) {
+                setPage('Tax your vehicle', '<h1>Tax your vehicle</h1><p>' + plateHtml(v.plate) + '</p><div class="status warn"><h3>Already taxed</h3><p>This vehicle is taxed until <b>' + Site.date(v.tax.expiry) +
+                    '</b>. You can tax it again in the last ' + g.renewWindowDays + ' days.</p></div><p><a class="glink" data-go="/tax-vehicle">Back to your vehicles</a></p>', TAX_TRAIL);
+                return;
+            }
+            var base = Math.max(v.tax.expiry, g.now);
+            var until = base + g.periodDays * 86400;
+            setPage('Confirm and pay',
+                '<h1>Confirm and pay</h1><p>' + plateHtml(v.plate) + '</p>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<table class="kv"><tr><th>Vehicle</th><td>' + esc(v.colour) + ' ' + esc(v.make) + ' ' + esc(v.model) + '</td></tr>' +
+                '<tr><th>Type</th><td>' + esc(v.class) + '</td></tr>' +
+                '<tr><th>Tax period</th><td>' + g.periodDays + ' days</td></tr>' +
+                '<tr><th>Taxed until</th><td>' + Site.date(until) + '</td></tr>' +
+                '<tr><th>Amount to pay</th><td><b>' + Site.money(v.tax.rate) + '</b></td></tr></table>' +
+                '<p class="fine" style="margin-top:12px">The payment is taken from your bank account.</p>' +
+                '<button class="gbtn block" id="pay">Pay ' + Site.money(v.tax.rate) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/tax-vehicle">Cancel</a></p>', TAX_TRAIL.concat([{ t: 'Confirm' }]));
+            document.getElementById('pay').onclick = function () {
+                var btn = this;
+                btn.disabled = true; btn.textContent = 'Processing…';
+                Site.call('tax', { plate: key }).then(function (r) {
+                    receipt = r; garage = null;
+                    Site.go('/tax-vehicle/' + key + '/done');
+                }).catch(function (e) { garage = null; pTaxConfirm(key, e.message); });
+            };
+        };
+        if (garage) draw(garage); else { loading(); loadGarage().then(draw).catch(function (e) { if (my === token) failure(e); }); }
+    }
+
+    function pTaxDone(key) {
+        if (!receipt || plateKey(receipt.plate) !== key) return Site.go('/tax-vehicle');
+        var r = receipt;
+        setPage('Vehicle taxed',
+            '<div class="receipt"><h1>Vehicle taxed</h1><div>' + plateHtml(r.plate) + '</div><p style="margin:12px 0 0">Taxed until <b>' + Site.date(r.expiry) + '</b></p></div>' +
+            '<table class="kv"><tr><th>Amount paid</th><td>' + Site.money(r.amount) + '</td></tr><tr><th>Paid on</th><td>' + Site.datetime(r.now) + '</td></tr>' +
+            '<tr><th>Tax period</th><td>' + r.periodDays + ' days</td></tr></table>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/vehicle-checker/' + esc(key) + '">Check this vehicle</a></p>' +
+            '<p><a class="glink" data-go="/tax-vehicle">Tax another vehicle</a></p>', TAX_TRAIL.concat([{ t: 'Done' }]));
+    }
+
+    // ------------------------------------------------------------------ passports
+
+    var PP_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Passports, travel and living abroad', go: '/browse/passports' }, { t: 'Apply for a passport', go: '/passport' }];
+    var ppReceipt = null;       // last application receipt
+
+    function loadPassport() { return Site.call('passportState'); }
+    function waitText(sec) {
+        if (sec < 3600) { var m = Math.max(1, Math.round(sec / 60)); return m + ' minute' + (m === 1 ? '' : 's'); }
+        var h = Math.round(sec / 3600); return h + ' hour' + (h === 1 ? '' : 's');
+    }
+    function statusTag(st) {
+        if (st === 'issued') return '<span class="tag good">Valid</span>';
+        if (st === 'expired') return '<span class="tag bad">Expired</span>';
+        return '<span class="tag bad">Cancelled</span>';
+    }
+
+    function pPassport() {
+        var my = ++token;
+        loading();
+        loadPassport().then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>Apply for a passport</h1>';
+
+            if (st.application) {
+                var a = st.application;
+                html += '<div class="status warn"><span class="k">Your application</span><h3>' + esc(a.type) + ' in progress</h3>' +
+                    '<p>' + (a.late ? 'It is taking a little longer than usual. It will be sent to you very soon.' : 'Ready by <b>' + Site.datetime(a.readyAt) + '</b>.') + '</p>' +
+                    (a.lockerLabel ? '<p>It will be sent to <b>' + esc(a.lockerLabel) + '</b> for you to collect.</p>' : '<p>It will be added to your inventory.</p>') +
+                    '<p class="fine">We will email you and send a notification when it is on its way.</p></div>';
+            }
+
+            if (st.passport) {
+                var c = st.passport;
+                html += '<div class="status ' + (c.status === 'issued' ? 'good' : 'bad') + '"><span class="k">Your passport</span><h3>' + esc(c.first + ' ' + c.last) + '</h3>' +
+                    '<table class="kv"><tr><th>Passport number</th><td>' + esc(c.number) + '</td></tr>' +
+                    '<tr><th>Status</th><td>' + statusTag(c.status) + '</td></tr>' +
+                    (c.issuedAt ? '<tr><th>Issued</th><td>' + Site.date(c.issuedAt) + '</td></tr>' : '') +
+                    (c.validUntil ? '<tr><th>Valid until</th><td>' + Site.date(c.validUntil) + '</td></tr>' : '') + '</table>' +
+                    '<p class="fine" style="margin-top:10px">Use the passport in your inventory to look at it or show it to someone.</p></div>';
+            }
+
+            var open = st.types.filter(function (t) { return t.allowed; });
+            if (open.length) {
+                html += '<h2>' + (st.passport ? 'Other things you can do' : 'Choose a service') + '</h2><div class="glist">' + open.map(function (t) {
+                    return '<div><a class="glink" data-go="/passport/apply/' + esc(t.id) + '">' + esc(t.label) + '</a><div class="desc">' + esc(t.description) + '</div>' +
+                        '<div class="desc"><b>' + Site.money(t.price) + '</b> · ready in about ' + waitText(t.waitSeconds) + '</div></div>';
+                }).join('') + '</div>';
+            } else if (!st.application && !st.passport) {
+                var why = st.types.length && st.types[0].reason;
+                html += '<div class="status warn"><h3>Nothing to apply for right now</h3><p>' + esc(why || 'Please try again later.') + '</p></div>';
+            }
+            setPage('Apply for a passport', html, PP_TRAIL.slice(0, 2).concat([{ t: 'Apply for a passport' }]));
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pPassportApply(id, err, lockerPick) {
+        var my = ++token;
+        var draw = function (st) {
+            if (my !== token) return;
+            var t = byId(st.types, id);
+            if (!t) return pNotFound();
+            if (!t.allowed) {
+                setPage('Apply for a passport', '<h1>' + esc(t.label) + '</h1><div class="status warn"><h3>You can’t do this right now</h3><p>' + esc(t.reason || '') + '</p></div>' +
+                    '<p><a class="glink" data-go="/passport">Back to passport services</a></p>', PP_TRAIL);
+                return;
+            }
+            var pick = lockerPick || (st.lockers[0] && st.lockers[0].id) || '';
+            var where;
+            if (st.mode === 'locker') {
+                where = '<div class="field"><span class="lbl">Where should we send it?</span><span class="hint">You collect it from a Postal Prime locker with a pickup code.</span>' +
+                    st.lockers.map(function (l) {
+                        return '<label class="checkrow" style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="radio" name="locker" value="' + esc(l.id) + '"' + (l.id === pick ? ' checked' : '') + ' style="width:22px;height:22px"><span>' + esc(l.label) + '</span></label>';
+                    }).join('') + '</div>';
+            } else {
+                where = '<p class="fine">Your passport will be added to your inventory when it is ready.</p>';
+            }
+            setPage('Confirm and pay',
+                '<h1>' + esc(t.label) + '</h1>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<table class="kv"><tr><th>Service</th><td>' + esc(t.label) + '</td></tr>' +
+                '<tr><th>Ready in about</th><td>' + waitText(t.waitSeconds) + '</td></tr>' +
+                '<tr><th>Amount to pay</th><td><b>' + Site.money(t.price) + '</b></td></tr></table>' +
+                (id === 'replacement' ? '<div class="status bad"><h3>Your old passport will be cancelled straight away</h3><p>You will not be able to use it again, even if you find it.</p></div>' : '') +
+                (id === 'renewal' ? '<p class="fine" style="margin-top:12px">Your details and photo are taken from your character. Your old passport works until the new one arrives.</p>' : '') +
+                (st.photo ? '<div class="status"><span class="k">Your photo</span><p>Your photo is taken when you pay. Stand still and face forward.</p></div>' : '') +
+                where +
+                '<p class="fine">The payment is taken from your bank account.</p>' +
+                '<button class="gbtn block" id="pay"' + (st.mode === 'locker' && !st.lockers.length ? ' disabled' : '') + '>Pay ' + Site.money(t.price) + ' and apply</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/passport">Cancel</a></p>', PP_TRAIL.concat([{ t: 'Confirm' }]));
+            document.getElementById('pay').onclick = function () {
+                var btn = this, lockerId;
+                var r = document.querySelector('input[name="locker"]:checked');
+                if (st.mode === 'locker') { if (!r) return; lockerId = r.value; }
+                btn.disabled = true; btn.textContent = 'Taking your photo…';
+                Site.call('passportApply', { type: id, lockerId: lockerId }).then(function (res) {
+                    ppReceipt = res;
+                    Site.go('/passport/done');
+                }).catch(function (e) { pPassportApply(id, e.message, lockerId); });
+            };
+        };
+        // Always ask the server: an application may have been issued or finished since the last visit.
+        loading();
+        loadPassport().then(draw).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pPassportDone() {
+        if (!ppReceipt) return Site.go('/passport');
+        var r = ppReceipt;
+        setPage('Application received',
+            '<div class="receipt"><h1>Application received</h1><p style="margin:0">We will send your passport when it is ready.</p></div>' +
+            '<table class="kv"><tr><th>Service</th><td>' + esc(r.type) + '</td></tr><tr><th>Amount paid</th><td>' + Site.money(r.price) + '</td></tr>' +
+            '<tr><th>Ready by</th><td>' + Site.datetime(r.readyAt) + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">We have emailed you a confirmation. You will get a notification when your passport has been sent.</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/passport">Back to passport services</a></p>', PP_TRAIL.concat([{ t: 'Done' }]));
+    }
+
+    // ------------------------------------------------------------------ router
+
+    function render(path) {
+        if (!home) return;
+        var p = path.split('/').filter(Boolean);
+        token++;
+        var head = p[0] || '';
+        if (head === '') return pHome();
+        if (head === 'browse') return pCategory(p[1]);
+        if (head === 'search') return pSearch(p[1]);
+        if (head === 's') return pService(p[1]);
+        if (head === 'vehicle-checker') return p[1] ? pCheckerResult(plateKey(p[1])) : pCheckerForm();
+        if (head === 'passport') {
+            if (p[1] === 'apply' && p[2]) return pPassportApply(decodeURIComponent(p[2]));
+            if (p[1] === 'done') return pPassportDone();
+            return pPassport();
+        }
+        if (head === 'tax-vehicle') {
+            if (!p[1]) return pTaxList();
+            if (p[2] === 'done') return pTaxDone(plateKey(p[1]));
+            return pTaxConfirm(plateKey(p[1]));
+        }
+        pNotFound();
+    }
+
+    document.addEventListener('click', function (e) {
+        var t = e.target;
+        while (t && t !== document.body) {
+            if (t.getAttribute) {
+                var g = t.getAttribute('data-go');
+                if (g) { e.preventDefault(); Site.go(g); return; }
+                var o = t.getAttribute('data-open');
+                if (o) { e.preventDefault(); Site.open(o); return; }
+            }
+            t = t.parentNode;
+        }
+    });
+
+    Site.call('home').then(function (h) {
+        home = h;
+        document.getElementById('govName').textContent = h.name;
+        document.getElementById('foot').innerHTML = '<b>' + esc(h.name) + '</b><br>Roleplay use only';
+        Site.onRoute(render);
+    }).catch(failure);
+})();
+</script>
+</body>
+</html>
