@@ -23,6 +23,37 @@ Config.gov = {
     -- for each test, then set enabled = true.
     mot = { enabled = false },
 
+    -- Council tax on homes. Needs a housing script (see `housing` below). Every home owned (or rented,
+    -- for scripts where the renter is the owner) gets a bill each period. Unpaid bills stack up as
+    -- arrears on the website and in a phone notification: nothing else happens to the player.
+    council = {
+        enabled       = true,
+        authority     = 'Los Santos Council',
+        periodDays    = 7,        -- one bill every this many real days
+        graceDays     = 7,        -- a home the system has not seen before is paid up for this long
+        payAheadDays  = 3,        -- the next bill can be paid this many days before it is due
+        maxPeriods    = 26,       -- most bills that can be paid in one go
+        -- The bill is a percentage of the home's value, kept between minBill and maxBill.
+        ratePercent   = 0.02,     -- 0.02 means a 250,000 home pays 50 a period
+        minBill       = 5,
+        maxBill       = 500,
+        rentedBill    = 10,       -- a rented home has no value to work from, so it pays this flat amount
+        notifyHours   = 6,        -- how often a player in arrears is reminded on their phone (0 = never)
+        mailFrom      = { name = 'Los Santos Council', email = 'noreply@lsgov.co.uk' },
+        webhook       = '',       -- optional Discord log of payments
+        -- Which housing script to read homes from: 'auto', 'qbx_properties', 'ps-housing', 'qb-houses'
+        -- or 'custom' (then fill in `custom` below).
+        housing = 'auto',
+        custom = {
+            table       = 'properties',   -- table with one row per home
+            idColumn    = 'id',
+            ownerColumn = 'owner',        -- holds the character id
+            nameColumn  = 'name',         -- what the home is called
+            valueColumn = 'price',        -- what it is worth (used for the percentage)
+            rentColumn  = nil,            -- optional: a column that is not empty when the home is rented
+        },
+    },
+
     -- Show "Insured / Not insured" on the vehicle checker when the CoverCompare site is on.
     showInsurance = true,
 
@@ -57,8 +88,9 @@ Config.gov = {
           description = 'Apply for, replace or renew your passport. It is delivered to a Postal Prime locker.',
           keywords = { 'passport', 'travel', 'renew', 'replace', 'lost', 'id', 'identity', 'photo' } },
 
-        { id = 'council-tax', title = 'Pay your council tax', category = 'money', status = 'placeholder',
-          description = 'Pay or set up council tax for your home.', keywords = { 'bill', 'council', 'pay' } },
+        { id = 'council-tax', title = 'Pay your council tax', category = 'money', status = 'live', path = '/council-tax', popular = true,
+          description = 'Pay council tax for your home and see any arrears.',
+          keywords = { 'bill', 'council', 'pay', 'home', 'house', 'property', 'arrears', 'rates' } },
 
         { id = 'benefits-claim', title = 'Claim benefits', category = 'benefits', status = 'placeholder',
           description = 'Check what support you can claim.', keywords = { 'universal credit', 'jobseeker', 'support', 'dole' } },

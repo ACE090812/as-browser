@@ -91,6 +91,12 @@ Forms are defined in `sites/jobs/config.lua`. Webhook URLs stay in that server-o
 
 The government site has a live passport service (`/passport`): choose a type, pick a Postal Prime locker, pay, and follow the application. All the logic is in the separate `as-passport` resource, and the pages only work while it is running (otherwise they say passports are not available). The website side is `sites/gov/server_passport.lua`. Any `sites/<name>/server_*.lua` file is loaded after all the `server.lua` files, so a site can be split into several server files.
 
+## Council tax
+
+The government site has a live council tax service (`/council-tax`). Every home a character owns (or rents, in housing scripts where the renter is the owner) gets a bill every `periodDays`, worked out as a percentage of the home's value (`ratePercent`, kept between `minBill` and `maxBill`; rented homes pay the flat `rentedBill`). A home the system has not seen before starts paid up for `graceDays`. Unpaid bills stack up as arrears, shown on the site and as a phone reminder, and nothing else happens to the player. Paying clears everything due, or the next bill can be paid early inside `payAheadDays`. A new owner never inherits the previous owner's arrears.
+
+Settings are in `sites/gov/config.lua` under `council`. The homes are read from your housing script: `housing = 'auto'` checks for qbx_properties, ps-housing and qb-houses, or set `'custom'` and fill in the table and column names. The console prints which one it found the first time a player opens the page. The code is in `sites/gov/server_council.lua`, and payments are kept in `browser_council_tax` and `browser_council_payments`.
+
 ## Adding your own site
 
 1. Copy `sites/_template` to `sites/mysite`.

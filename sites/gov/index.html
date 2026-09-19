@@ -460,6 +460,103 @@
             '<p style="margin-top:16px"><a class="glink" data-go="/passport">Back to passport services</a></p>', PP_TRAIL.concat([{ t: 'Done' }]));
     }
 
+    // ------------------------------------------------------------------ council tax
+
+    var CT_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Money and tax', go: '/browse/money' }, { t: 'Pay your council tax', go: '/council-tax' }];
+    var ctReceipt = null;
+
+    function ctStatus(h) {
+        if (h.status === 'arrears') return '<span class="tag bad">In arrears · ' + h.periodsDue + ' bills</span>';
+        if (h.status === 'due') return '<span class="tag warn">Due now</span>';
+        return '<span class="tag good">Paid until ' + Site.date(h.paidUntil) + '</span>';
+    }
+
+    function pCouncil() {
+        var my = ++token;
+        loading();
+        Site.call('councilState').then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>Pay your council tax</h1><p class="lead">Council tax is charged on every home you own or rent, once every ' + st.periodDays + ' days.</p>';
+            if (st.owed > 0) {
+                html += '<div class="status bad"><span class="k">Arrears</span><h3>You owe ' + Site.money(st.owed) + '</h3><p>You have unpaid council tax. Pay it below to clear it.</p></div>';
+            }
+            if (!st.homes.length) {
+                html += '<div class="status"><h3>You don’t have a home</h3><p>Council tax is only charged on homes. Homes registered to you will appear here.</p></div>';
+            } else {
+                html += st.homes.map(function (h) {
+                    var action = h.canPay
+                        ? '<button class="gbtn" data-go="/council-tax/pay/' + encodeURIComponent(h.key) + '">' + (h.status === 'paid' ? 'Pay early' : 'Pay') + ' · ' + Site.money(h.payAmount) + '</button>'
+                        : '<span class="fine">Nothing to pay right now.</span>';
+                    return '<div class="veh"><div class="vrow"><b>' + esc(h.name) + '</b>' + ctStatus(h) + '</div>' +
+                        '<div class="meta">' + (h.rented ? 'Rented home' : 'Value ' + Site.money(h.value)) + ' · Bill ' + Site.money(h.amount) + ' every ' + st.periodDays + ' days' +
+                        (h.owed > 0 ? ' · Owed ' + Site.money(h.owed) : '') + '</div>' + action + '</div>';
+                }).join('');
+            }
+            html += '<p style="margin-top:16px"><a class="glink" data-go="/council-tax/history">Payment history</a></p>';
+            setPage('Pay your council tax', html, CT_TRAIL.slice(0, 2).concat([{ t: 'Pay your council tax' }]));
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pCouncilPay(key, err) {
+        var my = ++token;
+        loading();
+        Site.call('councilState').then(function (st) {
+            if (my !== token) return;
+            var h = null;
+            for (var i = 0; i < st.homes.length; i++) if (st.homes[i].key === key) h = st.homes[i];
+            if (!h) return pNotFound();
+            if (!h.canPay) {
+                setPage('Pay your council tax', '<h1>Pay your council tax</h1><div class="status good"><h3>Nothing to pay</h3><p>' + esc(h.name) + ' is paid until <b>' + Site.date(h.paidUntil) + '</b>.</p></div>' +
+                    '<p><a class="glink" data-go="/council-tax">Back to your homes</a></p>', CT_TRAIL);
+                return;
+            }
+            var until = h.paidUntil + h.payPeriods * st.periodDays * 86400;
+            setPage('Confirm and pay',
+                '<h1>Confirm and pay</h1><p><b>' + esc(h.name) + '</b></p>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                (h.periodsDue > 1 ? '<div class="status bad"><h3>' + h.periodsDue + ' bills are overdue</h3><p>This payment clears all of them.</p></div>' : '') +
+                '<table class="kv"><tr><th>Bills paid</th><td>' + h.payPeriods + ' × ' + Site.money(h.amount) + '</td></tr>' +
+                '<tr><th>Paid until</th><td>' + Site.date(until) + '</td></tr>' +
+                '<tr><th>Amount to pay</th><td><b>' + Site.money(h.payAmount) + '</b></td></tr></table>' +
+                '<p class="fine" style="margin-top:12px">The payment is taken from your bank account.</p>' +
+                '<button class="gbtn block" id="pay">Pay ' + Site.money(h.payAmount) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/council-tax">Cancel</a></p>', CT_TRAIL.concat([{ t: 'Confirm' }]));
+            document.getElementById('pay').onclick = function () {
+                var btn = this;
+                btn.disabled = true; btn.textContent = 'Processing…';
+                Site.call('councilPay', { key: key }).then(function (r) {
+                    ctReceipt = r; Site.go('/council-tax/done');
+                }).catch(function (e) { pCouncilPay(key, e.message); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pCouncilDone() {
+        if (!ctReceipt) return Site.go('/council-tax');
+        var r = ctReceipt;
+        setPage('Payment received',
+            '<div class="receipt"><h1>Payment received</h1><p style="margin:0">' + esc(r.name) + ' is paid until <b>' + Site.date(r.paidUntil) + '</b></p></div>' +
+            '<table class="kv"><tr><th>Amount paid</th><td>' + Site.money(r.amount) + '</td></tr><tr><th>Bills paid</th><td>' + r.periods + '</td></tr>' +
+            '<tr><th>Paid on</th><td>' + Site.datetime(r.now) + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">We have emailed you a receipt.</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/council-tax">Back to your homes</a></p>', CT_TRAIL.concat([{ t: 'Done' }]));
+    }
+
+    function pCouncilHistory() {
+        var my = ++token;
+        loading();
+        Site.call('councilHistory').then(function (r) {
+            if (my !== token) return;
+            var html = '<h1>Payment history</h1>';
+            html += r.payments.length ? '<div class="glist">' + r.payments.map(function (p) {
+                return '<div><div class="vrow"><b>' + esc(p.label) + '</b><span>' + Site.money(p.amount) + '</span></div>' +
+                    '<div class="desc">' + Site.datetime(p.paidAt) + ' · ' + p.periods + ' bill' + (p.periods === 1 ? '' : 's') + '</div></div>';
+            }).join('') + '</div>' : '<p class="muted">You have not paid any council tax yet.</p>';
+            html += '<p style="margin-top:16px"><a class="glink" data-go="/council-tax">Back to your homes</a></p>';
+            setPage('Payment history', html, CT_TRAIL.concat([{ t: 'History' }]));
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
     // ------------------------------------------------------------------ router
 
     function render(path) {
@@ -472,6 +569,12 @@
         if (head === 'search') return pSearch(p[1]);
         if (head === 's') return pService(p[1]);
         if (head === 'vehicle-checker') return p[1] ? pCheckerResult(plateKey(p[1])) : pCheckerForm();
+        if (head === 'council-tax') {
+            if (p[1] === 'pay' && p[2]) return pCouncilPay(decodeURIComponent(p[2]));
+            if (p[1] === 'done') return pCouncilDone();
+            if (p[1] === 'history') return pCouncilHistory();
+            return pCouncil();
+        }
         if (head === 'passport') {
             if (p[1] === 'apply' && p[2]) return pPassportApply(decodeURIComponent(p[2]));
             if (p[1] === 'done') return pPassportDone();
