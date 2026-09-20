@@ -61,6 +61,19 @@ Config.gov = {
         mailFrom  = { name = 'DVLA', email = 'noreply@lsgov.co.uk' },
     },
 
+    -- Benefits (Jobseeker's Allowance style). A character with one of the `jobs` claims on the website,
+    -- and is then paid `amount` into the bank for every `intervalMinutes` they spend online while they
+    -- still have one of those jobs. Taking a job pauses the payments, and they carry on if the job is lost.
+    benefits = {
+        enabled         = true,
+        authority       = 'Los Santos Department for Work and Pensions',
+        amount          = 75,
+        intervalMinutes = 60,
+        jobs            = { 'unemployed' },
+        mailFrom        = { name = 'Department for Work and Pensions', email = 'noreply@lsgov.co.uk' },
+        webhook         = '',       -- optional Discord log of claims and stops
+    },
+
     -- Show "Insured / Not insured" on the vehicle checker when the CoverCompare site is on.
     showInsurance = true,
 
@@ -69,10 +82,10 @@ Config.gov = {
         { id = 'passports', title = 'Passports, travel and living abroad', description = 'Passports and travel documents',    icon = '🛂' },
         { id = 'money',     title = 'Money and tax',                   description = 'Council tax and other bills',            icon = '💷' },
         { id = 'benefits',  title = 'Benefits',                        description = 'Support you may be able to claim',       icon = '🤝' },
-        { id = 'life',      title = 'Births, deaths, marriages and care', description = 'Certificates and changes of name',     icon = '📜' },
+        { id = 'life',      title = 'Births, deaths, marriages and care', description = 'Birth and marriage certificates',     icon = '📜' },
         { id = 'housing',   title = 'Housing and local services',      description = 'Social housing and your council',        icon = '🏠' },
-        { id = 'work',      title = 'Working, jobs and pensions',      description = 'Find a job and workplace rights',        icon = '💼' },
-        { id = 'crime',     title = 'Crime, justice and the law',      description = 'Report a crime and contact the police',  icon = '⚖️' },
+        { id = 'work',      title = 'Working, jobs and pensions',      description = 'Find a job, register a business',        icon = '💼' },
+        { id = 'crime',     title = 'Crime, justice and the law',      description = 'Pay fines and penalty notices',  icon = '⚖️' },
     },
 
     -- status: 'live' works now, 'placeholder' shows "not available yet" until you build it.
@@ -101,16 +114,23 @@ Config.gov = {
           description = 'Pay council tax for your home and see any arrears.',
           keywords = { 'bill', 'council', 'pay', 'home', 'house', 'property', 'arrears', 'rates' } },
 
-        { id = 'benefits-claim', title = 'Claim benefits', category = 'benefits', status = 'placeholder',
-          description = 'Check what support you can claim.', keywords = { 'universal credit', 'jobseeker', 'support', 'dole' } },
+        { id = 'benefits-claim', title = 'Claim benefits', category = 'benefits', status = 'live', path = '/benefits', popular = true,
+          description = 'Claim jobseeker support while you are out of work, and see your payments.',
+          keywords = { 'universal credit', 'jobseeker', 'support', 'dole', 'unemployed', 'allowance', 'claim' } },
 
-        { id = 'birth-certificate', title = 'Order a birth certificate', category = 'life', status = 'placeholder',
-          description = 'Order a copy of a birth certificate.', keywords = { 'certificate', 'birth', 'copy' } },
-        { id = 'change-name', title = 'Change your name', category = 'life', status = 'placeholder',
-          description = 'Change your name on your records.', keywords = { 'name', 'deed poll', 'marriage' } },
+        -- Needs the as-birthcert resource running.
+        { id = 'birth-certificate', title = 'Order a birth certificate', category = 'life', status = 'live', path = '/birth-certificate',
+          description = 'Order a copy of your birth certificate, delivered to a Postal Prime locker.', keywords = { 'certificate', 'birth', 'copy', 'born' } },
 
-        { id = 'social-housing', title = 'Apply for social housing', category = 'housing', status = 'placeholder',
-          description = 'Join the housing list.', keywords = { 'housing', 'council house', 'home', 'rent' } },
+        -- Needs the as-fines resource running.
+        { id = 'pay-fine', title = 'Pay a fine', category = 'crime', status = 'live', path = '/pay-fine', popular = true,
+          description = 'See and pay fines and penalty notices.', keywords = { 'fine', 'penalty', 'ticket', 'speeding', 'police', 'pay', 'notice' } },
+
+        -- Needs the as-registry resource running.
+        { id = 'marriage', title = 'Get married', category = 'life', status = 'live', path = '/marriage',
+          description = 'Propose to your partner, and get your marriage certificate.', keywords = { 'marriage', 'marry', 'wedding', 'married', 'certificate', 'spouse' } },
+        { id = 'register-business', title = 'Register a business', category = 'work', status = 'live', path = '/register-business',
+          description = 'Register a business name and get a certificate of registration.', keywords = { 'business', 'company', 'register', 'trading', 'self employed', 'shop' } },
 
         { id = 'find-job', title = 'Find a job', category = 'work', status = 'live', linkSite = 'jobs', popular = true,
           description = 'Browse jobs and apply through Los Santos Careers.', keywords = { 'jobs', 'careers', 'apply', 'work', 'application' } },

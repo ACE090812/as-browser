@@ -7,7 +7,7 @@ Built-in sites (all fictional, all roleplay):
 | Site | Default address | What it does |
 | --- | --- | --- |
 | serverinfo | `lifeinthe90s.co.uk` | Home page, rules, staff, changelog, Discord link |
-| gov | `lsgov.co.uk` | Los Santos Government: check any vehicle, tax your vehicle, passport applications (needs the `as-passport` resource), placeholders for MOT and more |
+| gov | `lsgov.co.uk` | Los Santos Government: check any vehicle, tax your vehicle, passport applications (`as-passport`), driving licence, council tax, birth certificates (`as-birthcert`), fines (`as-fines`), benefits, marriage and business registration (`as-registry`), placeholder for MOT |
 | insurance | `covercompare.co.uk` | Compare quotes for a vehicle you own and buy cover |
 | jobs | `lscareers.co.uk` | Application forms that post to Discord |
 
@@ -90,6 +90,22 @@ Forms are defined in `sites/jobs/config.lua`. Webhook URLs stay in that server-o
 ## Passports
 
 The government site has a live passport service (`/passport`): choose a type, pick a Postal Prime locker, pay, and follow the application. All the logic is in the separate `as-passport` resource, and the pages only work while it is running (otherwise they say passports are not available). The website side is `sites/gov/server_passport.lua`. Any `sites/<name>/server_*.lua` file is loaded after all the `server.lua` files, so a site can be split into several server files.
+
+## Birth certificates
+
+The government site has a live birth certificate service (`/birth-certificate`): the player orders a copy of their own certificate (£15, about 30 minutes, picked Postal Prime locker) and can order more copies later. Everything lives in the separate `as-birthcert` resource; the site side is `sites/gov/server_birthcert.lua`. If the resource is stopped the pages say it is not available. The "Change your name" and "Apply for social housing" placeholders were removed. Categories with no services in them are no longer shown on the home page, so the Housing and Crime categories are hidden until you add a service to them.
+
+## Fines
+
+The government site has a live fines page (`/pay-fine`): unpaid fines, pay one or all from the bank, and recently paid ones. The fines, the `/fine` command for police and the exports for other scripts live in the separate `as-fines` resource; the site side is `sites/gov/server_fines.lua`. If the resource is stopped the page says it is not available.
+
+## Benefits
+
+The government site has a live benefits service (`/benefits`). A character with a qualifying job (`jobs`, default `unemployed`) starts a claim on the site, and is then paid `amount` into the bank for every `intervalMinutes` they spend online while they still qualify. Taking a job pauses the payments and they carry on if the job is lost; the player can stop the claim on the site. Settings are in `sites/gov/config.lua` under `benefits`; the code is `sites/gov/server_benefits.lua` and claims are kept in `browser_benefits`. Time online is counted once a minute and saved, so it survives relogging.
+
+## Marriage and business registration
+
+Live at `/marriage` and `/register-business`. The rules, fees, records and certificate items live in the separate `as-registry` resource; the site side is `sites/gov/server_registry.lua`.
 
 ## Council tax
 

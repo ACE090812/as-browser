@@ -69,6 +69,21 @@ function Bridge.getCharacterName(source)
     return GetPlayerName(source) or 'Citizen'
 end
 
+--- { name, label } of the character's job, or nil.
+function Bridge.getJob(source)
+    ensureCore()
+    if framework == 'qb' or framework == 'qbx' then
+        local p = getPlayer(source)
+        local j = p and p.PlayerData.job
+        if j then return { name = j.name, label = j.label or j.name } end
+    elseif framework == 'esx' and ESX then
+        local x = ESX.GetPlayerFromId(source)
+        local j = x and x.getJob and x.getJob()
+        if j then return { name = j.name, label = j.label or j.name } end
+    end
+    return nil
+end
+
 function Bridge.getBalance(source, account)
     ensureCore()
     if framework == 'qb' or framework == 'qbx' then

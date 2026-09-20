@@ -172,7 +172,11 @@ Browser.handler('gov', 'home', function()
         end
         services[#services + 1] = svc
     end
-    return { name = G.name, categories = G.categories, services = services, mot = { enabled = G.mot.enabled == true },
+    -- A category with no services in it is not shown (so removing a service can't leave an empty page).
+    local used, categories = {}, {}
+    for _, s in ipairs(services) do used[s.category] = true end
+    for _, c in ipairs(G.categories) do if used[c.id] then categories[#categories + 1] = c end end
+    return { name = G.name, categories = categories, services = services, mot = { enabled = G.mot.enabled == true },
              tax = { periodDays = G.tax.periodDays, renewWindowDays = G.tax.renewWindowDays } }
 end)
 

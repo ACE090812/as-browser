@@ -460,6 +460,343 @@
             '<p style="margin-top:16px"><a class="glink" data-go="/passport">Back to passport services</a></p>', PP_TRAIL.concat([{ t: 'Done' }]));
     }
 
+    // ------------------------------------------------------------------ birth certificates
+
+    var BC_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Births, deaths, marriages and care', go: '/browse/life' }, { t: 'Order a birth certificate', go: '/birth-certificate' }];
+    var bcReceipt = null;
+
+    function bcDob(s) {
+        var m = /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/.exec(String(s || '')) || null;
+        var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        if (m && +m[2] >= 1 && +m[2] <= 12) return (+m[3]) + ' ' + MONTHS[+m[2] - 1] + ' ' + m[1];
+        return String(s || '-');
+    }
+
+    function pBirthcert() {
+        var my = ++token;
+        loading();
+        Site.call('birthcertState').then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>Order a birth certificate</h1>';
+            if (st.application) {
+                var a = st.application;
+                html += '<div class="status warn"><span class="k">Your order</span><h3>Birth certificate in progress</h3>' +
+                    '<p>' + (a.late ? 'It is taking a little longer than usual. It will be sent to you very soon.' : 'Ready by <b>' + Site.datetime(a.readyAt) + '</b>.') + '</p>' +
+                    (a.lockerLabel ? '<p>It will be sent to <b>' + esc(a.lockerLabel) + '</b> for you to collect.</p>' : '<p>It will be added to your inventory.</p>') +
+                    '<p class="fine">We will email you and send a notification when it is on its way.</p></div>';
+            }
+            if (st.latest) {
+                html += '<div class="status good"><span class="k">Last certificate sent</span><h3>' + esc(st.person.first + ' ' + st.person.last) + '</h3>' +
+                    '<table class="kv"><tr><th>Certificate number</th><td>' + esc(st.latest.number) + '</td></tr>' +
+                    '<tr><th>Sent</th><td>' + Site.date(st.latest.issuedAt) + '</td></tr>' +
+                    '<tr><th>Copies sent</th><td>' + st.copies + '</td></tr></table>' +
+                    '<p class="fine" style="margin-top:10px">Use the certificate in your inventory to read it or show it to someone.</p></div>';
+            }
+            if (st.allowed) {
+                html += '<h2>Order a copy</h2><p>A certified copy of your own birth certificate. You can order another copy at any time.</p>' +
+                    '<table class="kv"><tr><th>Fee</th><td><b>' + Site.money(st.price) + '</b></td></tr><tr><th>Ready in about</th><td>' + waitText(st.waitSeconds) + '</td></tr></table>' +
+                    '<p style="margin-top:14px"><a class="gbtn" data-go="/birth-certificate/order">Start now</a></p>';
+            } else if (!st.application) {
+                html += '<div class="status warn"><h3>You can’t order right now</h3><p>' + esc(st.reason || 'Please try again later.') + '</p></div>';
+            }
+            setPage('Order a birth certificate', html, BC_TRAIL.slice(0, 2).concat([{ t: 'Order a birth certificate' }]));
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pBirthcertOrder(err, lockerPick) {
+        var my = ++token;
+        loading();
+        Site.call('birthcertState').then(function (st) {
+            if (my !== token) return;
+            if (!st.allowed) {
+                setPage('Order a birth certificate', '<h1>Order a birth certificate</h1><div class="status warn"><h3>You can’t order right now</h3><p>' + esc(st.reason || '') + '</p></div>' +
+                    '<p><a class="glink" data-go="/birth-certificate">Back</a></p>', BC_TRAIL);
+                return;
+            }
+            var pick = lockerPick || (st.lockers[0] && st.lockers[0].id) || '';
+            var where;
+            if (st.mode === 'locker') {
+                where = '<div class="field"><span class="lbl">Where should we send it?</span><span class="hint">You collect it from a Postal Prime locker with a pickup code.</span>' +
+                    st.lockers.map(function (l) {
+                        return '<label class="checkrow" style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="radio" name="locker" value="' + esc(l.id) + '"' + (l.id === pick ? ' checked' : '') + ' style="width:22px;height:22px"><span>' + esc(l.label) + '</span></label>';
+                    }).join('') + '</div>';
+            } else {
+                where = '<p class="fine">Your certificate will be added to your inventory when it is ready.</p>';
+            }
+            setPage('Confirm and pay',
+                '<h1>Order a birth certificate</h1>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<div class="status"><span class="k">Certificate for</span><h3>' + esc(st.person.first + ' ' + st.person.last) + '</h3>' +
+                '<p>Born ' + esc(bcDob(st.person.dob)) + '</p><p class="fine">These details are taken from your character.</p></div>' +
+                '<table class="kv"><tr><th>Ready in about</th><td>' + waitText(st.waitSeconds) + '</td></tr>' +
+                '<tr><th>Amount to pay</th><td><b>' + Site.money(st.price) + '</b></td></tr></table>' +
+                where +
+                '<p class="fine">The payment is taken from your bank account.</p>' +
+                '<button class="gbtn block" id="pay"' + (st.mode === 'locker' && !st.lockers.length ? ' disabled' : '') + '>Pay ' + Site.money(st.price) + ' and order</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/birth-certificate">Cancel</a></p>', BC_TRAIL.concat([{ t: 'Confirm' }]));
+            document.getElementById('pay').onclick = function () {
+                var btn = this, lockerId;
+                var r = document.querySelector('input[name="locker"]:checked');
+                if (st.mode === 'locker') { if (!r) return; lockerId = r.value; }
+                btn.disabled = true; btn.textContent = 'Processing…';
+                Site.call('birthcertOrder', { lockerId: lockerId }).then(function (res) {
+                    bcReceipt = res;
+                    Site.go('/birth-certificate/done');
+                }).catch(function (e) { pBirthcertOrder(e.message, lockerId); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pBirthcertDone() {
+        if (!bcReceipt) return Site.go('/birth-certificate');
+        var r = bcReceipt;
+        setPage('Order received',
+            '<div class="receipt"><h1>Order received</h1><p style="margin:0">We will send your birth certificate when it is ready.</p></div>' +
+            '<table class="kv"><tr><th>Certificate number</th><td>' + esc(r.number) + '</td></tr><tr><th>Amount paid</th><td>' + Site.money(r.price) + '</td></tr>' +
+            '<tr><th>Ready by</th><td>' + Site.datetime(r.readyAt) + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">We have emailed you a confirmation. You will get a notification when it has been sent.</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/birth-certificate">Back to birth certificates</a></p>', BC_TRAIL.concat([{ t: 'Done' }]));
+    }
+
+    // ------------------------------------------------------------------ fines, benefits, marriage, business register
+
+    var flash = null;           // one message shown at the top of the next page render: { kind: 'good'|'bad', text }
+    function flashHtml() {
+        if (!flash) return '';
+        var f = flash; flash = null;
+        return '<div class="status ' + (f.kind === 'bad' ? 'bad' : 'good') + '"><p style="margin:0">' + esc(f.text) + '</p></div>';
+    }
+    function minutesText(m) {
+        if (m < 60) return m + ' minute' + (m === 1 ? '' : 's');
+        var h = Math.floor(m / 60), r = m % 60;
+        return h + ' hour' + (h === 1 ? '' : 's') + (r ? ' ' + r + ' min' : '');
+    }
+
+    // ---- fines
+    var FINE_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Crime, justice and the law', go: '/browse/crime' }, { t: 'Pay a fine' }];
+
+    function pFines() {
+        var my = ++token;
+        loading();
+        Site.call('finesState').then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>Pay a fine</h1>' + flashHtml();
+            if (!st.fines.length) {
+                html += '<div class="status good"><span class="k">Fines</span><h3>You have no unpaid fines</h3></div>';
+            } else {
+                html += '<div class="status bad"><span class="k">Total owed</span><h3>' + Site.money(st.owed) + '</h3><p>' + st.fines.length + ' unpaid fine' + (st.fines.length === 1 ? '' : 's') + '.</p></div>' +
+                    '<div class="glist">' + st.fines.map(function (f) {
+                        return '<div><b>' + Site.money(f.amount) + '</b> · ' + esc(f.reason) +
+                            '<div class="desc">Fine number ' + f.id + ' · issued by ' + esc(f.issuedBy) + ' on ' + Site.date(f.issuedAt) + '</div>' +
+                            '<p style="margin:8px 0 0"><button class="gbtn" data-pay="' + f.id + '">Pay ' + Site.money(f.amount) + '</button></p></div>';
+                    }).join('') + '</div>';
+                if (st.fines.length > 1) html += '<p style="margin-top:14px"><button class="gbtn block" id="payAll">Pay all ' + Site.money(st.owed) + '</button></p>';
+                html += '<p class="fine">Payments are taken from your bank account.</p>';
+            }
+            if (st.paid.length) {
+                html += '<h2>Recently paid</h2><div class="glist">' + st.paid.map(function (f) {
+                    return '<div>' + Site.money(f.amount) + ' · ' + esc(f.reason) + '<div class="desc">Paid ' + Site.date(f.paidAt) + ' · fine number ' + f.id + '</div></div>';
+                }).join('') + '</div>';
+            }
+            setPage('Pay a fine', html, FINE_TRAIL);
+            var pay = function (payload, btn) {
+                btn.disabled = true;
+                Site.call('finesPay', payload).then(function (r) {
+                    flash = { kind: 'good', text: 'Payment received: ' + Site.money(r.paid) + ' for ' + r.count + ' fine' + (r.count === 1 ? '' : 's') + '. Thank you.' };
+                    pFines();
+                }).catch(function (e) { flash = { kind: 'bad', text: e.message }; pFines(); });
+            };
+            Array.prototype.forEach.call(document.querySelectorAll('[data-pay]'), function (b) {
+                b.onclick = function () { pay({ id: +b.getAttribute('data-pay') }, b); };
+            });
+            var all = document.getElementById('payAll');
+            if (all) all.onclick = function () { pay({ all: true }, all); };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    // ---- benefits
+    var BEN_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Benefits', go: '/browse/benefits' }, { t: 'Claim benefits' }];
+
+    function pBenefits() {
+        var my = ++token;
+        loading();
+        Site.call('benefitsState').then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>Claim benefits</h1>' + flashHtml();
+            var rate = '<b>' + Site.money(st.amount) + '</b> for every <b>' + minutesText(st.intervalMinutes) + '</b> you are online';
+            if (st.claiming) {
+                html += '<div class="status ' + (st.paused ? 'warn' : 'good') + '"><span class="k">Your claim</span><h3>' + (st.paused ? 'Paused' : 'Active') + '</h3>' +
+                    (st.paused ? '<p>You have a job (' + esc(st.jobLabel || '') + '), so payments are paused. They start again if you are out of work.</p>'
+                               : '<p>Your next payment is in about <b>' + minutesText(st.minutesToNext) + '</b> of playing time.</p>') +
+                    '<table class="kv"><tr><th>Payment</th><td>' + rate + '</td></tr>' +
+                    '<tr><th>Claimed since</th><td>' + Site.date(st.claimedAt) + '</td></tr>' +
+                    '<tr><th>Payments received</th><td>' + st.payments + ' (' + Site.money(st.totalPaid) + ')</td></tr></table></div>' +
+                    '<p><button class="gbtn grey" id="stop">Stop my claim</button></p>';
+            } else {
+                html += '<p class="lead">Support for people who are out of work.</p>' +
+                    '<table class="kv"><tr><th>You get</th><td>' + rate + '</td></tr><tr><th>Paid into</th><td>Your bank account</td></tr></table>';
+                if (st.eligible) {
+                    html += '<p style="margin-top:14px"><button class="gbtn block" id="claim">Start my claim</button></p>' +
+                        '<p class="fine">You can stop at any time. Taking a job pauses your payments.</p>';
+                } else {
+                    html += '<div class="status warn"><h3>You can’t claim right now</h3><p>You can only claim while you are out of work. Your current job is <b>' + esc(st.jobLabel || 'unknown') + '</b>.</p></div>';
+                }
+                if (st.payments) html += '<p class="fine">Your previous claim paid ' + st.payments + ' time' + (st.payments === 1 ? '' : 's') + ' (' + Site.money(st.totalPaid) + ').</p>';
+            }
+            setPage('Claim benefits', html, BEN_TRAIL);
+            var claim = document.getElementById('claim');
+            if (claim) claim.onclick = function () {
+                claim.disabled = true;
+                Site.call('benefitsClaim').then(function () { flash = { kind: 'good', text: 'Your claim has started. We have emailed you the details.' }; pBenefits(); })
+                    .catch(function (e) { flash = { kind: 'bad', text: e.message }; pBenefits(); });
+            };
+            var stop = document.getElementById('stop');
+            if (stop) stop.onclick = function () {
+                if (!stop.getAttribute('data-sure')) { stop.setAttribute('data-sure', '1'); stop.textContent = 'Yes, stop my claim'; return; }
+                stop.disabled = true;
+                Site.call('benefitsStop').then(function () { flash = { kind: 'good', text: 'Your claim has stopped.' }; pBenefits(); })
+                    .catch(function (e) { flash = { kind: 'bad', text: e.message }; pBenefits(); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    // ---- marriage
+    var MAR_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Births, deaths, marriages and care', go: '/browse/life' }, { t: 'Get married' }];
+
+    function pMarriage(err, partnerText) {
+        var my = ++token;
+        loading();
+        Site.call('marriageState').then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>Get married</h1>' + flashHtml();
+            var act = function (name, data, ok) {
+                return function () {
+                    var b = this; b.disabled = true;
+                    Site.call(name, data).then(function (r) { flash = { kind: 'good', text: ok(r) }; pMarriage(); })
+                        .catch(function (e) { flash = { kind: 'bad', text: e.message }; pMarriage(); });
+                };
+            };
+            if (st.married) {
+                var m = st.married;
+                html += '<div class="status good"><span class="k">Your marriage</span><h3>Married to ' + esc(m.spouse) + '</h3>' +
+                    '<table class="kv"><tr><th>Certificate number</th><td>' + esc(m.number) + '</td></tr>' +
+                    '<tr><th>Date</th><td>' + Site.date(m.marriedAt) + '</td></tr><tr><th>Place</th><td>' + esc(m.place) + '</td></tr></table>' +
+                    '<p class="fine" style="margin-top:10px">Use the certificate in your inventory to read it or show it to someone.</p></div>' +
+                    '<h2>Lost your certificate?</h2><p>' + (m.copyFree ? 'Your certificate has not been added to your inventory yet. Collect it for free.' : 'Order another copy for <b>' + Site.money(st.copyPrice) + '</b>.') + '</p>' +
+                    '<p><button class="gbtn" id="copy">' + (m.copyFree ? 'Collect my certificate' : 'Get a copy for ' + Site.money(st.copyPrice)) + '</button></p>';
+                setPage('Get married', html, MAR_TRAIL);
+                document.getElementById('copy').onclick = act('marriageCopy', {}, function (r) { return 'Your certificate has been added to your inventory.'; });
+                return;
+            }
+            if (st.incoming) {
+                var i = st.incoming;
+                html += '<div class="status warn"><span class="k">A proposal for you</span><h3>' + esc(i.from) + ' has asked to marry you</h3>' +
+                    '<p>If you accept, ' + esc(i.from) + ' pays the ' + Site.money(i.price) + ' fee and you both get a marriage certificate. They need to be online.</p>' +
+                    '<p class="fine">This proposal runs out at ' + Site.datetime(i.expiresAt) + '.</p></div>' +
+                    '<p><button class="gbtn" id="accept">Accept and marry</button> <button class="gbtn grey" id="decline">Decline</button></p>';
+                setPage('Get married', html, MAR_TRAIL);
+                document.getElementById('accept').onclick = act('marriageRespond', { id: i.id, accept: true }, function (r) { return 'Congratulations! You are married to ' + r.spouse + '.'; });
+                document.getElementById('decline').onclick = act('marriageRespond', { id: i.id, accept: false }, function () { return 'You have declined the proposal.'; });
+                return;
+            }
+            if (st.outgoing) {
+                var o = st.outgoing;
+                html += '<div class="status warn"><span class="k">Your proposal</span><h3>Waiting for ' + esc(o.to) + '</h3>' +
+                    '<p>They can answer on this website. Stay online: you pay the ' + Site.money(st.price) + ' fee when they accept.</p>' +
+                    '<p class="fine">It runs out at ' + Site.datetime(o.expiresAt) + '.</p></div>' +
+                    '<p><button class="gbtn grey" id="withdraw">Withdraw my proposal</button></p>';
+                setPage('Get married', html, MAR_TRAIL);
+                document.getElementById('withdraw').onclick = act('marriageCancel', {}, function () { return 'Your proposal has been withdrawn.'; });
+                return;
+            }
+            html += '<p class="lead">Ask someone to marry you. They accept on this website, and you both get a marriage certificate.</p>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<form id="f"><label class="field"><span class="lbl">Who do you want to marry?</span>' +
+                '<span class="hint">Their full character name or server ID. They need to be online.</span>' +
+                '<input type="text" id="partner" maxlength="60" autocomplete="off" spellcheck="false" value="' + esc(partnerText || '') + '"></label>' +
+                '<table class="kv"><tr><th>Fee</th><td><b>' + Site.money(st.price) + '</b>, paid by you when they accept</td></tr>' +
+                '<tr><th>Proposal lasts</th><td>' + minutesText(st.proposalMinutes) + '</td></tr></table>' +
+                '<button class="gbtn block" type="submit">Send proposal</button></form>';
+            setPage('Get married', html, MAR_TRAIL);
+            document.getElementById('f').onsubmit = function (e) {
+                e.preventDefault();
+                var text = document.getElementById('partner').value;
+                if (!text.trim()) return pMarriage('Enter who you want to marry.', text);
+                Site.call('marriagePropose', { partner: text }).then(function (r) {
+                    flash = { kind: 'good', text: 'Your proposal has been sent to ' + r.to + '.' }; pMarriage();
+                }).catch(function (e2) { pMarriage(e2.message, text); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    // ---- register a business
+    var BUS_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Working, jobs and pensions', go: '/browse/work' }, { t: 'Register a business' }];
+
+    function pBusiness(err, form) {
+        var my = ++token;
+        form = form || {};
+        loading();
+        Site.call('businessState').then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>Register a business</h1>' + flashHtml();
+            var active = st.businesses.filter(function (b) { return b.status === 'active'; });
+            var closed = st.businesses.filter(function (b) { return b.status !== 'active'; });
+            if (active.length) {
+                html += '<h2>Your businesses</h2><div class="glist">' + active.map(function (b) {
+                    return '<div><b>' + esc(b.name) + '</b> <span class="tag good">Registered</span>' +
+                        '<div class="desc">' + esc(b.type) + ' · registration number ' + esc(b.number) + ' · since ' + Site.date(b.registeredAt) + '</div>' +
+                        (b.description ? '<div class="desc">' + esc(b.description) + '</div>' : '') +
+                        '<p style="margin:8px 0 0"><button class="gbtn" data-copy="' + b.id + '">' + (b.copyFree ? 'Collect certificate' : 'Certificate copy ' + Site.money(st.copyPrice)) + '</button> ' +
+                        '<button class="gbtn grey" data-close="' + b.id + '">Close this business</button></p></div>';
+                }).join('') + '</div>';
+            }
+            if (closed.length) {
+                html += '<p class="fine">Closed: ' + closed.map(function (b) { return esc(b.name); }).join(', ') + '</p>';
+            }
+            if (st.allowed) {
+                html += '<h2>' + (active.length ? 'Register another business' : 'Register your business') + '</h2>' +
+                    (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                    '<form id="f"><label class="field"><span class="lbl">Business name</span>' +
+                    '<span class="hint">' + st.nameMin + ' to ' + st.nameMax + ' characters. Each name can only be registered once.</span>' +
+                    '<input type="text" id="bname" maxlength="' + st.nameMax + '" autocomplete="off" value="' + esc(form.name || '') + '"></label>' +
+                    '<label class="field"><span class="lbl">Type of business</span><select id="btype">' +
+                    st.types.map(function (t) { return '<option' + (t === form.type ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select></label>' +
+                    '<label class="field"><span class="lbl">What does it do? (optional)</span><input type="text" id="bdesc" maxlength="' + st.descriptionMax + '" autocomplete="off" value="' + esc(form.description || '') + '"></label>' +
+                    '<table class="kv"><tr><th>Fee</th><td><b>' + Site.money(st.price) + '</b></td></tr></table>' +
+                    '<p class="fine">The payment is taken from your bank account. You get a certificate of registration in your inventory.</p>' +
+                    '<button class="gbtn block" type="submit" id="reg">Pay ' + Site.money(st.price) + ' and register</button></form>';
+            } else {
+                html += '<div class="status warn"><h3>You can’t register another business</h3><p>' + esc(st.reason || '') + '</p></div>';
+            }
+            setPage('Register a business', html, BUS_TRAIL);
+            Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (b) {
+                b.onclick = function () {
+                    b.disabled = true;
+                    Site.call('businessCopy', { id: +b.getAttribute('data-copy') }).then(function () { flash = { kind: 'good', text: 'The certificate has been added to your inventory.' }; pBusiness(); })
+                        .catch(function (e) { flash = { kind: 'bad', text: e.message }; pBusiness(); });
+                };
+            });
+            Array.prototype.forEach.call(document.querySelectorAll('[data-close]'), function (b) {
+                b.onclick = function () {
+                    if (!b.getAttribute('data-sure')) { b.setAttribute('data-sure', '1'); b.textContent = 'Yes, close it (no refund)'; return; }
+                    b.disabled = true;
+                    Site.call('businessClose', { id: +b.getAttribute('data-close') }).then(function (r) { flash = { kind: 'good', text: r.name + ' has been closed.' }; pBusiness(); })
+                        .catch(function (e) { flash = { kind: 'bad', text: e.message }; pBusiness(); });
+                };
+            });
+            var f = document.getElementById('f');
+            if (f) f.onsubmit = function (e) {
+                e.preventDefault();
+                var data = { name: document.getElementById('bname').value, type: document.getElementById('btype').value, description: document.getElementById('bdesc').value };
+                document.getElementById('reg').disabled = true;
+                Site.call('businessRegister', data).then(function (r) {
+                    flash = { kind: 'good', text: r.name + ' is registered (number ' + r.number + '). ' + (r.itemGiven ? 'Your certificate is in your inventory.' : 'Collect your certificate below.') };
+                    pBusiness();
+                }).catch(function (e2) { pBusiness(e2.message, data); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
     // ------------------------------------------------------------------ council tax
 
     var CT_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Money and tax', go: '/browse/money' }, { t: 'Pay your council tax', go: '/council-tax' }];
@@ -777,6 +1114,15 @@
             if (p[1] === 'history') return pCouncilHistory();
             return pCouncil();
         }
+        if (head === 'birth-certificate') {
+            if (p[1] === 'order') return pBirthcertOrder();
+            if (p[1] === 'done') return pBirthcertDone();
+            return pBirthcert();
+        }
+        if (head === 'pay-fine') return pFines();
+        if (head === 'benefits') return pBenefits();
+        if (head === 'marriage') return pMarriage();
+        if (head === 'register-business') return pBusiness();
         if (head === 'passport') {
             if (p[1] === 'apply' && p[2]) return pPassportApply(decodeURIComponent(p[2]));
             if (p[1] === 'done') return pPassportDone();
