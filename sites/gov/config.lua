@@ -54,6 +54,13 @@ Config.gov = {
         },
     },
 
+    -- Driving licence pages (need the as-drivingschool resource; fees and test booking are set in its config.lua).
+    licence = {
+        resource  = 'as-drivingschool',
+        authority = 'Driver and Vehicle Licensing Agency',
+        mailFrom  = { name = 'DVLA', email = 'noreply@lsgov.co.uk' },
+    },
+
     -- Show "Insured / Not insured" on the vehicle checker when the CoverCompare site is on.
     showInsurance = true,
 
@@ -80,8 +87,10 @@ Config.gov = {
           keywords = { 'road tax', 'ved', 'renew', 'pay', 'car', 'bike' } },
         { id = 'book-mot', title = 'Book an MOT test', category = 'driving', status = 'placeholder',
           description = 'Book a test for your vehicle.', keywords = { 'mot', 'test', 'booking', 'garage' } },
-        { id = 'driving-licence', title = 'Apply for a driving licence', category = 'driving', status = 'placeholder',
-          description = 'Apply for, renew or replace a driving licence.', keywords = { 'licence', 'license', 'driving test', 'provisional' } },
+        -- Needs the as-drivingschool resource running.
+        { id = 'driving-licence', title = 'Driving licence and tests', category = 'driving', status = 'live', path = '/driving-licence', popular = true,
+          description = 'See your licence and penalty points, book your theory and practical tests, or replace a lost licence.',
+          keywords = { 'licence', 'license', 'driving test', 'theory', 'practical', 'provisional', 'points', 'penalty', 'replace', 'lost' } },
 
         -- Needs the as-passport resource running. Prices, waiting time and delivery are set in as-passport/config.lua.
         { id = 'passport', title = 'Apply for a passport', category = 'passports', status = 'live', path = '/passport', popular = true,
@@ -106,7 +115,5 @@ Config.gov = {
         { id = 'find-job', title = 'Find a job', category = 'work', status = 'live', linkSite = 'jobs', popular = true,
           description = 'Browse jobs and apply through Los Santos Careers.', keywords = { 'jobs', 'careers', 'apply', 'work', 'application' } },
 
-        { id = 'contact-police', title = 'Contact the police', category = 'crime', status = 'placeholder',
-          description = 'Report a crime or get in touch.', keywords = { 'report', 'crime', 'lspd', '999', '101' } },
     },
 }

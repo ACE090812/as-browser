@@ -557,6 +557,199 @@
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
+    // ------------------------------------------------------------------ driving licence
+
+    var DL_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Driving and transport', go: '/browse/driving' }, { t: 'Driving licence and tests', go: '/driving-licence' }];
+    var dlReceipt = null;
+
+    function loadLicence() { return Site.call('licenceState'); }
+    function dlTrail(extra) { return DL_TRAIL.slice(0, 2).concat(extra ? DL_TRAIL.slice(2).concat(extra) : [{ t: 'Driving licence and tests' }]); }
+
+    function dlTypeLabel(l) {
+        if (l.suspended) return '<span class="tag bad">Suspended</span>';
+        if (l.type === 'full') return '<span class="tag good">Full licence</span>';
+        if (l.type === 'provisional') return '<span class="tag warn">Provisional licence</span>';
+        return '<span class="tag">No licence yet</span>';
+    }
+
+    function dlTestCard(title, sub, fee, tag, action) {
+        return '<div class="veh"><div class="vrow"><b>' + title + '</b>' + tag + '</div><div class="meta">' + sub + ' · Fee ' + Site.money(fee) + '</div>' + action + '</div>';
+    }
+
+    function pLicence() {
+        var my = ++token;
+        loading();
+        loadLicence().then(function (st) {
+            if (my !== token) return;
+            var l = st.licence, b = st.booking, html = '<h1>Driving licence and tests</h1>';
+
+            var pts = l.points, ptsCls = pts >= l.maxPoints ? 'bad' : (pts >= l.maxPoints - 3 ? 'warn' : 'good');
+            html += '<div class="status ' + (l.suspended ? 'bad' : (l.type === 'full' ? 'good' : 'warn')) + '"><span class="k">Your licence</span><h3>' + dlTypeLabel(l) + '</h3>' +
+                '<table class="kv"><tr><th>Categories</th><td>' + (l.categories.length ? l.categories.map(function (c) { return '<span class="tag good">' + esc(c) + '</span>'; }).join(' ') : 'None yet') + '</td></tr>' +
+                '<tr><th>Penalty points</th><td><span class="tag ' + ptsCls + '">' + pts + ' of ' + l.maxPoints + '</span></td></tr>' +
+                (l.issueDate && l.type !== 'none' ? '<tr><th>Issued</th><td>' + esc(l.issueDate) + '</td></tr>' : '') + '</table>' +
+                (l.suspended ? '<p>Your licence has been suspended, so you can’t book any tests.</p>' : '') + '</div>';
+
+            if (!b.passportOk && b.passportMessage) {
+                html += '<div class="status warn"><h3>You need a passport</h3><p>' + esc(b.passportMessage) + '</p><p><a class="glink" data-go="/passport">Apply for a passport</a></p></div>';
+            }
+
+            html += '<h2>Book a test</h2>';
+            if (!b.required) {
+                html += '<p class="muted">Tests do not need to be booked. Take them at ' + esc(b.centre) + '.</p>';
+            } else {
+                var t = b.theory, tTag = t.passed ? '<span class="tag good">Passed</span>' : (t.booked ? '<span class="tag good">Booked</span>' : '');
+                html += '<div class="stack">' + dlTestCard('Theory test', '15 questions from the Highway Code', t.fee, tTag,
+                    t.canBook ? '<button class="gbtn" data-go="/driving-licence/book/theory">Book · ' + Site.money(t.fee) + '</button>' :
+                    (t.reason && !t.passed && !t.booked ? '<span class="fine">' + esc(t.reason) + '</span>' : '<span class="fine">' + (t.booked ? 'Take it at ' + esc(b.centre) + '.' : 'Nothing to book.') + '</span>'));
+                b.practical.filter(function (c) { return !c.held; }).forEach(function (c) {
+                    html += dlTestCard(esc(c.icon || '') + ' Practical test · ' + esc(c.label) + ' (' + esc(c.name) + ')', esc(c.description || ''), c.fee,
+                        c.booked ? '<span class="tag good">Booked</span>' : '',
+                        c.canBook ? '<button class="gbtn" data-go="/driving-licence/book/practical/' + esc(encodeURIComponent(c.label)) + '">Book · ' + Site.money(c.fee) + '</button>' :
+                        '<span class="fine">' + (c.booked ? 'Take it at ' + esc(b.centre) + '.' : esc(c.reason || '')) + '</span>');
+                });
+                html += '</div><p class="fine" style="margin-top:12px">Take your tests at ' + esc(b.centre) + '. A booking is used up when you take the test, pass or fail.</p>';
+            }
+
+            html += '<h2>Other services</h2><div class="glist">' +
+                (l.replace && l.replace.pending ? '<div><a class="glink" data-go="/driving-licence/replace">Your replacement licence</a><div class="desc">On its way · ready by ' + Site.datetime(l.replace.pending.readyAt) + '</div></div>' :
+                    (l.canReplace ? '<div><a class="glink" data-go="/driving-licence/replace">Replace a lost licence</a><div class="desc">Fee ' + Site.money(l.replaceFee) + ' · delivered to a Postal Prime locker</div></div>' : '')) +
+                '<div><a class="glink" data-go="/driving-licence/history">Test history and penalty points</a></div></div>';
+            setPage('Driving licence and tests', html, dlTrail());
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pLicenceBook(kind, category, err) {
+        var my = ++token;
+        loading();
+        loadLicence().then(function (st) {
+            if (my !== token) return;
+            var b = st.booking, entry, title, sub;
+            if (kind === 'theory') { entry = b.theory; title = 'Theory test'; sub = '15 questions from the Highway Code'; }
+            else { entry = byId(b.practical.map(function (c) { c.id = c.label; return c; }), category); title = entry ? 'Practical test · ' + entry.label + ' (' + entry.name + ')' : ''; sub = entry ? entry.description : ''; }
+            if (!entry) return pNotFound();
+            if (!entry.canBook) {
+                setPage('Book a test', '<h1>Book a test</h1><div class="status warn"><h3>You can’t book this right now</h3><p>' + esc(entry.reason || '') + '</p></div>' +
+                    '<p><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail());
+                return;
+            }
+            setPage('Confirm and pay',
+                '<h1>Confirm and pay</h1><p><b>' + esc(title) + '</b></p>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<table class="kv"><tr><th>Test</th><td>' + esc(title) + '</td></tr>' + (sub ? '<tr><th>About</th><td>' + esc(sub) + '</td></tr>' : '') +
+                '<tr><th>Take it at</th><td>' + esc(b.centre) + '</td></tr>' +
+                '<tr><th>Amount to pay</th><td><b>' + Site.money(entry.fee) + '</b></td></tr></table>' +
+                '<p class="fine" style="margin-top:12px">The payment is taken from your bank account. Your booking is used up when you take the test, pass or fail.</p>' +
+                '<button class="gbtn block" id="pay">Pay ' + Site.money(entry.fee) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/driving-licence">Cancel</a></p>', dlTrail([{ t: 'Confirm' }]));
+            document.getElementById('pay').onclick = function () {
+                var btn = this;
+                btn.disabled = true; btn.textContent = 'Processing…';
+                Site.call('licenceBook', { kind: kind, category: category || '' }).then(function (r) {
+                    dlReceipt = { book: r }; Site.go('/driving-licence/booked');
+                }).catch(function (e) { pLicenceBook(kind, category, e.message); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pLicenceBooked() {
+        if (!dlReceipt || !dlReceipt.book) return Site.go('/driving-licence');
+        var r = dlReceipt.book;
+        setPage('Test booked',
+            '<div class="receipt"><h1>Test booked</h1><p style="margin:0">' + esc(r.label) + '</p></div>' +
+            '<table class="kv"><tr><th>Amount paid</th><td>' + Site.money(r.price) + '</td></tr><tr><th>Take it at</th><td>' + esc(r.centre) + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">We have emailed you a confirmation. Your booking is used up when you take the test, pass or fail.</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail([{ t: 'Booked' }]));
+    }
+
+    function pLicenceReplace(err, lockerPick) {
+        var my = ++token;
+        loading();
+        loadLicence().then(function (st) {
+            if (my !== token) return;
+            var l = st.licence, r = l.replace || {};
+            if (r.pending) {
+                var p = r.pending;
+                setPage('Replacement licence', '<h1>Your replacement licence</h1><div class="status good"><h3>On its way</h3>' +
+                    '<p>' + (p.late ? 'It is being sent to you now.' : 'It will be ready by ' + Site.datetime(p.readyAt) + '.') + '</p>' +
+                    (p.lockerLabel ? '<p>We will send it to <b>' + esc(p.lockerLabel) + '</b>. You will get an email and a notification, then collect it with a pickup code from Postal Prime.</p>' : '<p>It will be added to your inventory when it is ready.</p>') +
+                    '<p>Your old licence was cancelled when you ordered.</p></div>' +
+                    '<p><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail());
+                return;
+            }
+            if (!r.canReplace) {
+                setPage('Replace a licence', '<h1>Replace a lost licence</h1><div class="status warn"><h3>You can’t do this right now</h3><p>' + esc(r.reason || 'You don’t have a licence to replace.') + '</p></div>' +
+                    '<p><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail());
+                return;
+            }
+            var pick = lockerPick || (r.lockers[0] && r.lockers[0].id) || '';
+            var where;
+            if (r.mode === 'locker') {
+                where = '<div class="field"><span class="lbl">Where should we send it?</span><span class="hint">You collect it from a Postal Prime locker with a pickup code.</span>' +
+                    r.lockers.map(function (lk) {
+                        return '<label class="checkrow" style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="radio" name="locker" value="' + esc(lk.id) + '"' + (lk.id === pick ? ' checked' : '') + ' style="width:22px;height:22px"><span>' + esc(lk.label) + '</span></label>';
+                    }).join('') + '</div>';
+            } else {
+                where = '<p class="fine">Your new licence will be added to your inventory when it is ready.</p>';
+            }
+            setPage('Replace a licence',
+                '<h1>Replace a lost licence</h1><p class="lead">Only use this if your licence has been lost, stolen or destroyed.</p>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<table class="kv"><tr><th>Categories</th><td>' + esc(l.categories.join(' · ') || '-') + '</td></tr>' +
+                '<tr><th>Ready in about</th><td>' + waitText(r.waitSeconds) + '</td></tr>' +
+                '<tr><th>Amount to pay</th><td><b>' + Site.money(r.fee) + '</b></td></tr></table>' +
+                '<div class="status bad"><h3>Your old licence will be cancelled straight away</h3><p>You will not be able to use it again, even if you find it. The new licence keeps your categories.</p></div>' +
+                where +
+                '<p class="fine">The payment is taken from your bank account.</p>' +
+                '<button class="gbtn block" id="pay"' + (r.mode === 'locker' && !r.lockers.length ? ' disabled' : '') + '>Pay ' + Site.money(r.fee) + ' and order</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/driving-licence">Cancel</a></p>', dlTrail([{ t: 'Replace' }]));
+            document.getElementById('pay').onclick = function () {
+                var btn = this, lockerId;
+                var rad = document.querySelector('input[name="locker"]:checked');
+                if (r.mode === 'locker') { if (!rad) return; lockerId = rad.value; }
+                btn.disabled = true; btn.textContent = 'Processing…';
+                Site.call('licenceReplace', { lockerId: lockerId }).then(function (res) {
+                    dlReceipt = { replace: res }; Site.go('/driving-licence/replaced');
+                }).catch(function (e) { pLicenceReplace(e.message, lockerId); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pLicenceReplaced() {
+        if (!dlReceipt || !dlReceipt.replace) return Site.go('/driving-licence');
+        var r = dlReceipt.replace;
+        setPage('Order received',
+            '<div class="receipt"><h1>Order received</h1><p style="margin:0">We will send your replacement licence when it is ready.</p></div>' +
+            '<table class="kv"><tr><th>Amount paid</th><td>' + Site.money(r.fee) + '</td></tr>' +
+            '<tr><th>Ready by</th><td>' + Site.datetime(r.readyAt) + '</td></tr>' +
+            '<tr><th>Delivery</th><td>' + (r.lockerLabel ? esc(r.lockerLabel) + ' (Postal Prime locker)' : 'Your inventory') + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">We have emailed you a confirmation. Your old licence has been cancelled. You will get a notification when the new one has been sent.</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail([{ t: 'Done' }]));
+    }
+
+    function pLicenceHistory() {
+        var my = ++token;
+        loading();
+        loadLicence().then(function (st) {
+            if (my !== token) return;
+            var l = st.licence;
+            var html = '<h1>Test history and penalty points</h1><h2>Theory tests</h2>';
+            html += l.theoryTests.length ? '<div class="glist">' + l.theoryTests.map(function (t) {
+                return '<div><div class="vrow"><b>' + t.score + ' / ' + t.max + '</b><span class="tag ' + (t.passed ? 'good' : 'bad') + '">' + (t.passed ? 'Pass' : 'Fail') + '</span></div><div class="desc">' + esc(t.date) + '</div></div>';
+            }).join('') + '</div>' : '<p class="muted">No theory tests taken.</p>';
+            html += '<h2>Practical tests</h2>';
+            html += l.practicalTests.length ? '<div class="glist">' + l.practicalTests.map(function (t) {
+                return '<div><div class="vrow"><b>Category ' + esc(t.category) + '</b><span class="tag ' + (t.passed ? 'good' : 'bad') + '">' + (t.passed ? 'Pass' : 'Fail') + '</span></div><div class="desc">' + esc(t.date) + ' · ' + t.minor + ' minor, ' + t.major + ' major faults</div></div>';
+            }).join('') + '</div>' : '<p class="muted">No practical tests taken.</p>';
+            html += '<h2>Penalty points (' + l.points + ' of ' + l.maxPoints + ')</h2>';
+            html += l.penalties.length ? '<div class="glist">' + l.penalties.map(function (t) {
+                return '<div><div class="vrow"><b>' + esc(t.offence) + '</b><span class="tag bad">' + t.points + ' pts</span></div><div class="desc">' + esc(t.date) + (t.by ? ' · ' + esc(t.by) : '') + '</div></div>';
+            }).join('') + '</div>' : '<p class="muted">You have no penalty points.</p>';
+            html += '<p style="margin-top:16px"><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>';
+            setPage('Test history', html, dlTrail([{ t: 'History' }]));
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
     // ------------------------------------------------------------------ router
 
     function render(path) {
@@ -569,6 +762,15 @@
         if (head === 'search') return pSearch(p[1]);
         if (head === 's') return pService(p[1]);
         if (head === 'vehicle-checker') return p[1] ? pCheckerResult(plateKey(p[1])) : pCheckerForm();
+        if (head === 'driving-licence') {
+            if (p[1] === 'book' && p[2] === 'theory') return pLicenceBook('theory', '');
+            if (p[1] === 'book' && p[2] === 'practical' && p[3]) return pLicenceBook('practical', decodeURIComponent(p[3]));
+            if (p[1] === 'booked') return pLicenceBooked();
+            if (p[1] === 'replace') return pLicenceReplace();
+            if (p[1] === 'replaced') return pLicenceReplaced();
+            if (p[1] === 'history') return pLicenceHistory();
+            return pLicence();
+        }
         if (head === 'council-tax') {
             if (p[1] === 'pay' && p[2]) return pCouncilPay(decodeURIComponent(p[2]));
             if (p[1] === 'done') return pCouncilDone();

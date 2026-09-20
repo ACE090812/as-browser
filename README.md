@@ -97,6 +97,10 @@ The government site has a live council tax service (`/council-tax`). Every home 
 
 Settings are in `sites/gov/config.lua` under `council`. The homes are read from your housing script: `housing = 'auto'` checks for qbx_properties, ps-housing and qb-houses, or set `'custom'` and fill in the table and column names. The console prints which one it found the first time a player opens the page. The code is in `sites/gov/server_council.lua`, and payments are kept in `browser_council_tax` and `browser_council_payments`.
 
+## Driving licence
+
+The government site has a live driving licence service (`/driving-licence`): the player's licence (status, categories, penalty points, test history), booking and paying for theory and practical tests, and ordering a replacement licence (delivered to a Postal Prime locker, like passports). The rules and fees live in the `as-drivingschool` resource (`Config.Fees`, `Config.Booking`); the site only passes requests through and adds the bank statement line and confirmation email (`sites/gov/server_licence.lua`). The resource name and email sender are in `sites/gov/config.lua` under `licence`. If the resource is stopped the pages say the service is not available. MOT results from that script show up in the vehicle checker through `setMotResult`; booking an MOT on the site is not part of this service (`mot.enabled` stays `false`).
+
 ## Adding your own site
 
 1. Copy `sites/_template` to `sites/mysite`.
