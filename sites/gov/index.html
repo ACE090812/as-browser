@@ -57,7 +57,29 @@
     .receipt h1 { color: #fff; margin: 0 0 6px; }
     .foot { margin-top: 34px; padding: 16px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 13px; }
     .foot b { color: var(--fg); }
+    .opts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+    .opt { min-height: 46px; padding: 6px 14px; background: var(--surface); border: 2px solid var(--line); color: var(--fg); font-weight: 700; font-size: 15.5px; text-align: center; line-height: 1.25; }
+    .opt small { display: block; font-weight: 400; font-size: 12.5px; color: var(--muted); }
+    .opt.on { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+    .opt.on small { color: inherit; }
+    .opt:disabled { opacity: .4; }
+    .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+    .acts { display: flex; flex-wrap: wrap; gap: 8px; }
     .fine { font-size: 13.5px; color: var(--muted); }
+    .meter { height: 12px; background: var(--surface-2); margin: 10px 0 6px; }
+    .meter i { display: block; height: 100%; background: #00703c; }
+    .meter i.warn { background: #f47738; }
+    .meter i.bad { background: #d4351c; }
+    .chk { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .chk .ic { flex: 0 0 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 15px; background: var(--muted); }
+    .chk.pass .ic { background: #00703c; }
+    .chk.warn .ic { background: #f47738; }
+    .chk.fail .ic { background: #d4351c; }
+    .chk .desc { color: var(--muted); font-size: 14.5px; margin-top: 2px; }
+    .paper { border: 3px double var(--fg); padding: 16px; margin: 12px 0; background: var(--surface); }
+    .paper .ptitle { font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .paper .pnum { font-size: 22px; font-weight: 800; letter-spacing: .04em; margin: 4px 0 10px; word-break: break-all; }
+    .bigin { text-transform: uppercase; font-size: 24px; font-weight: 800; letter-spacing: .06em; max-width: 300px; border: 2px solid var(--fg); border-radius: 0; }
 </style>
 </head>
 <body>
@@ -67,7 +89,7 @@
         <div><span id="govName">Los Santos Government</span><span class="sub">lsgov.co.uk</span></div>
     </div>
 </div>
-<div class="banner">A fictional service for the Life In The 90s server. Not connected to any real government.</div>
+<div class="banner" data-i18n="gov.banner">A fictional service for the Life In The 90s server. Not connected to any real government.</div>
 <div class="crumbs" id="crumbs"></div>
 <div class="page" id="app"><div class="spinner"></div></div>
 <div class="foot" id="foot"><b>Los Santos Government</b><br>Roleplay use only</div>
@@ -105,8 +127,8 @@
     }
     function loading() { app.innerHTML = '<div class="spinner"></div>'; }
     function failure(e) {
-        app.innerHTML = '<div class="notice bad">' + esc(e && e.message ? e.message : 'Something went wrong.') + '</div>' +
-            '<p style="margin-top:14px"><a class="glink" data-go="/">Back to the homepage</a></p>';
+        app.innerHTML = '<div class="notice bad">' + esc(e && e.message ? e.message : t('gov.error')) + '</div>' +
+            '<p style="margin-top:14px"><a class="glink" data-go="/">' + esc(t('gov.backHome')) + '</a></p>';
     }
     function days(ts, now) { return Math.ceil((ts - now) / 86400); }
 
@@ -114,14 +136,14 @@
 
     function pHome() {
         var popular = home.services.filter(function (s) { return s.popular; });
-        setPage('Home',
+        setPage(t('gov.home'),
             '<h1>' + esc(home.name) + '</h1>' +
-            '<p class="lead">Find government services and information.</p>' +
-            '<form class="search" id="q"><input type="search" id="qi" placeholder="Search services" aria-label="Search services"><button type="submit" aria-label="Search">&#128269;</button></form>' +
-            '<h2>Popular services</h2><div class="glist">' +
+            '<p class="lead">' + esc(t('gov.home.lead')) + '</p>' +
+            '<form class="search" id="q"><input type="search" id="qi" placeholder="' + esc(t('gov.search.placeholder')) + '" aria-label="' + esc(t('gov.search.placeholder')) + '"><button type="submit" aria-label="' + esc(t('gov.search.button')) + '">&#128269;</button></form>' +
+            '<h2>' + esc(t('gov.popular')) + '</h2><div class="glist">' +
             popular.map(function (s) { return '<div><a class="glink" data-go="' + esc(s.path) + '">' + esc(s.title) + '</a><div class="desc">' + esc(s.description) + '</div></div>'; }).join('') +
             '</div>' +
-            '<h2>Services and information</h2><div class="tiles">' +
+            '<h2>' + esc(t('gov.servicesInfo')) + '</h2><div class="tiles">' +
             home.categories.map(function (c) {
                 return '<button class="tile" data-go="/browse/' + esc(c.id) + '"><span class="ic">' + esc(c.icon || '') + '</span><b>' + esc(c.title) + '</b><span>' + esc(c.description || '') + '</span></button>';
             }).join('') + '</div>');
@@ -138,14 +160,14 @@
         var list = home.services.filter(function (s) { return s.category === id; });
         setPage(c.title,
             '<h1>' + esc(c.title) + '</h1><p class="lead">' + esc(c.description || '') + '</p>' +
-            '<div class="glist">' + (list.length ? list.map(serviceRow).join('') : '<div class="muted">Nothing here yet.</div>') + '</div>',
-            [{ t: 'Home', go: '/' }, { t: c.title }]);
+            '<div class="glist">' + (list.length ? list.map(serviceRow).join('') : '<div class="muted">' + esc(t('gov.nothingHere')) + '</div>') + '</div>',
+            [{ t: t('gov.home'), go: '/' }, { t: c.title }]);
     }
 
     function serviceRow(s) {
         var soon = s.status !== 'live';
         return '<div><a class="glink" data-go="' + esc(s.path) + '">' + esc(s.title) + '</a>' +
-            '<div class="desc">' + esc(s.description) + (soon ? ' <span class="tag">Not available yet</span>' : '') + '</div></div>';
+            '<div class="desc">' + esc(s.description) + (soon ? ' <span class="tag">' + esc(t('gov.notYet')) + '</span>' : '') + '</div></div>';
     }
 
     function pSearch(q) {
@@ -153,10 +175,10 @@
         var terms = q.toLowerCase().split(/\s+/).filter(Boolean);
         var hits = home.services.filter(function (s) {
             var hay = (s.title + ' ' + s.description).toLowerCase();
-            return terms.every(function (t) { return hay.indexOf(t) !== -1; });
+            return terms.every(function (term) { return hay.indexOf(term) !== -1; });
         });
-        setPage('Search', '<h1>Search results</h1><p class="muted">' + hits.length + ' result' + (hits.length === 1 ? '' : 's') + ' for “' + esc(q) + '”</p>' +
-            '<div class="glist">' + hits.map(serviceRow).join('') + '</div>', [{ t: 'Home', go: '/' }, { t: 'Search' }]);
+        setPage(t('gov.search'), '<h1>' + esc(t('gov.search.title')) + '</h1><p class="muted">' + esc(hits.length === 1 ? t('gov.search.results.one', hits.length, q) : t('gov.search.results.other', hits.length, q)) + '</p>' +
+            '<div class="glist">' + hits.map(serviceRow).join('') + '</div>', [{ t: t('gov.home'), go: '/' }, { t: t('gov.search') }]);
     }
 
     function pService(id) {
@@ -164,78 +186,80 @@
         if (!s) return pNotFound();
         if (s.status === 'live' && !s.link && s.path && s.path !== '/s/' + s.id) return Site.go(s.path);
         var cat = findCat(s.category);
-        var trail = [{ t: 'Home', go: '/' }, cat ? { t: cat.title, go: '/browse/' + cat.id } : { t: 'Services' }, { t: s.title }];
+        var trail = [{ t: t('gov.home'), go: '/' }, cat ? { t: cat.title, go: '/browse/' + cat.id } : { t: t('gov.crumb.services') }, { t: s.title }];
         var body;
         if (s.link) {
-            body = '<p class="lead">' + esc(s.description) + '</p><p><button class="gbtn" data-open="' + esc(s.link) + '">Continue</button></p>' +
-                '<p class="fine">You will go to ' + esc(s.link) + '</p>';
+            body = '<p class="lead">' + esc(s.description) + '</p><p><button class="gbtn" data-open="' + esc(s.link) + '">' + esc(t('gov.continue')) + '</button></p>' +
+                '<p class="fine">' + esc(t('gov.service.willGo', s.link)) + '</p>';
         } else if (s.id === 'book-mot' && !home.mot.enabled) {
-            body = '<div class="status warn"><h3>MOT booking opens soon</h3><p>Booking is not open yet. You can still check a vehicle’s details.</p></div>' +
-                '<p><a class="glink" data-go="/vehicle-checker">Check vehicle information</a></p>';
+            body = '<div class="status warn"><h3>' + esc(t('gov.service.motSoon.title')) + '</h3><p>' + esc(t('gov.service.motSoon.body')) + '</p></div>' +
+                '<p><a class="glink" data-go="/vehicle-checker">' + esc(t('gov.checker.title')) + '</a></p>';
         } else {
-            body = '<div class="status warn"><h3>This service is not available yet</h3><p>We are still building this service. Please check back later.</p></div>';
+            body = '<div class="status warn"><h3>' + esc(t('gov.service.soon.title')) + '</h3><p>' + esc(t('gov.service.soon.body')) + '</p></div>';
         }
         setPage(s.title, '<h1>' + esc(s.title) + '</h1>' + body, trail);
     }
 
     function pNotFound() {
-        setPage('Page not found', '<h1>Page not found</h1><p>If you typed the web address, check it is correct.</p><p><a class="glink" data-go="/">Go to the homepage</a></p>');
+        setPage(t('gov.notFound.title'), '<h1>' + esc(t('gov.notFound.title')) + '</h1><p>' + esc(t('gov.notFound.body')) + '</p><p><a class="glink" data-go="/">' + esc(t('gov.goHome')) + '</a></p>');
     }
 
     // ------------------------------------------------------------------ vehicle checker
 
     function pCheckerForm(err, val) {
-        setPage('Check vehicle information',
-            '<h1>Check vehicle information</h1>' +
-            '<p class="lead">Find out if a vehicle is taxed' + (home.mot.enabled ? ' and has an MOT' : '') + ' using its registration number.</p>' +
-            '<form id="f"><label class="field"><span class="lbl">Enter the registration number of the vehicle</span>' +
-            '<span class="hint">For example, CW54 XYZ or LS90 ABC</span>' +
+        setPage(t('gov.checker.title'),
+            '<h1>' + esc(t('gov.checker.title')) + '</h1>' +
+            '<p class="lead">' + esc(home.mot.enabled ? t('gov.checker.lead.taxMot') : t('gov.checker.lead.tax')) + '</p>' +
+            '<form id="f"><label class="field"><span class="lbl">' + esc(t('gov.checker.label')) + '</span>' +
+            '<span class="hint">' + esc(t('gov.checker.hint')) + '</span>' +
             '<input type="text" id="p" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-transform:uppercase;font-size:24px;font-weight:800;letter-spacing:.06em;max-width:280px;border:2px solid var(--fg);border-radius:0" value="' + esc(val || '') + '">' +
             (err ? '<span class="err">' + esc(err) + '</span>' : '') + '</label>' +
-            '<button class="gbtn" type="submit">Continue</button></form>',
-            [{ t: 'Home', go: '/' }, { t: 'Driving and transport', go: '/browse/driving' }, { t: 'Check vehicle information' }]);
+            '<button class="gbtn" type="submit">' + esc(t('gov.continue')) + '</button></form>',
+            [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.driving'), go: '/browse/driving' }, { t: t('gov.checker.title') }]);
         var f = document.getElementById('f');
         f.onsubmit = function (e) {
             e.preventDefault();
             var k = plateKey(document.getElementById('p').value);
-            if (k.length < 2) return pCheckerForm('Enter a registration number.', '');
+            if (k.length < 2) return pCheckerForm(t('gov.checker.enterPlate'), '');
             Site.go('/vehicle-checker/' + k);
         };
     }
 
     function taxBlock(v, now) {
-        var t = v.tax;
-        if (t.status === 'exempt') return '<div class="status good"><span class="k">Vehicle tax</span><h3>Exempt</h3><p>This vehicle does not need to be taxed.</p></div>';
-        if (t.status === 'taxed') {
-            var left = days(t.expiry, now);
-            return '<div class="status good"><span class="k">Vehicle tax</span><h3>Taxed</h3><p>Tax due: <b>' + Site.date(t.expiry) + '</b>' +
-                (left <= 7 ? ' <span class="tag warn">' + left + ' day' + (left === 1 ? '' : 's') + ' left</span>' : '') + '</p></div>';
+        var tx = v.tax;
+        var label = '<span class="k">' + esc(t('gov.block.tax')) + '</span>';
+        if (tx.status === 'exempt') return '<div class="status good">' + label + '<h3>' + esc(t('gov.block.tax.exempt')) + '</h3><p>' + esc(t('gov.block.tax.exemptText')) + '</p></div>';
+        if (tx.status === 'taxed') {
+            var left = days(tx.expiry, now);
+            return '<div class="status good">' + label + '<h3>' + esc(t('gov.block.tax.taxed')) + '</h3><p>' + t('gov.block.tax.due', Site.date(tx.expiry)) +
+                (left <= 7 ? ' <span class="tag warn">' + esc(left === 1 ? t('gov.block.tax.left.one', left) : t('gov.block.tax.left.other', left)) + '</span>' : '') + '</p></div>';
         }
-        return '<div class="status bad"><span class="k">Vehicle tax</span><h3>Untaxed</h3><p>Tax expired on <b>' + Site.date(t.expiry) + '</b>. You can’t drive this vehicle on the road until it is taxed.</p></div>';
+        return '<div class="status bad">' + label + '<h3>' + esc(t('gov.block.tax.untaxed')) + '</h3><p>' + t('gov.block.tax.expired', Site.date(tx.expiry)) + '</p></div>';
     }
 
     function motBlock(v, now) {
         var m = v.mot;
-        if (!m.enabled) return '<div class="status"><span class="k">MOT</span><h3>Not required yet</h3><p>MOT tests are not available in the city yet.</p></div>';
-        if (m.status === 'valid') return '<div class="status good"><span class="k">MOT</span><h3>Valid</h3><p>Expires: <b>' + Site.date(m.expiry) + '</b></p></div>';
-        if (m.status === 'expired') return '<div class="status bad"><span class="k">MOT</span><h3>Expired</h3><p>Expired on <b>' + Site.date(m.expiry) + '</b>.</p></div>';
-        if (m.status === 'failed') return '<div class="status bad"><span class="k">MOT</span><h3>No valid MOT</h3><p>The vehicle failed its last MOT test.</p></div>';
-        return '<div class="status warn"><span class="k">MOT</span><h3>No MOT recorded</h3><p>No MOT test has been recorded for this vehicle.</p></div>';
+        var label = '<span class="k">' + esc(t('gov.block.mot')) + '</span>';
+        if (!m.enabled) return '<div class="status">' + label + '<h3>' + esc(t('gov.block.mot.notRequired')) + '</h3><p>' + esc(t('gov.block.mot.notRequiredText')) + '</p></div>';
+        if (m.status === 'valid') return '<div class="status good">' + label + '<h3>' + esc(t('gov.block.mot.valid')) + '</h3><p>' + t('gov.block.mot.expires', Site.date(m.expiry)) + '</p></div>';
+        if (m.status === 'expired') return '<div class="status bad">' + label + '<h3>' + esc(t('gov.block.mot.expired')) + '</h3><p>' + t('gov.block.mot.expiredOn', Site.date(m.expiry)) + '</p></div>';
+        if (m.status === 'failed') return '<div class="status bad">' + label + '<h3>' + esc(t('gov.block.mot.noValid')) + '</h3><p>' + esc(t('gov.block.mot.failed')) + '</p></div>';
+        return '<div class="status warn">' + label + '<h3>' + esc(t('gov.block.mot.none')) + '</h3><p>' + esc(t('gov.block.mot.noneText')) + '</p></div>';
     }
 
     function insBlock(v) {
         if (!v.insurance) return '';
         var ok = v.insurance.status === 'insured';
-        return '<div class="status ' + (ok ? 'good' : 'bad') + '"><span class="k">Insurance</span><h3>' + (ok ? 'Insured' : 'Not insured') + '</h3>' +
-            (ok && v.insurance.endsAt ? '<p>Cover ends: <b>' + Site.date(v.insurance.endsAt) + '</b></p>' : '') + '</div>';
+        return '<div class="status ' + (ok ? 'good' : 'bad') + '"><span class="k">' + esc(t('gov.block.insurance')) + '</span><h3>' + esc(ok ? t('gov.block.insurance.yes') : t('gov.block.insurance.no')) + '</h3>' +
+            (ok && v.insurance.endsAt ? '<p>' + t('gov.block.insurance.ends', Site.date(v.insurance.endsAt)) + '</p>' : '') + '</div>';
     }
 
     function historyBlock(v) {
         if (!home.mot.enabled) return '';
         var h = v.motHistory || [];
-        if (!h.length) return '<h2>MOT history</h2><p class="muted">No MOT tests recorded.</p>';
-        return '<h2>MOT history</h2><div class="glist">' + h.map(function (r) {
-            return '<div><div class="vrow"><b>' + Site.date(r.testedAt) + '</b><span class="tag ' + (r.passed ? 'good' : 'bad') + '">' + (r.passed ? 'Pass' : 'Fail') + '</span></div>' +
+        if (!h.length) return '<h2>' + esc(t('gov.block.motHistory')) + '</h2><p class="muted">' + esc(t('gov.block.motHistory.none')) + '</p>';
+        return '<h2>' + esc(t('gov.block.motHistory')) + '</h2><div class="glist">' + h.map(function (r) {
+            return '<div><div class="vrow"><b>' + Site.date(r.testedAt) + '</b><span class="tag ' + (r.passed ? 'good' : 'bad') + '">' + esc(r.passed ? t('gov.pass') : t('gov.fail')) + '</span></div>' +
                 (r.details ? '<div class="desc">' + esc(r.details) + '</div>' : '') + '</div>';
         }).join('') + '</div>';
     }
@@ -245,27 +269,28 @@
         loading();
         Site.call('lookup', { plate: key }).then(function (v) {
             if (my !== token) return;
-            var trail = [{ t: 'Home', go: '/' }, { t: 'Driving and transport', go: '/browse/driving' }, { t: 'Check vehicle information', go: '/vehicle-checker' }, { t: v.plate || key }];
+            var trail = [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.driving'), go: '/browse/driving' }, { t: t('gov.checker.title'), go: '/vehicle-checker' }, { t: v.plate || key }];
             if (!v.found) {
-                setPage('Vehicle not found',
-                    '<h1>We couldn’t find that vehicle</h1><p>' + plateHtml(key) + '</p>' +
-                    '<div class="status bad"><h3>No record for this registration number</h3><p>Check it is correct and try again.</p></div>' +
-                    '<p><a class="gbtn" data-go="/vehicle-checker">Try another registration</a></p>', trail);
+                setPage(t('gov.checker.notFound.title'),
+                    '<h1>' + esc(t('gov.checker.notFound.h1')) + '</h1><p>' + plateHtml(key) + '</p>' +
+                    '<div class="status bad"><h3>' + esc(t('gov.checker.notFound.h3')) + '</h3><p>' + esc(t('gov.checker.notFound.body')) + '</p></div>' +
+                    '<p><a class="gbtn" data-go="/vehicle-checker">' + esc(t('gov.checker.tryAnother')) + '</a></p>', trail);
                 return;
             }
             setPage(v.plate,
-                '<h1>Vehicle details</h1><p>' + plateHtml(v.plate) + '</p>' +
-                '<table class="kv"><tr><th>Make</th><td>' + esc(v.make) + '</td></tr><tr><th>Model</th><td>' + esc(v.model) + '</td></tr>' +
-                '<tr><th>Colour</th><td>' + esc(v.colour) + '</td></tr><tr><th>Type</th><td>' + esc(v.class) + '</td></tr></table>' +
+                '<h1>' + esc(t('gov.checker.details')) + '</h1><p>' + plateHtml(v.plate) + '</p>' +
+                '<table class="kv"><tr><th>' + esc(t('gov.checker.make')) + '</th><td>' + esc(v.make) + '</td></tr><tr><th>' + esc(t('gov.checker.model')) + '</th><td>' + esc(v.model) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.checker.colour')) + '</th><td>' + esc(v.colour) + '</td></tr><tr><th>' + esc(t('gov.th.type')) + '</th><td>' + esc(v.class) + '</td></tr></table>' +
                 taxBlock(v, v.now) + motBlock(v, v.now) + insBlock(v) + historyBlock(v) +
-                (v.owned && v.tax.status !== 'exempt' ? '<p style="margin-top:16px"><a class="gbtn" data-go="/tax-vehicle/' + esc(plateKey(v.plate)) + '">Tax this vehicle</a></p>' : '') +
-                '<p style="margin-top:16px"><a class="glink" data-go="/vehicle-checker">Check another vehicle</a></p>', trail);
+                (v.owned && home.mot.enabled && findService('book-mot') && findService('book-mot').status === 'live' ? '<p style="margin-top:16px"><a class="gbtn" data-go="/book-mot/' + esc(plateKey(v.plate)) + '">' + esc(t('gov.mot.bookThis')) + '</a></p>' : '') +
+                (v.owned && v.tax.status !== 'exempt' ? '<p style="margin-top:16px"><a class="gbtn" data-go="/tax-vehicle/' + esc(plateKey(v.plate)) + '">' + esc(t('gov.checker.taxThis')) + '</a></p>' : '') +
+                '<p style="margin-top:16px"><a class="glink" data-go="/vehicle-checker">' + esc(t('gov.checker.another')) + '</a></p>', trail);
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
     // ------------------------------------------------------------------ tax a vehicle
 
-    var TAX_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Driving and transport', go: '/browse/driving' }, { t: 'Tax your vehicle', go: '/tax-vehicle' }];
+    function TAX_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.driving'), go: '/browse/driving' }, { t: t('gov.taxList.title'), go: '/tax-vehicle' }]; }
 
     function loadGarage() {
         return Site.call('myVehicles').then(function (g) { garage = g; return g; });
@@ -276,23 +301,23 @@
         loading();
         loadGarage().then(function (g) {
             if (my !== token) return;
-            var html = '<h1>Tax your vehicle</h1><p class="lead">Choose the vehicle you want to tax. You can only tax vehicles you own.</p>';
+            var html = '<h1>' + esc(t('gov.taxList.title')) + '</h1><p class="lead">' + esc(t('gov.taxList.lead')) + '</p>';
             if (!g.vehicles.length) {
-                html += '<div class="status warn"><h3>You don’t have any vehicles</h3><p>Vehicles registered to you will appear here.</p></div>';
+                html += '<div class="status warn"><h3>' + esc(t('gov.taxList.none.title')) + '</h3><p>' + esc(t('gov.taxList.none.body')) + '</p></div>';
             } else {
                 html += g.vehicles.map(function (v) {
-                    var t = v.tax, left = t.expiry ? days(t.expiry, g.now) : 0, st;
-                    if (t.status === 'exempt') st = '<span class="tag good">Exempt</span>';
-                    else if (t.status === 'taxed') st = '<span class="tag good">Taxed until ' + Site.date(t.expiry) + '</span>';
-                    else st = '<span class="tag bad">Untaxed</span>';
-                    var action = t.status === 'exempt' ? '' :
-                        v.canRenew ? '<button class="gbtn" data-go="/tax-vehicle/' + esc(v.plateKey) + '">Tax this vehicle · ' + Site.money(t.rate) + '</button>' :
-                        '<span class="fine">You can tax this vehicle again in the last ' + g.renewWindowDays + ' days (' + Math.max(0, left - g.renewWindowDays) + ' days from now).</span>';
+                    var ty = v.tax, left = ty.expiry ? days(ty.expiry, g.now) : 0, st;
+                    if (ty.status === 'exempt') st = '<span class="tag good">' + esc(t('gov.tag.exempt')) + '</span>';
+                    else if (ty.status === 'taxed') st = '<span class="tag good">' + esc(t('gov.tag.taxedUntil', Site.date(ty.expiry))) + '</span>';
+                    else st = '<span class="tag bad">' + esc(t('gov.tag.untaxed')) + '</span>';
+                    var action = ty.status === 'exempt' ? '' :
+                        v.canRenew ? '<button class="gbtn" data-go="/tax-vehicle/' + esc(v.plateKey) + '">' + esc(t('gov.taxList.button', Site.money(ty.rate))) + '</button>' :
+                        '<span class="fine">' + esc(t('gov.taxList.again', g.renewWindowDays, Math.max(0, left - g.renewWindowDays))) + '</span>';
                     return '<div class="veh"><div class="vrow">' + plateHtml(v.plate, true) + st + '</div>' +
                         '<div class="meta">' + esc(v.colour) + ' ' + esc(v.make) + ' ' + esc(v.model) + ' · ' + esc(v.class) + '</div>' + action + '</div>';
                 }).join('');
             }
-            setPage('Tax your vehicle', html, TAX_TRAIL.slice(0, 2).concat([{ t: 'Tax your vehicle' }]));
+            setPage(t('gov.taxList.title'), html, TAX_TRAIL().slice(0, 2).concat([{ t: t('gov.taxList.title') }]));
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
@@ -304,26 +329,26 @@
             for (var i = 0; i < g.vehicles.length; i++) if (g.vehicles[i].plateKey === key) v = g.vehicles[i];
             if (!v || v.tax.status === 'exempt') return pNotFound();
             if (!v.canRenew) {
-                setPage('Tax your vehicle', '<h1>Tax your vehicle</h1><p>' + plateHtml(v.plate) + '</p><div class="status warn"><h3>Already taxed</h3><p>This vehicle is taxed until <b>' + Site.date(v.tax.expiry) +
-                    '</b>. You can tax it again in the last ' + g.renewWindowDays + ' days.</p></div><p><a class="glink" data-go="/tax-vehicle">Back to your vehicles</a></p>', TAX_TRAIL);
+                setPage(t('gov.taxList.title'), '<h1>' + esc(t('gov.taxList.title')) + '</h1><p>' + plateHtml(v.plate) + '</p><div class="status warn"><h3>' + esc(t('gov.taxConfirm.already.title')) + '</h3><p>' + t('gov.taxConfirm.already.body', Site.date(v.tax.expiry), g.renewWindowDays) +
+                    '</p></div><p><a class="glink" data-go="/tax-vehicle">' + esc(t('gov.taxConfirm.back')) + '</a></p>', TAX_TRAIL());
                 return;
             }
             var base = Math.max(v.tax.expiry, g.now);
             var until = base + g.periodDays * 86400;
-            setPage('Confirm and pay',
-                '<h1>Confirm and pay</h1><p>' + plateHtml(v.plate) + '</p>' +
+            setPage(t('gov.confirmPay'),
+                '<h1>' + esc(t('gov.confirmPay')) + '</h1><p>' + plateHtml(v.plate) + '</p>' +
                 (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-                '<table class="kv"><tr><th>Vehicle</th><td>' + esc(v.colour) + ' ' + esc(v.make) + ' ' + esc(v.model) + '</td></tr>' +
-                '<tr><th>Type</th><td>' + esc(v.class) + '</td></tr>' +
-                '<tr><th>Tax period</th><td>' + g.periodDays + ' days</td></tr>' +
-                '<tr><th>Taxed until</th><td>' + Site.date(until) + '</td></tr>' +
-                '<tr><th>Amount to pay</th><td><b>' + Site.money(v.tax.rate) + '</b></td></tr></table>' +
-                '<p class="fine" style="margin-top:12px">The payment is taken from your bank account.</p>' +
-                '<button class="gbtn block" id="pay">Pay ' + Site.money(v.tax.rate) + '</button>' +
-                '<p style="margin-top:12px"><a class="glink" data-go="/tax-vehicle">Cancel</a></p>', TAX_TRAIL.concat([{ t: 'Confirm' }]));
+                '<table class="kv"><tr><th>' + esc(t('gov.th.vehicle')) + '</th><td>' + esc(v.colour) + ' ' + esc(v.make) + ' ' + esc(v.model) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.type')) + '</th><td>' + esc(v.class) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.taxPeriod')) + '</th><td>' + esc(t('gov.days', g.periodDays)) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.taxConfirm.taxedUntil')) + '</th><td>' + Site.date(until) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.amountToPay')) + '</th><td><b>' + Site.money(v.tax.rate) + '</b></td></tr></table>' +
+                '<p class="fine" style="margin-top:12px">' + esc(t('gov.bankNote')) + '</p>' +
+                '<button class="gbtn block" id="pay">' + esc(t('gov.pay', Site.money(v.tax.rate))) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/tax-vehicle">' + esc(t('gov.cancel')) + '</a></p>', TAX_TRAIL().concat([{ t: t('gov.crumb.confirm') }]));
             document.getElementById('pay').onclick = function () {
                 var btn = this;
-                btn.disabled = true; btn.textContent = 'Processing…';
+                btn.disabled = true; btn.textContent = t('gov.processing');
                 Site.call('tax', { plate: key }).then(function (r) {
                     receipt = r; garage = null;
                     Site.go('/tax-vehicle/' + key + '/done');
@@ -336,28 +361,28 @@
     function pTaxDone(key) {
         if (!receipt || plateKey(receipt.plate) !== key) return Site.go('/tax-vehicle');
         var r = receipt;
-        setPage('Vehicle taxed',
-            '<div class="receipt"><h1>Vehicle taxed</h1><div>' + plateHtml(r.plate) + '</div><p style="margin:12px 0 0">Taxed until <b>' + Site.date(r.expiry) + '</b></p></div>' +
-            '<table class="kv"><tr><th>Amount paid</th><td>' + Site.money(r.amount) + '</td></tr><tr><th>Paid on</th><td>' + Site.datetime(r.now) + '</td></tr>' +
-            '<tr><th>Tax period</th><td>' + r.periodDays + ' days</td></tr></table>' +
-            '<p style="margin-top:16px"><a class="glink" data-go="/vehicle-checker/' + esc(key) + '">Check this vehicle</a></p>' +
-            '<p><a class="glink" data-go="/tax-vehicle">Tax another vehicle</a></p>', TAX_TRAIL.concat([{ t: 'Done' }]));
+        setPage(t('gov.taxDone.title'),
+            '<div class="receipt"><h1>' + esc(t('gov.taxDone.title')) + '</h1><div>' + plateHtml(r.plate) + '</div><p style="margin:12px 0 0">' + t('gov.taxDone.taxedUntil', Site.date(r.expiry)) + '</p></div>' +
+            '<table class="kv"><tr><th>' + esc(t('gov.th.amountPaid')) + '</th><td>' + Site.money(r.amount) + '</td></tr><tr><th>' + esc(t('gov.th.paidOn')) + '</th><td>' + Site.datetime(r.now) + '</td></tr>' +
+            '<tr><th>' + esc(t('gov.th.taxPeriod')) + '</th><td>' + esc(t('gov.days', r.periodDays)) + '</td></tr></table>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/vehicle-checker/' + esc(key) + '">' + esc(t('gov.taxDone.check')) + '</a></p>' +
+            '<p><a class="glink" data-go="/tax-vehicle">' + esc(t('gov.taxDone.another')) + '</a></p>', TAX_TRAIL().concat([{ t: t('gov.crumb.done') }]));
     }
 
     // ------------------------------------------------------------------ passports
 
-    var PP_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Passports, travel and living abroad', go: '/browse/passports' }, { t: 'Apply for a passport', go: '/passport' }];
+    function PP_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.passports'), go: '/browse/passports' }, { t: t('gov.passport.title'), go: '/passport' }]; }
     var ppReceipt = null;       // last application receipt
 
     function loadPassport() { return Site.call('passportState'); }
     function waitText(sec) {
-        if (sec < 3600) { var m = Math.max(1, Math.round(sec / 60)); return m + ' minute' + (m === 1 ? '' : 's'); }
-        var h = Math.round(sec / 3600); return h + ' hour' + (h === 1 ? '' : 's');
+        if (sec < 3600) { var m = Math.max(1, Math.round(sec / 60)); return m === 1 ? t('gov.wait.minute.one', m) : t('gov.wait.minute.other', m); }
+        var h = Math.round(sec / 3600); return h === 1 ? t('gov.wait.hour.one', h) : t('gov.wait.hour.other', h);
     }
     function statusTag(st) {
-        if (st === 'issued') return '<span class="tag good">Valid</span>';
-        if (st === 'expired') return '<span class="tag bad">Expired</span>';
-        return '<span class="tag bad">Cancelled</span>';
+        if (st === 'issued') return '<span class="tag good">' + esc(t('gov.passport.status.valid')) + '</span>';
+        if (st === 'expired') return '<span class="tag bad">' + esc(t('gov.passport.status.expired')) + '</span>';
+        return '<span class="tag bad">' + esc(t('gov.passport.status.cancelled')) + '</span>';
     }
 
     function pPassport() {
@@ -365,37 +390,37 @@
         loading();
         loadPassport().then(function (st) {
             if (my !== token) return;
-            var html = '<h1>Apply for a passport</h1>';
+            var html = '<h1>' + esc(t('gov.passport.title')) + '</h1>';
 
             if (st.application) {
                 var a = st.application;
-                html += '<div class="status warn"><span class="k">Your application</span><h3>' + esc(a.type) + ' in progress</h3>' +
-                    '<p>' + (a.late ? 'It is taking a little longer than usual. It will be sent to you very soon.' : 'Ready by <b>' + Site.datetime(a.readyAt) + '</b>.') + '</p>' +
-                    (a.lockerLabel ? '<p>It will be sent to <b>' + esc(a.lockerLabel) + '</b> for you to collect.</p>' : '<p>It will be added to your inventory.</p>') +
-                    '<p class="fine">We will email you and send a notification when it is on its way.</p></div>';
+                html += '<div class="status warn"><span class="k">' + esc(t('gov.passport.yourApplication')) + '</span><h3>' + esc(t('gov.passport.inProgress', a.type)) + '</h3>' +
+                    '<p>' + (a.late ? esc(t('gov.order.late')) : t('gov.order.readyBy', Site.datetime(a.readyAt))) + '</p>' +
+                    (a.lockerLabel ? '<p>' + t('gov.order.sentTo', esc(a.lockerLabel)) + '</p>' : '<p>' + esc(t('gov.order.toInventory')) + '</p>') +
+                    '<p class="fine">' + esc(t('gov.order.emailNote')) + '</p></div>';
             }
 
             if (st.passport) {
                 var c = st.passport;
-                html += '<div class="status ' + (c.status === 'issued' ? 'good' : 'bad') + '"><span class="k">Your passport</span><h3>' + esc(c.first + ' ' + c.last) + '</h3>' +
-                    '<table class="kv"><tr><th>Passport number</th><td>' + esc(c.number) + '</td></tr>' +
-                    '<tr><th>Status</th><td>' + statusTag(c.status) + '</td></tr>' +
-                    (c.issuedAt ? '<tr><th>Issued</th><td>' + Site.date(c.issuedAt) + '</td></tr>' : '') +
-                    (c.validUntil ? '<tr><th>Valid until</th><td>' + Site.date(c.validUntil) + '</td></tr>' : '') + '</table>' +
-                    '<p class="fine" style="margin-top:10px">Use the passport in your inventory to look at it or show it to someone.</p></div>';
+                html += '<div class="status ' + (c.status === 'issued' ? 'good' : 'bad') + '"><span class="k">' + esc(t('gov.passport.yourPassport')) + '</span><h3>' + esc(c.first + ' ' + c.last) + '</h3>' +
+                    '<table class="kv"><tr><th>' + esc(t('gov.passport.number')) + '</th><td>' + esc(c.number) + '</td></tr>' +
+                    '<tr><th>' + esc(t('gov.passport.statusLabel')) + '</th><td>' + statusTag(c.status) + '</td></tr>' +
+                    (c.issuedAt ? '<tr><th>' + esc(t('gov.passport.issued')) + '</th><td>' + Site.date(c.issuedAt) + '</td></tr>' : '') +
+                    (c.validUntil ? '<tr><th>' + esc(t('gov.passport.validUntil')) + '</th><td>' + Site.date(c.validUntil) + '</td></tr>' : '') + '</table>' +
+                    '<p class="fine" style="margin-top:10px">' + esc(t('gov.passport.useItem')) + '</p></div>';
             }
 
-            var open = st.types.filter(function (t) { return t.allowed; });
+            var open = st.types.filter(function (ty) { return ty.allowed; });
             if (open.length) {
-                html += '<h2>' + (st.passport ? 'Other things you can do' : 'Choose a service') + '</h2><div class="glist">' + open.map(function (t) {
-                    return '<div><a class="glink" data-go="/passport/apply/' + esc(t.id) + '">' + esc(t.label) + '</a><div class="desc">' + esc(t.description) + '</div>' +
-                        '<div class="desc"><b>' + Site.money(t.price) + '</b> · ready in about ' + waitText(t.waitSeconds) + '</div></div>';
+                html += '<h2>' + esc(st.passport ? t('gov.passport.otherThings') : t('gov.passport.chooseService')) + '</h2><div class="glist">' + open.map(function (ty) {
+                    return '<div><a class="glink" data-go="/passport/apply/' + esc(ty.id) + '">' + esc(ty.label) + '</a><div class="desc">' + esc(ty.description) + '</div>' +
+                        '<div class="desc">' + t('gov.passport.priceReady', Site.money(ty.price), waitText(ty.waitSeconds)) + '</div></div>';
                 }).join('') + '</div>';
             } else if (!st.application && !st.passport) {
                 var why = st.types.length && st.types[0].reason;
-                html += '<div class="status warn"><h3>Nothing to apply for right now</h3><p>' + esc(why || 'Please try again later.') + '</p></div>';
+                html += '<div class="status warn"><h3>' + esc(t('gov.passport.nothing.title')) + '</h3><p>' + esc(why || t('gov.tryLater')) + '</p></div>';
             }
-            setPage('Apply for a passport', html, PP_TRAIL.slice(0, 2).concat([{ t: 'Apply for a passport' }]));
+            setPage(t('gov.passport.title'), html, PP_TRAIL().slice(0, 2).concat([{ t: t('gov.passport.title') }]));
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
@@ -403,41 +428,41 @@
         var my = ++token;
         var draw = function (st) {
             if (my !== token) return;
-            var t = byId(st.types, id);
-            if (!t) return pNotFound();
-            if (!t.allowed) {
-                setPage('Apply for a passport', '<h1>' + esc(t.label) + '</h1><div class="status warn"><h3>You can’t do this right now</h3><p>' + esc(t.reason || '') + '</p></div>' +
-                    '<p><a class="glink" data-go="/passport">Back to passport services</a></p>', PP_TRAIL);
+            var ty = byId(st.types, id);
+            if (!ty) return pNotFound();
+            if (!ty.allowed) {
+                setPage(t('gov.passport.title'), '<h1>' + esc(ty.label) + '</h1><div class="status warn"><h3>' + esc(t('gov.cantDoNow')) + '</h3><p>' + esc(ty.reason || '') + '</p></div>' +
+                    '<p><a class="glink" data-go="/passport">' + esc(t('gov.passport.backToServices')) + '</a></p>', PP_TRAIL());
                 return;
             }
             var pick = lockerPick || (st.lockers[0] && st.lockers[0].id) || '';
             var where;
             if (st.mode === 'locker') {
-                where = '<div class="field"><span class="lbl">Where should we send it?</span><span class="hint">You collect it from a Postal Prime locker with a pickup code.</span>' +
+                where = '<div class="field"><span class="lbl">' + esc(t('gov.order.where')) + '</span><span class="hint">' + esc(t('gov.order.whereHint')) + '</span>' +
                     st.lockers.map(function (l) {
                         return '<label class="checkrow" style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="radio" name="locker" value="' + esc(l.id) + '"' + (l.id === pick ? ' checked' : '') + ' style="width:22px;height:22px"><span>' + esc(l.label) + '</span></label>';
                     }).join('') + '</div>';
             } else {
-                where = '<p class="fine">Your passport will be added to your inventory when it is ready.</p>';
+                where = '<p class="fine">' + esc(t('gov.passport.inventoryWhenReady')) + '</p>';
             }
-            setPage('Confirm and pay',
-                '<h1>' + esc(t.label) + '</h1>' +
+            setPage(t('gov.confirmPay'),
+                '<h1>' + esc(ty.label) + '</h1>' +
                 (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-                '<table class="kv"><tr><th>Service</th><td>' + esc(t.label) + '</td></tr>' +
-                '<tr><th>Ready in about</th><td>' + waitText(t.waitSeconds) + '</td></tr>' +
-                '<tr><th>Amount to pay</th><td><b>' + Site.money(t.price) + '</b></td></tr></table>' +
-                (id === 'replacement' ? '<div class="status bad"><h3>Your old passport will be cancelled straight away</h3><p>You will not be able to use it again, even if you find it.</p></div>' : '') +
-                (id === 'renewal' ? '<p class="fine" style="margin-top:12px">Your details and photo are taken from your character. Your old passport works until the new one arrives.</p>' : '') +
-                (st.photo ? '<div class="status"><span class="k">Your photo</span><p>Your photo is taken when you pay. Stand still and face forward.</p></div>' : '') +
+                '<table class="kv"><tr><th>' + esc(t('gov.th.service')) + '</th><td>' + esc(ty.label) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.readyIn')) + '</th><td>' + esc(waitText(ty.waitSeconds)) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.amountToPay')) + '</th><td><b>' + Site.money(ty.price) + '</b></td></tr></table>' +
+                (id === 'replacement' ? '<div class="status bad"><h3>' + esc(t('gov.passport.replaceWarn.title')) + '</h3><p>' + esc(t('gov.passport.replaceWarn.body')) + '</p></div>' : '') +
+                (id === 'renewal' ? '<p class="fine" style="margin-top:12px">' + esc(t('gov.passport.renewNote')) + '</p>' : '') +
+                (st.photo ? '<div class="status"><span class="k">' + esc(t('gov.passport.photo.label')) + '</span><p>' + esc(t('gov.passport.photo.body')) + '</p></div>' : '') +
                 where +
-                '<p class="fine">The payment is taken from your bank account.</p>' +
-                '<button class="gbtn block" id="pay"' + (st.mode === 'locker' && !st.lockers.length ? ' disabled' : '') + '>Pay ' + Site.money(t.price) + ' and apply</button>' +
-                '<p style="margin-top:12px"><a class="glink" data-go="/passport">Cancel</a></p>', PP_TRAIL.concat([{ t: 'Confirm' }]));
+                '<p class="fine">' + esc(t('gov.bankNote')) + '</p>' +
+                '<button class="gbtn block" id="pay"' + (st.mode === 'locker' && !st.lockers.length ? ' disabled' : '') + '>' + esc(t('gov.passport.payApply', Site.money(ty.price))) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/passport">' + esc(t('gov.cancel')) + '</a></p>', PP_TRAIL().concat([{ t: t('gov.crumb.confirm') }]));
             document.getElementById('pay').onclick = function () {
                 var btn = this, lockerId;
                 var r = document.querySelector('input[name="locker"]:checked');
                 if (st.mode === 'locker') { if (!r) return; lockerId = r.value; }
-                btn.disabled = true; btn.textContent = 'Taking your photo…';
+                btn.disabled = true; btn.textContent = t('gov.passport.takingPhoto');
                 Site.call('passportApply', { type: id, lockerId: lockerId }).then(function (res) {
                     ppReceipt = res;
                     Site.go('/passport/done');
@@ -452,23 +477,23 @@
     function pPassportDone() {
         if (!ppReceipt) return Site.go('/passport');
         var r = ppReceipt;
-        setPage('Application received',
-            '<div class="receipt"><h1>Application received</h1><p style="margin:0">We will send your passport when it is ready.</p></div>' +
-            '<table class="kv"><tr><th>Service</th><td>' + esc(r.type) + '</td></tr><tr><th>Amount paid</th><td>' + Site.money(r.price) + '</td></tr>' +
-            '<tr><th>Ready by</th><td>' + Site.datetime(r.readyAt) + '</td></tr></table>' +
-            '<p class="fine" style="margin-top:12px">We have emailed you a confirmation. You will get a notification when your passport has been sent.</p>' +
-            '<p style="margin-top:16px"><a class="glink" data-go="/passport">Back to passport services</a></p>', PP_TRAIL.concat([{ t: 'Done' }]));
+        setPage(t('gov.passport.done.title'),
+            '<div class="receipt"><h1>' + esc(t('gov.passport.done.title')) + '</h1><p style="margin:0">' + esc(t('gov.passport.done.body')) + '</p></div>' +
+            '<table class="kv"><tr><th>' + esc(t('gov.th.service')) + '</th><td>' + esc(r.type) + '</td></tr><tr><th>' + esc(t('gov.th.amountPaid')) + '</th><td>' + Site.money(r.price) + '</td></tr>' +
+            '<tr><th>' + esc(t('gov.th.readyBy')) + '</th><td>' + Site.datetime(r.readyAt) + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">' + esc(t('gov.passport.done.note')) + '</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/passport">' + esc(t('gov.passport.backToServices')) + '</a></p>', PP_TRAIL().concat([{ t: t('gov.crumb.done') }]));
     }
 
     // ------------------------------------------------------------------ birth certificates
 
-    var BC_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Births, deaths, marriages and care', go: '/browse/life' }, { t: 'Order a birth certificate', go: '/birth-certificate' }];
+    function BC_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.life'), go: '/browse/life' }, { t: t('gov.birthcert.title'), go: '/birth-certificate' }]; }
     var bcReceipt = null;
 
     function bcDob(s) {
         var m = /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/.exec(String(s || '')) || null;
-        var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        if (m && +m[2] >= 1 && +m[2] <= 12) return (+m[3]) + ' ' + MONTHS[+m[2] - 1] + ' ' + m[1];
+        var MONTHS = [t('gov.month.1'), t('gov.month.2'), t('gov.month.3'), t('gov.month.4'), t('gov.month.5'), t('gov.month.6'), t('gov.month.7'), t('gov.month.8'), t('gov.month.9'), t('gov.month.10'), t('gov.month.11'), t('gov.month.12')];
+        if (m && +m[2] >= 1 && +m[2] <= 12) return t('gov.birthcert.dob', +m[3], MONTHS[+m[2] - 1], m[1]);
         return String(s || '-');
     }
 
@@ -477,29 +502,29 @@
         loading();
         Site.call('birthcertState').then(function (st) {
             if (my !== token) return;
-            var html = '<h1>Order a birth certificate</h1>';
+            var html = '<h1>' + esc(t('gov.birthcert.title')) + '</h1>';
             if (st.application) {
                 var a = st.application;
-                html += '<div class="status warn"><span class="k">Your order</span><h3>Birth certificate in progress</h3>' +
-                    '<p>' + (a.late ? 'It is taking a little longer than usual. It will be sent to you very soon.' : 'Ready by <b>' + Site.datetime(a.readyAt) + '</b>.') + '</p>' +
-                    (a.lockerLabel ? '<p>It will be sent to <b>' + esc(a.lockerLabel) + '</b> for you to collect.</p>' : '<p>It will be added to your inventory.</p>') +
-                    '<p class="fine">We will email you and send a notification when it is on its way.</p></div>';
+                html += '<div class="status warn"><span class="k">' + esc(t('gov.birthcert.yourOrder')) + '</span><h3>' + esc(t('gov.birthcert.inProgress')) + '</h3>' +
+                    '<p>' + (a.late ? esc(t('gov.order.late')) : t('gov.order.readyBy', Site.datetime(a.readyAt))) + '</p>' +
+                    (a.lockerLabel ? '<p>' + t('gov.order.sentTo', esc(a.lockerLabel)) + '</p>' : '<p>' + esc(t('gov.order.toInventory')) + '</p>') +
+                    '<p class="fine">' + esc(t('gov.order.emailNote')) + '</p></div>';
             }
             if (st.latest) {
-                html += '<div class="status good"><span class="k">Last certificate sent</span><h3>' + esc(st.person.first + ' ' + st.person.last) + '</h3>' +
-                    '<table class="kv"><tr><th>Certificate number</th><td>' + esc(st.latest.number) + '</td></tr>' +
-                    '<tr><th>Sent</th><td>' + Site.date(st.latest.issuedAt) + '</td></tr>' +
-                    '<tr><th>Copies sent</th><td>' + st.copies + '</td></tr></table>' +
-                    '<p class="fine" style="margin-top:10px">Use the certificate in your inventory to read it or show it to someone.</p></div>';
+                html += '<div class="status good"><span class="k">' + esc(t('gov.birthcert.lastSent')) + '</span><h3>' + esc(st.person.first + ' ' + st.person.last) + '</h3>' +
+                    '<table class="kv"><tr><th>' + esc(t('gov.th.certificateNumber')) + '</th><td>' + esc(st.latest.number) + '</td></tr>' +
+                    '<tr><th>' + esc(t('gov.birthcert.sent')) + '</th><td>' + Site.date(st.latest.issuedAt) + '</td></tr>' +
+                    '<tr><th>' + esc(t('gov.birthcert.copiesSent')) + '</th><td>' + st.copies + '</td></tr></table>' +
+                    '<p class="fine" style="margin-top:10px">' + esc(t('gov.birthcert.useItem')) + '</p></div>';
             }
             if (st.allowed) {
-                html += '<h2>Order a copy</h2><p>A certified copy of your own birth certificate. You can order another copy at any time.</p>' +
-                    '<table class="kv"><tr><th>Fee</th><td><b>' + Site.money(st.price) + '</b></td></tr><tr><th>Ready in about</th><td>' + waitText(st.waitSeconds) + '</td></tr></table>' +
-                    '<p style="margin-top:14px"><a class="gbtn" data-go="/birth-certificate/order">Start now</a></p>';
+                html += '<h2>' + esc(t('gov.birthcert.orderCopy')) + '</h2><p>' + esc(t('gov.birthcert.orderCopyText')) + '</p>' +
+                    '<table class="kv"><tr><th>' + esc(t('gov.th.fee')) + '</th><td><b>' + Site.money(st.price) + '</b></td></tr><tr><th>' + esc(t('gov.th.readyIn')) + '</th><td>' + esc(waitText(st.waitSeconds)) + '</td></tr></table>' +
+                    '<p style="margin-top:14px"><a class="gbtn" data-go="/birth-certificate/order">' + esc(t('gov.birthcert.startNow')) + '</a></p>';
             } else if (!st.application) {
-                html += '<div class="status warn"><h3>You can’t order right now</h3><p>' + esc(st.reason || 'Please try again later.') + '</p></div>';
+                html += '<div class="status warn"><h3>' + esc(t('gov.birthcert.cantOrder')) + '</h3><p>' + esc(st.reason || t('gov.tryLater')) + '</p></div>';
             }
-            setPage('Order a birth certificate', html, BC_TRAIL.slice(0, 2).concat([{ t: 'Order a birth certificate' }]));
+            setPage(t('gov.birthcert.title'), html, BC_TRAIL().slice(0, 2).concat([{ t: t('gov.birthcert.title') }]));
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
@@ -509,36 +534,36 @@
         Site.call('birthcertState').then(function (st) {
             if (my !== token) return;
             if (!st.allowed) {
-                setPage('Order a birth certificate', '<h1>Order a birth certificate</h1><div class="status warn"><h3>You can’t order right now</h3><p>' + esc(st.reason || '') + '</p></div>' +
-                    '<p><a class="glink" data-go="/birth-certificate">Back</a></p>', BC_TRAIL);
+                setPage(t('gov.birthcert.title'), '<h1>' + esc(t('gov.birthcert.title')) + '</h1><div class="status warn"><h3>' + esc(t('gov.birthcert.cantOrder')) + '</h3><p>' + esc(st.reason || '') + '</p></div>' +
+                    '<p><a class="glink" data-go="/birth-certificate">' + esc(t('gov.back')) + '</a></p>', BC_TRAIL());
                 return;
             }
             var pick = lockerPick || (st.lockers[0] && st.lockers[0].id) || '';
             var where;
             if (st.mode === 'locker') {
-                where = '<div class="field"><span class="lbl">Where should we send it?</span><span class="hint">You collect it from a Postal Prime locker with a pickup code.</span>' +
+                where = '<div class="field"><span class="lbl">' + esc(t('gov.order.where')) + '</span><span class="hint">' + esc(t('gov.order.whereHint')) + '</span>' +
                     st.lockers.map(function (l) {
                         return '<label class="checkrow" style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="radio" name="locker" value="' + esc(l.id) + '"' + (l.id === pick ? ' checked' : '') + ' style="width:22px;height:22px"><span>' + esc(l.label) + '</span></label>';
                     }).join('') + '</div>';
             } else {
-                where = '<p class="fine">Your certificate will be added to your inventory when it is ready.</p>';
+                where = '<p class="fine">' + esc(t('gov.birthcert.inventoryWhenReady')) + '</p>';
             }
-            setPage('Confirm and pay',
-                '<h1>Order a birth certificate</h1>' +
+            setPage(t('gov.confirmPay'),
+                '<h1>' + esc(t('gov.birthcert.title')) + '</h1>' +
                 (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-                '<div class="status"><span class="k">Certificate for</span><h3>' + esc(st.person.first + ' ' + st.person.last) + '</h3>' +
-                '<p>Born ' + esc(bcDob(st.person.dob)) + '</p><p class="fine">These details are taken from your character.</p></div>' +
-                '<table class="kv"><tr><th>Ready in about</th><td>' + waitText(st.waitSeconds) + '</td></tr>' +
-                '<tr><th>Amount to pay</th><td><b>' + Site.money(st.price) + '</b></td></tr></table>' +
+                '<div class="status"><span class="k">' + esc(t('gov.birthcert.certificateFor')) + '</span><h3>' + esc(st.person.first + ' ' + st.person.last) + '</h3>' +
+                '<p>' + esc(t('gov.birthcert.born', bcDob(st.person.dob))) + '</p><p class="fine">' + esc(t('gov.birthcert.fromCharacter')) + '</p></div>' +
+                '<table class="kv"><tr><th>' + esc(t('gov.th.readyIn')) + '</th><td>' + esc(waitText(st.waitSeconds)) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.amountToPay')) + '</th><td><b>' + Site.money(st.price) + '</b></td></tr></table>' +
                 where +
-                '<p class="fine">The payment is taken from your bank account.</p>' +
-                '<button class="gbtn block" id="pay"' + (st.mode === 'locker' && !st.lockers.length ? ' disabled' : '') + '>Pay ' + Site.money(st.price) + ' and order</button>' +
-                '<p style="margin-top:12px"><a class="glink" data-go="/birth-certificate">Cancel</a></p>', BC_TRAIL.concat([{ t: 'Confirm' }]));
+                '<p class="fine">' + esc(t('gov.bankNote')) + '</p>' +
+                '<button class="gbtn block" id="pay"' + (st.mode === 'locker' && !st.lockers.length ? ' disabled' : '') + '>' + esc(t('gov.payOrder', Site.money(st.price))) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/birth-certificate">' + esc(t('gov.cancel')) + '</a></p>', BC_TRAIL().concat([{ t: t('gov.crumb.confirm') }]));
             document.getElementById('pay').onclick = function () {
                 var btn = this, lockerId;
                 var r = document.querySelector('input[name="locker"]:checked');
                 if (st.mode === 'locker') { if (!r) return; lockerId = r.value; }
-                btn.disabled = true; btn.textContent = 'Processing…';
+                btn.disabled = true; btn.textContent = t('gov.processing');
                 Site.call('birthcertOrder', { lockerId: lockerId }).then(function (res) {
                     bcReceipt = res;
                     Site.go('/birth-certificate/done');
@@ -550,12 +575,12 @@
     function pBirthcertDone() {
         if (!bcReceipt) return Site.go('/birth-certificate');
         var r = bcReceipt;
-        setPage('Order received',
-            '<div class="receipt"><h1>Order received</h1><p style="margin:0">We will send your birth certificate when it is ready.</p></div>' +
-            '<table class="kv"><tr><th>Certificate number</th><td>' + esc(r.number) + '</td></tr><tr><th>Amount paid</th><td>' + Site.money(r.price) + '</td></tr>' +
-            '<tr><th>Ready by</th><td>' + Site.datetime(r.readyAt) + '</td></tr></table>' +
-            '<p class="fine" style="margin-top:12px">We have emailed you a confirmation. You will get a notification when it has been sent.</p>' +
-            '<p style="margin-top:16px"><a class="glink" data-go="/birth-certificate">Back to birth certificates</a></p>', BC_TRAIL.concat([{ t: 'Done' }]));
+        setPage(t('gov.birthcert.done.title'),
+            '<div class="receipt"><h1>' + esc(t('gov.birthcert.done.title')) + '</h1><p style="margin:0">' + esc(t('gov.birthcert.done.body')) + '</p></div>' +
+            '<table class="kv"><tr><th>' + esc(t('gov.th.certificateNumber')) + '</th><td>' + esc(r.number) + '</td></tr><tr><th>' + esc(t('gov.th.amountPaid')) + '</th><td>' + Site.money(r.price) + '</td></tr>' +
+            '<tr><th>' + esc(t('gov.th.readyBy')) + '</th><td>' + Site.datetime(r.readyAt) + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">' + esc(t('gov.birthcert.done.note')) + '</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/birth-certificate">' + esc(t('gov.birthcert.doneBack')) + '</a></p>', BC_TRAIL().concat([{ t: t('gov.crumb.done') }]));
     }
 
     // ------------------------------------------------------------------ fines, benefits, marriage, business register
@@ -567,108 +592,187 @@
         return '<div class="status ' + (f.kind === 'bad' ? 'bad' : 'good') + '"><p style="margin:0">' + esc(f.text) + '</p></div>';
     }
     function minutesText(m) {
-        if (m < 60) return m + ' minute' + (m === 1 ? '' : 's');
+        if (m < 60) return m === 1 ? t('gov.wait.minute.one', m) : t('gov.wait.minute.other', m);
         var h = Math.floor(m / 60), r = m % 60;
-        return h + ' hour' + (h === 1 ? '' : 's') + (r ? ' ' + r + ' min' : '');
+        if (r) return h === 1 ? t('gov.wait.hourMin.one', h, r) : t('gov.wait.hourMin.other', h, r);
+        return h === 1 ? t('gov.wait.hour.one', h) : t('gov.wait.hour.other', h);
     }
 
     // ---- fines
-    var FINE_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Crime, justice and the law', go: '/browse/crime' }, { t: 'Pay a fine' }];
+    function FINE_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.crime'), go: '/browse/crime' }, { t: t('gov.fines.title') }]; }
+
+    function finesHtml(st) {
+        var html = '';
+        if (!st.fines.length) {
+            html += '<div class="status good"><span class="k">' + esc(t('gov.fines.label')) + '</span><h3>' + esc(t('gov.fines.none')) + '</h3></div>';
+        } else {
+            html += '<div class="status bad"><span class="k">' + esc(t('gov.fines.totalOwed')) + '</span><h3>' + Site.money(st.owed) + '</h3><p>' + esc(st.fines.length === 1 ? t('gov.fines.unpaid.one', st.fines.length) : t('gov.fines.unpaid.other', st.fines.length)) + '</p></div>' +
+                '<div class="glist">' + st.fines.map(function (f) {
+                    return '<div><b>' + Site.money(f.amount) + '</b> · ' + esc(f.reason) +
+                        '<div class="desc">' + esc(t('gov.fines.issued', f.id, f.issuedBy, Site.date(f.issuedAt))) + '</div>' +
+                        '<p style="margin:8px 0 0"><button class="gbtn" data-pay="' + f.id + '">' + esc(t('gov.pay', Site.money(f.amount))) + '</button></p></div>';
+                }).join('') + '</div>';
+            if (st.fines.length > 1) html += '<p style="margin-top:14px"><button class="gbtn block" id="payAll">' + esc(t('gov.fines.payAll', Site.money(st.owed))) + '</button></p>';
+            html += '<p class="fine">' + esc(t('gov.fines.note')) + '</p>';
+        }
+        if (st.paid.length) {
+            html += '<h2>' + esc(t('gov.fines.recent')) + '</h2><div class="glist">' + st.paid.map(function (f) {
+                return '<div>' + Site.money(f.amount) + ' · ' + esc(f.reason) + '<div class="desc">' + esc(t('gov.fines.paidLine', Site.date(f.paidAt), f.id)) + '</div></div>';
+            }).join('') + '</div>';
+        }
+        return html;
+    }
+
+    // Wires up the pay buttons drawn by finesHtml. `again` redraws the page it sits on.
+    function bindFines(again) {
+        var pay = function (payload, btn) {
+            btn.disabled = true;
+            Site.call('finesPay', payload).then(function (r) {
+                flash = { kind: 'good', text: r.count === 1 ? t('gov.fines.received.one', Site.money(r.paid), r.count) : t('gov.fines.received.other', Site.money(r.paid), r.count) };
+                again();
+            }).catch(function (e) { flash = { kind: 'bad', text: e.message }; again(); });
+        };
+        Array.prototype.forEach.call(document.querySelectorAll('[data-pay]'), function (b) {
+            b.onclick = function () { pay({ id: +b.getAttribute('data-pay') }, b); };
+        });
+        var all = document.getElementById('payAll');
+        if (all) all.onclick = function () { pay({ all: true }, all); };
+    }
 
     function pFines() {
         var my = ++token;
         loading();
         Site.call('finesState').then(function (st) {
             if (my !== token) return;
-            var html = '<h1>Pay a fine</h1>' + flashHtml();
-            if (!st.fines.length) {
-                html += '<div class="status good"><span class="k">Fines</span><h3>You have no unpaid fines</h3></div>';
-            } else {
-                html += '<div class="status bad"><span class="k">Total owed</span><h3>' + Site.money(st.owed) + '</h3><p>' + st.fines.length + ' unpaid fine' + (st.fines.length === 1 ? '' : 's') + '.</p></div>' +
-                    '<div class="glist">' + st.fines.map(function (f) {
-                        return '<div><b>' + Site.money(f.amount) + '</b> · ' + esc(f.reason) +
-                            '<div class="desc">Fine number ' + f.id + ' · issued by ' + esc(f.issuedBy) + ' on ' + Site.date(f.issuedAt) + '</div>' +
-                            '<p style="margin:8px 0 0"><button class="gbtn" data-pay="' + f.id + '">Pay ' + Site.money(f.amount) + '</button></p></div>';
-                    }).join('') + '</div>';
-                if (st.fines.length > 1) html += '<p style="margin-top:14px"><button class="gbtn block" id="payAll">Pay all ' + Site.money(st.owed) + '</button></p>';
-                html += '<p class="fine">Payments are taken from your bank account.</p>';
-            }
-            if (st.paid.length) {
-                html += '<h2>Recently paid</h2><div class="glist">' + st.paid.map(function (f) {
-                    return '<div>' + Site.money(f.amount) + ' · ' + esc(f.reason) + '<div class="desc">Paid ' + Site.date(f.paidAt) + ' · fine number ' + f.id + '</div></div>';
-                }).join('') + '</div>';
-            }
-            setPage('Pay a fine', html, FINE_TRAIL);
-            var pay = function (payload, btn) {
-                btn.disabled = true;
-                Site.call('finesPay', payload).then(function (r) {
-                    flash = { kind: 'good', text: 'Payment received: ' + Site.money(r.paid) + ' for ' + r.count + ' fine' + (r.count === 1 ? '' : 's') + '. Thank you.' };
-                    pFines();
-                }).catch(function (e) { flash = { kind: 'bad', text: e.message }; pFines(); });
-            };
-            Array.prototype.forEach.call(document.querySelectorAll('[data-pay]'), function (b) {
-                b.onclick = function () { pay({ id: +b.getAttribute('data-pay') }, b); };
-            });
-            var all = document.getElementById('payAll');
-            if (all) all.onclick = function () { pay({ all: true }, all); };
+            setPage(t('gov.fines.title'), '<h1>' + esc(t('gov.fines.title')) + '</h1>' + flashHtml() + finesHtml(st), FINE_TRAIL());
+            bindFines(pFines);
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
     // ---- benefits
-    var BEN_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Benefits', go: '/browse/benefits' }, { t: 'Claim benefits' }];
+    function BEN_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.benefits'), go: '/browse/benefits' }, { t: t('gov.benefits.title'), go: '/benefits' }]; }
+    var benAnswers = null;      // what the player has put in the form so far
+    var benResult = null;       // last assessment: { rate, lines, capped, maxTotal, intervalMinutes }
+    var benUpdating = false;    // true when the form is changing a running claim
+
+    function benLines(lines, rate, capped, maxTotal, currency) {
+        return '<table class="kv">' + lines.map(function (l) {
+            return '<tr><th>' + esc(l.label) + '</th><td>' + Site.money(l.amount) + '</td></tr>';
+        }).join('') + (capped ? '<tr><th>' + esc(t('gov.benefits.maxPayment')) + '</th><td>' + Site.money(maxTotal) + '</td></tr>' : '') +
+            '<tr><th><b>' + esc(t('gov.benefits.yourRate')) + '</b></th><td><b>' + Site.money(rate) + '</b></td></tr></table>';
+    }
 
     function pBenefits() {
         var my = ++token;
         loading();
         Site.call('benefitsState').then(function (st) {
             if (my !== token) return;
-            var html = '<h1>Claim benefits</h1>' + flashHtml();
-            var rate = '<b>' + Site.money(st.amount) + '</b> for every <b>' + minutesText(st.intervalMinutes) + '</b> you are online';
+            var html = '<h1>' + esc(t('gov.benefits.title')) + '</h1>' + flashHtml();
+            var every = t('gov.benefits.every', minutesText(st.intervalMinutes));
             if (st.claiming) {
-                html += '<div class="status ' + (st.paused ? 'warn' : 'good') + '"><span class="k">Your claim</span><h3>' + (st.paused ? 'Paused' : 'Active') + '</h3>' +
-                    (st.paused ? '<p>You have a job (' + esc(st.jobLabel || '') + '), so payments are paused. They start again if you are out of work.</p>'
-                               : '<p>Your next payment is in about <b>' + minutesText(st.minutesToNext) + '</b> of playing time.</p>') +
-                    '<table class="kv"><tr><th>Payment</th><td>' + rate + '</td></tr>' +
-                    '<tr><th>Claimed since</th><td>' + Site.date(st.claimedAt) + '</td></tr>' +
-                    '<tr><th>Payments received</th><td>' + st.payments + ' (' + Site.money(st.totalPaid) + ')</td></tr></table></div>' +
-                    '<p><button class="gbtn grey" id="stop">Stop my claim</button></p>';
+                html += '<div class="status ' + (st.paused ? 'warn' : 'good') + '"><span class="k">' + esc(t('gov.benefits.yourClaim')) + '</span><h3>' + esc(st.paused ? t('gov.benefits.paused') : t('gov.benefits.active')) + '</h3>' +
+                    (st.paused ? '<p>' + esc(t('gov.benefits.pausedText', st.jobLabel || '')) + '</p>'
+                               : '<p>' + t('gov.benefits.nextPayment', minutesText(st.minutesToNext)) + '</p>') +
+                    '<table class="kv"><tr><th>' + esc(t('gov.benefits.payment')) + '</th><td>' + t('gov.benefits.paymentFor', Site.money(st.rate), every) + '</td></tr>' +
+                    '<tr><th>' + esc(t('gov.benefits.claimedSince')) + '</th><td>' + Site.date(st.claimedAt) + '</td></tr>' +
+                    '<tr><th>' + esc(t('gov.benefits.paymentsReceived')) + '</th><td>' + esc(t('gov.benefits.paymentsValue', st.payments, Site.money(st.totalPaid))) + '</td></tr></table></div>';
+                if (st.lines && st.lines.length) html += '<h2>' + esc(t('gov.benefits.workedOut')) + '</h2>' + benLines(st.lines, st.rate, false, 0);
+                html += '<p><a class="gbtn" data-go="/benefits/apply" id="update">' + esc(t('gov.benefits.updateDetails')) + '</a> <button class="gbtn grey" id="stop">' + esc(t('gov.benefits.stop')) + '</button></p>';
             } else {
-                html += '<p class="lead">Support for people who are out of work.</p>' +
-                    '<table class="kv"><tr><th>You get</th><td>' + rate + '</td></tr><tr><th>Paid into</th><td>Your bank account</td></tr></table>';
+                html += '<p class="lead">' + esc(t('gov.benefits.lead')) + '</p>' +
+                    '<table class="kv"><tr><th>' + esc(t('gov.benefits.youCouldGet')) + '</th><td>' + t('gov.benefits.couldGetRange', Site.money(st.minRate), Site.money(st.maxRate), every) + '</td></tr>' +
+                    '<tr><th>' + esc(t('gov.benefits.paidInto')) + '</th><td>' + esc(t('gov.benefits.yourBank')) + '</td></tr></table>';
                 if (st.eligible) {
-                    html += '<p style="margin-top:14px"><button class="gbtn block" id="claim">Start my claim</button></p>' +
-                        '<p class="fine">You can stop at any time. Taking a job pauses your payments.</p>';
+                    html += '<p style="margin-top:14px"><a class="gbtn block" data-go="/benefits/apply">' + esc(t('gov.benefits.checkWhat')) + '</a></p>' +
+                        '<p class="fine">' + esc(t('gov.benefits.minute')) + '</p>';
                 } else {
-                    html += '<div class="status warn"><h3>You can’t claim right now</h3><p>You can only claim while you are out of work. Your current job is <b>' + esc(st.jobLabel || 'unknown') + '</b>.</p></div>';
+                    html += '<div class="status warn"><h3>' + esc(t('gov.benefits.cantClaim')) + '</h3><p>' + t('gov.benefits.cantClaimText', esc(st.jobLabel || t('gov.benefits.unknownJob'))) + '</p></div>';
                 }
-                if (st.payments) html += '<p class="fine">Your previous claim paid ' + st.payments + ' time' + (st.payments === 1 ? '' : 's') + ' (' + Site.money(st.totalPaid) + ').</p>';
+                if (st.payments) html += '<p class="fine">' + esc(st.payments === 1 ? t('gov.benefits.previous.one', st.payments, Site.money(st.totalPaid)) : t('gov.benefits.previous.other', st.payments, Site.money(st.totalPaid))) + '</p>';
             }
-            setPage('Claim benefits', html, BEN_TRAIL);
-            var claim = document.getElementById('claim');
-            if (claim) claim.onclick = function () {
-                claim.disabled = true;
-                Site.call('benefitsClaim').then(function () { flash = { kind: 'good', text: 'Your claim has started. We have emailed you the details.' }; pBenefits(); })
-                    .catch(function (e) { flash = { kind: 'bad', text: e.message }; pBenefits(); });
-            };
+            setPage(t('gov.benefits.title'), html, BEN_TRAIL().slice(0, 2).concat([{ t: t('gov.benefits.title') }]));
+            var update = document.getElementById('update');
+            if (update) update.addEventListener('click', function () { benUpdating = true; benAnswers = st.answers || null; });
             var stop = document.getElementById('stop');
             if (stop) stop.onclick = function () {
-                if (!stop.getAttribute('data-sure')) { stop.setAttribute('data-sure', '1'); stop.textContent = 'Yes, stop my claim'; return; }
+                if (!stop.getAttribute('data-sure')) { stop.setAttribute('data-sure', '1'); stop.textContent = t('gov.benefits.stopSure'); return; }
                 stop.disabled = true;
-                Site.call('benefitsStop').then(function () { flash = { kind: 'good', text: 'Your claim has stopped.' }; pBenefits(); })
+                Site.call('benefitsStop').then(function () { flash = { kind: 'good', text: t('gov.benefits.stopped') }; pBenefits(); })
                     .catch(function (e) { flash = { kind: 'bad', text: e.message }; pBenefits(); });
             };
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
+    function pBenefitsForm(err) {
+        var my = ++token;
+        loading();
+        Site.call('benefitsState').then(function (st) {
+            if (my !== token) return;
+            if (!st.eligible) return Site.go('/benefits');
+            var a = benAnswers || {};
+            var radio = function (name, val, label, checked) {
+                return '<label class="checkrow" style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="radio" name="' + name + '" value="' + esc(val) + '"' + (checked ? ' checked' : '') + ' style="width:22px;height:22px"><span>' + esc(label) + '</span></label>';
+            };
+            var kids = '';
+            for (var n = 0; n <= st.form.maxChildren; n++) kids += '<option value="' + n + '"' + (a.children === n ? ' selected' : '') + '>' + esc(n === st.form.maxChildren ? t('gov.benefits.form.orMore', n) : n) + '</option>';
+            var html = '<h1>' + esc(benUpdating ? t('gov.benefits.form.updateTitle') : t('gov.benefits.checkWhat')) + '</h1>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<form id="f">' +
+                '<div class="field"><span class="lbl">' + esc(t('gov.benefits.form.age')) + '</span>' + radio('age', 'age18to24', t('gov.benefits.form.age1824'), a.age === 'age18to24') + radio('age', 'age25plus', t('gov.benefits.form.age25'), a.age === 'age25plus') + '</div>' +
+                '<div class="field"><span class="lbl">' + esc(t('gov.benefits.form.housing')) + '</span>' + st.form.housing.map(function (h) { return radio('housing', h.id, h.label, a.housing === h.id); }).join('') + '</div>' +
+                '<div class="field"><span class="lbl">' + esc(t('gov.benefits.form.partner')) + '</span>' + radio('partner', 'yes', t('gov.yes'), a.partner === true) + radio('partner', 'no', t('gov.no'), a.partner === false) + '</div>' +
+                '<label class="field"><span class="lbl">' + esc(t('gov.benefits.form.children')) + '</span><select id="children"><option value="">' + esc(t('gov.benefits.form.choose')) + '</option>' + kids + '</select></label>' +
+                '<div class="field"><span class="lbl">' + esc(t('gov.benefits.form.disability')) + '</span>' + radio('disability', 'yes', t('gov.yes'), a.disability === true) + radio('disability', 'no', t('gov.no'), a.disability === false) + '</div>' +
+                '<div class="field"><span class="lbl">' + esc(t('gov.benefits.form.declaration')) + '</span><label class="checkrow" style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="checkbox" id="looking" style="width:22px;height:22px"' + (a.looking ? ' checked' : '') + '><span>' + esc(t('gov.benefits.form.looking')) + '</span></label>' +
+                (st.form.savingsLimit ? '<span class="hint">' + esc(t('gov.benefits.form.savings', Site.money(st.form.savingsLimit))) + '</span>' : '') + '</div>' +
+                '<button class="gbtn block" type="submit">' + esc(t('gov.benefits.form.submit')) + '</button></form>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/benefits">' + esc(t('gov.cancel')) + '</a></p>';
+            setPage(t('gov.benefits.title'), html, BEN_TRAIL().concat([{ t: benUpdating ? t('gov.crumb.updateDetails') : t('gov.crumb.check') }]));
+            var pick = function (name) { var r = document.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : null; };
+            document.getElementById('f').onsubmit = function (e) {
+                e.preventDefault();
+                var kidsVal = document.getElementById('children').value;
+                var p = pick('partner'), d = pick('disability');
+                benAnswers = {
+                    age: pick('age'), housing: pick('housing'), partner: p === null ? null : p === 'yes',
+                    children: kidsVal === '' ? null : +kidsVal, disability: d === null ? null : d === 'yes',
+                    looking: document.getElementById('looking').checked,
+                };
+                Site.call('benefitsAssess', { answers: benAnswers }).then(function (r) {
+                    benResult = r; Site.go('/benefits/result');
+                }).catch(function (e2) { pBenefitsForm(e2.message); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pBenefitsResult(err) {
+        if (!benResult || !benAnswers) return Site.go('/benefits/apply');
+        var r = benResult;
+        setPage(t('gov.benefits.result.title'),
+            '<h1>' + esc(t('gov.benefits.result.title')) + '</h1>' +
+            (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+            '<div class="status good"><span class="k">' + esc(t('gov.benefits.result.couldGet')) + '</span><h3>' + esc(t('gov.benefits.result.every', Site.money(r.rate), minutesText(r.intervalMinutes))) + '</h3><p>' + esc(t('gov.benefits.result.paidInto', minutesText(r.intervalMinutes))) + '</p></div>' +
+            '<h2>' + esc(t('gov.benefits.result.workedOut')) + '</h2>' + benLines(r.lines, r.rate, r.capped, r.maxTotal) +
+            '<p style="margin-top:14px"><button class="gbtn block" id="go">' + esc(benUpdating ? t('gov.benefits.result.save') : t('gov.benefits.result.start')) + '</button></p>' +
+            '<p style="margin-top:12px"><a class="glink" data-go="/benefits/apply">' + esc(t('gov.benefits.result.change')) + '</a></p>', BEN_TRAIL().concat([{ t: t('gov.benefits.result.title') }]));
+        document.getElementById('go').onclick = function () {
+            var btn = this; btn.disabled = true;
+            Site.call(benUpdating ? 'benefitsUpdate' : 'benefitsClaim', { answers: benAnswers }).then(function (res) {
+                flash = { kind: 'good', text: benUpdating ? t('gov.benefits.result.saved', Site.money(res.rate)) : t('gov.benefits.result.started', Site.money(res.rate)) };
+                benUpdating = false; benResult = null; Site.go('/benefits');
+            }).catch(function (e) { pBenefitsResult(e.message); });
+        };
+    }
+
     // ---- marriage
-    var MAR_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Births, deaths, marriages and care', go: '/browse/life' }, { t: 'Get married' }];
+    function MAR_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.life'), go: '/browse/life' }, { t: t('gov.marriage.title') }]; }
 
     function pMarriage(err, partnerText) {
         var my = ++token;
         loading();
         Site.call('marriageState').then(function (st) {
             if (my !== token) return;
-            var html = '<h1>Get married</h1>' + flashHtml();
+            var html = '<h1>' + esc(t('gov.marriage.title')) + '</h1>' + flashHtml();
             var act = function (name, data, ok) {
                 return function () {
                     var b = this; b.disabled = true;
@@ -678,59 +782,59 @@
             };
             if (st.married) {
                 var m = st.married;
-                html += '<div class="status good"><span class="k">Your marriage</span><h3>Married to ' + esc(m.spouse) + '</h3>' +
-                    '<table class="kv"><tr><th>Certificate number</th><td>' + esc(m.number) + '</td></tr>' +
-                    '<tr><th>Date</th><td>' + Site.date(m.marriedAt) + '</td></tr><tr><th>Place</th><td>' + esc(m.place) + '</td></tr></table>' +
-                    '<p class="fine" style="margin-top:10px">Use the certificate in your inventory to read it or show it to someone.</p></div>' +
-                    '<h2>Lost your certificate?</h2><p>' + (m.copyFree ? 'Your certificate has not been added to your inventory yet. Collect it for free.' : 'Order another copy for <b>' + Site.money(st.copyPrice) + '</b>.') + '</p>' +
-                    '<p><button class="gbtn" id="copy">' + (m.copyFree ? 'Collect my certificate' : 'Get a copy for ' + Site.money(st.copyPrice)) + '</button></p>';
-                setPage('Get married', html, MAR_TRAIL);
-                document.getElementById('copy').onclick = act('marriageCopy', {}, function (r) { return 'Your certificate has been added to your inventory.'; });
+                html += '<div class="status good"><span class="k">' + esc(t('gov.marriage.yourMarriage')) + '</span><h3>' + esc(t('gov.marriage.marriedTo', m.spouse)) + '</h3>' +
+                    '<table class="kv"><tr><th>' + esc(t('gov.th.certificateNumber')) + '</th><td>' + esc(m.number) + '</td></tr>' +
+                    '<tr><th>' + esc(t('gov.marriage.date')) + '</th><td>' + Site.date(m.marriedAt) + '</td></tr><tr><th>' + esc(t('gov.marriage.place')) + '</th><td>' + esc(m.place) + '</td></tr></table>' +
+                    '<p class="fine" style="margin-top:10px">' + esc(t('gov.marriage.useItem')) + '</p></div>' +
+                    '<h2>' + esc(t('gov.marriage.lost')) + '</h2><p>' + (m.copyFree ? esc(t('gov.marriage.copyFree')) : t('gov.marriage.copyPaid', Site.money(st.copyPrice))) + '</p>' +
+                    '<p><button class="gbtn" id="copy">' + esc(m.copyFree ? t('gov.marriage.collect') : t('gov.marriage.getCopy', Site.money(st.copyPrice))) + '</button></p>';
+                setPage(t('gov.marriage.title'), html, MAR_TRAIL());
+                document.getElementById('copy').onclick = act('marriageCopy', {}, function (r) { return t('gov.marriage.copyDone'); });
                 return;
             }
             if (st.incoming) {
                 var i = st.incoming;
-                html += '<div class="status warn"><span class="k">A proposal for you</span><h3>' + esc(i.from) + ' has asked to marry you</h3>' +
-                    '<p>If you accept, ' + esc(i.from) + ' pays the ' + Site.money(i.price) + ' fee and you both get a marriage certificate. They need to be online.</p>' +
-                    '<p class="fine">This proposal runs out at ' + Site.datetime(i.expiresAt) + '.</p></div>' +
-                    '<p><button class="gbtn" id="accept">Accept and marry</button> <button class="gbtn grey" id="decline">Decline</button></p>';
-                setPage('Get married', html, MAR_TRAIL);
-                document.getElementById('accept').onclick = act('marriageRespond', { id: i.id, accept: true }, function (r) { return 'Congratulations! You are married to ' + r.spouse + '.'; });
-                document.getElementById('decline').onclick = act('marriageRespond', { id: i.id, accept: false }, function () { return 'You have declined the proposal.'; });
+                html += '<div class="status warn"><span class="k">' + esc(t('gov.marriage.proposalForYou')) + '</span><h3>' + esc(t('gov.marriage.askedToMarry', i.from)) + '</h3>' +
+                    '<p>' + esc(t('gov.marriage.ifAccept', i.from, Site.money(i.price))) + '</p>' +
+                    '<p class="fine">' + esc(t('gov.marriage.runsOutAt', Site.datetime(i.expiresAt))) + '</p></div>' +
+                    '<p><button class="gbtn" id="accept">' + esc(t('gov.marriage.accept')) + '</button> <button class="gbtn grey" id="decline">' + esc(t('gov.marriage.decline')) + '</button></p>';
+                setPage(t('gov.marriage.title'), html, MAR_TRAIL());
+                document.getElementById('accept').onclick = act('marriageRespond', { id: i.id, accept: true }, function (r) { return t('gov.marriage.congrats', r.spouse); });
+                document.getElementById('decline').onclick = act('marriageRespond', { id: i.id, accept: false }, function () { return t('gov.marriage.declined'); });
                 return;
             }
             if (st.outgoing) {
                 var o = st.outgoing;
-                html += '<div class="status warn"><span class="k">Your proposal</span><h3>Waiting for ' + esc(o.to) + '</h3>' +
-                    '<p>They can answer on this website. Stay online: you pay the ' + Site.money(st.price) + ' fee when they accept.</p>' +
-                    '<p class="fine">It runs out at ' + Site.datetime(o.expiresAt) + '.</p></div>' +
-                    '<p><button class="gbtn grey" id="withdraw">Withdraw my proposal</button></p>';
-                setPage('Get married', html, MAR_TRAIL);
-                document.getElementById('withdraw').onclick = act('marriageCancel', {}, function () { return 'Your proposal has been withdrawn.'; });
+                html += '<div class="status warn"><span class="k">' + esc(t('gov.marriage.yourProposal')) + '</span><h3>' + esc(t('gov.marriage.waitingFor', o.to)) + '</h3>' +
+                    '<p>' + esc(t('gov.marriage.canAnswer', Site.money(st.price))) + '</p>' +
+                    '<p class="fine">' + esc(t('gov.marriage.itRunsOut', Site.datetime(o.expiresAt))) + '</p></div>' +
+                    '<p><button class="gbtn grey" id="withdraw">' + esc(t('gov.marriage.withdraw')) + '</button></p>';
+                setPage(t('gov.marriage.title'), html, MAR_TRAIL());
+                document.getElementById('withdraw').onclick = act('marriageCancel', {}, function () { return t('gov.marriage.withdrawn'); });
                 return;
             }
-            html += '<p class="lead">Ask someone to marry you. They accept on this website, and you both get a marriage certificate.</p>' +
+            html += '<p class="lead">' + esc(t('gov.marriage.lead')) + '</p>' +
                 (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-                '<form id="f"><label class="field"><span class="lbl">Who do you want to marry?</span>' +
-                '<span class="hint">Their full character name or server ID. They need to be online.</span>' +
+                '<form id="f"><label class="field"><span class="lbl">' + esc(t('gov.marriage.whoLabel')) + '</span>' +
+                '<span class="hint">' + esc(t('gov.marriage.whoHint')) + '</span>' +
                 '<input type="text" id="partner" maxlength="60" autocomplete="off" spellcheck="false" value="' + esc(partnerText || '') + '"></label>' +
-                '<table class="kv"><tr><th>Fee</th><td><b>' + Site.money(st.price) + '</b>, paid by you when they accept</td></tr>' +
-                '<tr><th>Proposal lasts</th><td>' + minutesText(st.proposalMinutes) + '</td></tr></table>' +
-                '<button class="gbtn block" type="submit">Send proposal</button></form>';
-            setPage('Get married', html, MAR_TRAIL);
+                '<table class="kv"><tr><th>' + esc(t('gov.th.fee')) + '</th><td>' + t('gov.marriage.feeValue', Site.money(st.price)) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.marriage.lasts')) + '</th><td>' + esc(minutesText(st.proposalMinutes)) + '</td></tr></table>' +
+                '<button class="gbtn block" type="submit">' + esc(t('gov.marriage.send')) + '</button></form>';
+            setPage(t('gov.marriage.title'), html, MAR_TRAIL());
             document.getElementById('f').onsubmit = function (e) {
                 e.preventDefault();
                 var text = document.getElementById('partner').value;
-                if (!text.trim()) return pMarriage('Enter who you want to marry.', text);
+                if (!text.trim()) return pMarriage(t('gov.marriage.enterWho'), text);
                 Site.call('marriagePropose', { partner: text }).then(function (r) {
-                    flash = { kind: 'good', text: 'Your proposal has been sent to ' + r.to + '.' }; pMarriage();
+                    flash = { kind: 'good', text: t('gov.marriage.sentTo', r.to) }; pMarriage();
                 }).catch(function (e2) { pMarriage(e2.message, text); });
             };
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
     // ---- register a business
-    var BUS_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Working, jobs and pensions', go: '/browse/work' }, { t: 'Register a business' }];
+    function BUS_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.work'), go: '/browse/work' }, { t: t('gov.business.title') }]; }
 
     function pBusiness(err, form) {
         var my = ++token;
@@ -738,49 +842,49 @@
         loading();
         Site.call('businessState').then(function (st) {
             if (my !== token) return;
-            var html = '<h1>Register a business</h1>' + flashHtml();
+            var html = '<h1>' + esc(t('gov.business.title')) + '</h1>' + flashHtml();
             var active = st.businesses.filter(function (b) { return b.status === 'active'; });
             var closed = st.businesses.filter(function (b) { return b.status !== 'active'; });
             if (active.length) {
-                html += '<h2>Your businesses</h2><div class="glist">' + active.map(function (b) {
-                    return '<div><b>' + esc(b.name) + '</b> <span class="tag good">Registered</span>' +
-                        '<div class="desc">' + esc(b.type) + ' · registration number ' + esc(b.number) + ' · since ' + Site.date(b.registeredAt) + '</div>' +
+                html += '<h2>' + esc(t('gov.business.yours')) + '</h2><div class="glist">' + active.map(function (b) {
+                    return '<div><b>' + esc(b.name) + '</b> <span class="tag good">' + esc(t('gov.business.registered')) + '</span>' +
+                        '<div class="desc">' + esc(t('gov.business.line', b.type, b.number, Site.date(b.registeredAt))) + '</div>' +
                         (b.description ? '<div class="desc">' + esc(b.description) + '</div>' : '') +
-                        '<p style="margin:8px 0 0"><button class="gbtn" data-copy="' + b.id + '">' + (b.copyFree ? 'Collect certificate' : 'Certificate copy ' + Site.money(st.copyPrice)) + '</button> ' +
-                        '<button class="gbtn grey" data-close="' + b.id + '">Close this business</button></p></div>';
+                        '<p style="margin:8px 0 0"><button class="gbtn" data-copy="' + b.id + '">' + esc(b.copyFree ? t('gov.business.collectCert') : t('gov.business.certCopy', Site.money(st.copyPrice))) + '</button> ' +
+                        '<button class="gbtn grey" data-close="' + b.id + '">' + esc(t('gov.business.close')) + '</button></p></div>';
                 }).join('') + '</div>';
             }
             if (closed.length) {
-                html += '<p class="fine">Closed: ' + closed.map(function (b) { return esc(b.name); }).join(', ') + '</p>';
+                html += '<p class="fine">' + esc(t('gov.business.closedList', closed.map(function (b) { return b.name; }).join(', '))) + '</p>';
             }
             if (st.allowed) {
-                html += '<h2>' + (active.length ? 'Register another business' : 'Register your business') + '</h2>' +
+                html += '<h2>' + esc(active.length ? t('gov.business.another') : t('gov.business.yourBusiness')) + '</h2>' +
                     (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-                    '<form id="f"><label class="field"><span class="lbl">Business name</span>' +
-                    '<span class="hint">' + st.nameMin + ' to ' + st.nameMax + ' characters. Each name can only be registered once.</span>' +
+                    '<form id="f"><label class="field"><span class="lbl">' + esc(t('gov.business.name')) + '</span>' +
+                    '<span class="hint">' + esc(t('gov.business.nameHint', st.nameMin, st.nameMax)) + '</span>' +
                     '<input type="text" id="bname" maxlength="' + st.nameMax + '" autocomplete="off" value="' + esc(form.name || '') + '"></label>' +
-                    '<label class="field"><span class="lbl">Type of business</span><select id="btype">' +
-                    st.types.map(function (t) { return '<option' + (t === form.type ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select></label>' +
-                    '<label class="field"><span class="lbl">What does it do? (optional)</span><input type="text" id="bdesc" maxlength="' + st.descriptionMax + '" autocomplete="off" value="' + esc(form.description || '') + '"></label>' +
-                    '<table class="kv"><tr><th>Fee</th><td><b>' + Site.money(st.price) + '</b></td></tr></table>' +
-                    '<p class="fine">The payment is taken from your bank account. You get a certificate of registration in your inventory.</p>' +
-                    '<button class="gbtn block" type="submit" id="reg">Pay ' + Site.money(st.price) + ' and register</button></form>';
+                    '<label class="field"><span class="lbl">' + esc(t('gov.business.type')) + '</span><select id="btype">' +
+                    st.types.map(function (ty) { return '<option' + (ty === form.type ? ' selected' : '') + '>' + esc(ty) + '</option>'; }).join('') + '</select></label>' +
+                    '<label class="field"><span class="lbl">' + esc(t('gov.business.whatDoes')) + '</span><input type="text" id="bdesc" maxlength="' + st.descriptionMax + '" autocomplete="off" value="' + esc(form.description || '') + '"></label>' +
+                    '<table class="kv"><tr><th>' + esc(t('gov.th.fee')) + '</th><td><b>' + Site.money(st.price) + '</b></td></tr></table>' +
+                    '<p class="fine">' + esc(t('gov.business.note')) + '</p>' +
+                    '<button class="gbtn block" type="submit" id="reg">' + esc(t('gov.business.payRegister', Site.money(st.price))) + '</button></form>';
             } else {
-                html += '<div class="status warn"><h3>You can’t register another business</h3><p>' + esc(st.reason || '') + '</p></div>';
+                html += '<div class="status warn"><h3>' + esc(t('gov.business.cantAnother')) + '</h3><p>' + esc(st.reason || '') + '</p></div>';
             }
-            setPage('Register a business', html, BUS_TRAIL);
+            setPage(t('gov.business.title'), html, BUS_TRAIL());
             Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (b) {
                 b.onclick = function () {
                     b.disabled = true;
-                    Site.call('businessCopy', { id: +b.getAttribute('data-copy') }).then(function () { flash = { kind: 'good', text: 'The certificate has been added to your inventory.' }; pBusiness(); })
+                    Site.call('businessCopy', { id: +b.getAttribute('data-copy') }).then(function () { flash = { kind: 'good', text: t('gov.business.certAdded') }; pBusiness(); })
                         .catch(function (e) { flash = { kind: 'bad', text: e.message }; pBusiness(); });
                 };
             });
             Array.prototype.forEach.call(document.querySelectorAll('[data-close]'), function (b) {
                 b.onclick = function () {
-                    if (!b.getAttribute('data-sure')) { b.setAttribute('data-sure', '1'); b.textContent = 'Yes, close it (no refund)'; return; }
+                    if (!b.getAttribute('data-sure')) { b.setAttribute('data-sure', '1'); b.textContent = t('gov.business.closeSure'); return; }
                     b.disabled = true;
-                    Site.call('businessClose', { id: +b.getAttribute('data-close') }).then(function (r) { flash = { kind: 'good', text: r.name + ' has been closed.' }; pBusiness(); })
+                    Site.call('businessClose', { id: +b.getAttribute('data-close') }).then(function (r) { flash = { kind: 'good', text: t('gov.business.closedMsg', r.name) }; pBusiness(); })
                         .catch(function (e) { flash = { kind: 'bad', text: e.message }; pBusiness(); });
                 };
             });
@@ -790,7 +894,7 @@
                 var data = { name: document.getElementById('bname').value, type: document.getElementById('btype').value, description: document.getElementById('bdesc').value };
                 document.getElementById('reg').disabled = true;
                 Site.call('businessRegister', data).then(function (r) {
-                    flash = { kind: 'good', text: r.name + ' is registered (number ' + r.number + '). ' + (r.itemGiven ? 'Your certificate is in your inventory.' : 'Collect your certificate below.') };
+                    flash = { kind: 'good', text: r.itemGiven ? t('gov.business.registeredMsg.given', r.name, r.number) : t('gov.business.registeredMsg.collect', r.name, r.number) };
                     pBusiness();
                 }).catch(function (e2) { pBusiness(e2.message, data); });
             };
@@ -799,13 +903,13 @@
 
     // ------------------------------------------------------------------ council tax
 
-    var CT_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Money and tax', go: '/browse/money' }, { t: 'Pay your council tax', go: '/council-tax' }];
+    function CT_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.money'), go: '/browse/money' }, { t: t('gov.council.title'), go: '/council-tax' }]; }
     var ctReceipt = null;
 
     function ctStatus(h) {
-        if (h.status === 'arrears') return '<span class="tag bad">In arrears · ' + h.periodsDue + ' bills</span>';
-        if (h.status === 'due') return '<span class="tag warn">Due now</span>';
-        return '<span class="tag good">Paid until ' + Site.date(h.paidUntil) + '</span>';
+        if (h.status === 'arrears') return '<span class="tag bad">' + esc(t('gov.council.tag.arrears', h.periodsDue)) + '</span>';
+        if (h.status === 'due') return '<span class="tag warn">' + esc(t('gov.council.tag.due')) + '</span>';
+        return '<span class="tag good">' + esc(t('gov.council.tag.paidUntil', Site.date(h.paidUntil))) + '</span>';
     }
 
     function pCouncil() {
@@ -813,24 +917,24 @@
         loading();
         Site.call('councilState').then(function (st) {
             if (my !== token) return;
-            var html = '<h1>Pay your council tax</h1><p class="lead">Council tax is charged on every home you own or rent, once every ' + st.periodDays + ' days.</p>';
+            var html = '<h1>' + esc(t('gov.council.title')) + '</h1><p class="lead">' + esc(t('gov.council.lead', st.periodDays)) + '</p>';
             if (st.owed > 0) {
-                html += '<div class="status bad"><span class="k">Arrears</span><h3>You owe ' + Site.money(st.owed) + '</h3><p>You have unpaid council tax. Pay it below to clear it.</p></div>';
+                html += '<div class="status bad"><span class="k">' + esc(t('gov.council.arrears')) + '</span><h3>' + esc(t('gov.council.youOwe', Site.money(st.owed))) + '</h3><p>' + esc(t('gov.council.arrearsText')) + '</p></div>';
             }
             if (!st.homes.length) {
-                html += '<div class="status"><h3>You don’t have a home</h3><p>Council tax is only charged on homes. Homes registered to you will appear here.</p></div>';
+                html += '<div class="status"><h3>' + esc(t('gov.council.noHome.title')) + '</h3><p>' + esc(t('gov.council.noHome.body')) + '</p></div>';
             } else {
                 html += st.homes.map(function (h) {
                     var action = h.canPay
-                        ? '<button class="gbtn" data-go="/council-tax/pay/' + encodeURIComponent(h.key) + '">' + (h.status === 'paid' ? 'Pay early' : 'Pay') + ' · ' + Site.money(h.payAmount) + '</button>'
-                        : '<span class="fine">Nothing to pay right now.</span>';
+                        ? '<button class="gbtn" data-go="/council-tax/pay/' + encodeURIComponent(h.key) + '">' + esc(h.status === 'paid' ? t('gov.council.payEarly', Site.money(h.payAmount)) : t('gov.council.payBtn', Site.money(h.payAmount))) + '</button>'
+                        : '<span class="fine">' + esc(t('gov.council.nothingNow')) + '</span>';
                     return '<div class="veh"><div class="vrow"><b>' + esc(h.name) + '</b>' + ctStatus(h) + '</div>' +
-                        '<div class="meta">' + (h.rented ? 'Rented home' : 'Value ' + Site.money(h.value)) + ' · Bill ' + Site.money(h.amount) + ' every ' + st.periodDays + ' days' +
-                        (h.owed > 0 ? ' · Owed ' + Site.money(h.owed) : '') + '</div>' + action + '</div>';
+                        '<div class="meta">' + esc([h.rented ? t('gov.council.meta.rented') : t('gov.council.meta.value', Site.money(h.value)), t('gov.council.meta.bill', Site.money(h.amount), st.periodDays)]
+                            .concat(h.owed > 0 ? [t('gov.council.meta.owed', Site.money(h.owed))] : []).join(' · ')) + '</div>' + action + '</div>';
                 }).join('');
             }
-            html += '<p style="margin-top:16px"><a class="glink" data-go="/council-tax/history">Payment history</a></p>';
-            setPage('Pay your council tax', html, CT_TRAIL.slice(0, 2).concat([{ t: 'Pay your council tax' }]));
+            html += '<p style="margin-top:16px"><a class="glink" data-go="/council-tax/history">' + esc(t('gov.council.historyLink')) + '</a></p>';
+            setPage(t('gov.council.title'), html, CT_TRAIL().slice(0, 2).concat([{ t: t('gov.council.title') }]));
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
@@ -843,24 +947,24 @@
             for (var i = 0; i < st.homes.length; i++) if (st.homes[i].key === key) h = st.homes[i];
             if (!h) return pNotFound();
             if (!h.canPay) {
-                setPage('Pay your council tax', '<h1>Pay your council tax</h1><div class="status good"><h3>Nothing to pay</h3><p>' + esc(h.name) + ' is paid until <b>' + Site.date(h.paidUntil) + '</b>.</p></div>' +
-                    '<p><a class="glink" data-go="/council-tax">Back to your homes</a></p>', CT_TRAIL);
+                setPage(t('gov.council.title'), '<h1>' + esc(t('gov.council.title')) + '</h1><div class="status good"><h3>' + esc(t('gov.council.nothingHeading')) + '</h3><p>' + t('gov.council.paidUntil', esc(h.name), Site.date(h.paidUntil)) + '</p></div>' +
+                    '<p><a class="glink" data-go="/council-tax">' + esc(t('gov.council.backHomes')) + '</a></p>', CT_TRAIL());
                 return;
             }
             var until = h.paidUntil + h.payPeriods * st.periodDays * 86400;
-            setPage('Confirm and pay',
-                '<h1>Confirm and pay</h1><p><b>' + esc(h.name) + '</b></p>' +
+            setPage(t('gov.confirmPay'),
+                '<h1>' + esc(t('gov.confirmPay')) + '</h1><p><b>' + esc(h.name) + '</b></p>' +
                 (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-                (h.periodsDue > 1 ? '<div class="status bad"><h3>' + h.periodsDue + ' bills are overdue</h3><p>This payment clears all of them.</p></div>' : '') +
-                '<table class="kv"><tr><th>Bills paid</th><td>' + h.payPeriods + ' × ' + Site.money(h.amount) + '</td></tr>' +
-                '<tr><th>Paid until</th><td>' + Site.date(until) + '</td></tr>' +
-                '<tr><th>Amount to pay</th><td><b>' + Site.money(h.payAmount) + '</b></td></tr></table>' +
-                '<p class="fine" style="margin-top:12px">The payment is taken from your bank account.</p>' +
-                '<button class="gbtn block" id="pay">Pay ' + Site.money(h.payAmount) + '</button>' +
-                '<p style="margin-top:12px"><a class="glink" data-go="/council-tax">Cancel</a></p>', CT_TRAIL.concat([{ t: 'Confirm' }]));
+                (h.periodsDue > 1 ? '<div class="status bad"><h3>' + esc(t('gov.council.overdue', h.periodsDue)) + '</h3><p>' + esc(t('gov.council.clearsAll')) + '</p></div>' : '') +
+                '<table class="kv"><tr><th>' + esc(t('gov.th.billsPaid')) + '</th><td>' + esc(t('gov.council.billsValue', h.payPeriods, Site.money(h.amount))) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.paidUntil')) + '</th><td>' + Site.date(until) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.amountToPay')) + '</th><td><b>' + Site.money(h.payAmount) + '</b></td></tr></table>' +
+                '<p class="fine" style="margin-top:12px">' + esc(t('gov.bankNote')) + '</p>' +
+                '<button class="gbtn block" id="pay">' + esc(t('gov.pay', Site.money(h.payAmount))) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/council-tax">' + esc(t('gov.cancel')) + '</a></p>', CT_TRAIL().concat([{ t: t('gov.crumb.confirm') }]));
             document.getElementById('pay').onclick = function () {
                 var btn = this;
-                btn.disabled = true; btn.textContent = 'Processing…';
+                btn.disabled = true; btn.textContent = t('gov.processing');
                 Site.call('councilPay', { key: key }).then(function (r) {
                     ctReceipt = r; Site.go('/council-tax/done');
                 }).catch(function (e) { pCouncilPay(key, e.message); });
@@ -871,12 +975,12 @@
     function pCouncilDone() {
         if (!ctReceipt) return Site.go('/council-tax');
         var r = ctReceipt;
-        setPage('Payment received',
-            '<div class="receipt"><h1>Payment received</h1><p style="margin:0">' + esc(r.name) + ' is paid until <b>' + Site.date(r.paidUntil) + '</b></p></div>' +
-            '<table class="kv"><tr><th>Amount paid</th><td>' + Site.money(r.amount) + '</td></tr><tr><th>Bills paid</th><td>' + r.periods + '</td></tr>' +
-            '<tr><th>Paid on</th><td>' + Site.datetime(r.now) + '</td></tr></table>' +
-            '<p class="fine" style="margin-top:12px">We have emailed you a receipt.</p>' +
-            '<p style="margin-top:16px"><a class="glink" data-go="/council-tax">Back to your homes</a></p>', CT_TRAIL.concat([{ t: 'Done' }]));
+        setPage(t('gov.council.done.title'),
+            '<div class="receipt"><h1>' + esc(t('gov.council.done.title')) + '</h1><p style="margin:0">' + t('gov.council.paidUntilDone', esc(r.name), Site.date(r.paidUntil)) + '</p></div>' +
+            '<table class="kv"><tr><th>' + esc(t('gov.th.amountPaid')) + '</th><td>' + Site.money(r.amount) + '</td></tr><tr><th>' + esc(t('gov.th.billsPaid')) + '</th><td>' + r.periods + '</td></tr>' +
+            '<tr><th>' + esc(t('gov.th.paidOn')) + '</th><td>' + Site.datetime(r.now) + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">' + esc(t('gov.council.done.note')) + '</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/council-tax">' + esc(t('gov.council.backHomes')) + '</a></p>', CT_TRAIL().concat([{ t: t('gov.crumb.done') }]));
     }
 
     function pCouncilHistory() {
@@ -884,33 +988,33 @@
         loading();
         Site.call('councilHistory').then(function (r) {
             if (my !== token) return;
-            var html = '<h1>Payment history</h1>';
+            var html = '<h1>' + esc(t('gov.council.historyLink')) + '</h1>';
             html += r.payments.length ? '<div class="glist">' + r.payments.map(function (p) {
                 return '<div><div class="vrow"><b>' + esc(p.label) + '</b><span>' + Site.money(p.amount) + '</span></div>' +
-                    '<div class="desc">' + Site.datetime(p.paidAt) + ' · ' + p.periods + ' bill' + (p.periods === 1 ? '' : 's') + '</div></div>';
-            }).join('') + '</div>' : '<p class="muted">You have not paid any council tax yet.</p>';
-            html += '<p style="margin-top:16px"><a class="glink" data-go="/council-tax">Back to your homes</a></p>';
-            setPage('Payment history', html, CT_TRAIL.concat([{ t: 'History' }]));
+                    '<div class="desc">' + Site.datetime(p.paidAt) + ' · ' + esc(p.periods === 1 ? t('gov.council.bill.one', p.periods) : t('gov.council.bill.other', p.periods)) + '</div></div>';
+            }).join('') + '</div>' : '<p class="muted">' + esc(t('gov.council.noPayments')) + '</p>';
+            html += '<p style="margin-top:16px"><a class="glink" data-go="/council-tax">' + esc(t('gov.council.backHomes')) + '</a></p>';
+            setPage(t('gov.council.historyLink'), html, CT_TRAIL().concat([{ t: t('gov.crumb.history') }]));
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
     // ------------------------------------------------------------------ driving licence
 
-    var DL_TRAIL = [{ t: 'Home', go: '/' }, { t: 'Driving and transport', go: '/browse/driving' }, { t: 'Driving licence and tests', go: '/driving-licence' }];
+    function DL_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.driving'), go: '/browse/driving' }, { t: t('gov.licence.title'), go: '/driving-licence' }]; }
     var dlReceipt = null;
 
     function loadLicence() { return Site.call('licenceState'); }
-    function dlTrail(extra) { return DL_TRAIL.slice(0, 2).concat(extra ? DL_TRAIL.slice(2).concat(extra) : [{ t: 'Driving licence and tests' }]); }
+    function dlTrail(extra) { return DL_TRAIL().slice(0, 2).concat(extra ? DL_TRAIL().slice(2).concat(extra) : [{ t: t('gov.licence.title') }]); }
 
     function dlTypeLabel(l) {
-        if (l.suspended) return '<span class="tag bad">Suspended</span>';
-        if (l.type === 'full') return '<span class="tag good">Full licence</span>';
-        if (l.type === 'provisional') return '<span class="tag warn">Provisional licence</span>';
-        return '<span class="tag">No licence yet</span>';
+        if (l.suspended) return '<span class="tag bad">' + esc(t('gov.licence.suspended')) + '</span>';
+        if (l.type === 'full') return '<span class="tag good">' + esc(t('gov.licence.full')) + '</span>';
+        if (l.type === 'provisional') return '<span class="tag warn">' + esc(t('gov.licence.provisional')) + '</span>';
+        return '<span class="tag">' + esc(t('gov.licence.none')) + '</span>';
     }
 
     function dlTestCard(title, sub, fee, tag, action) {
-        return '<div class="veh"><div class="vrow"><b>' + title + '</b>' + tag + '</div><div class="meta">' + sub + ' · Fee ' + Site.money(fee) + '</div>' + action + '</div>';
+        return '<div class="veh"><div class="vrow"><b>' + title + '</b>' + tag + '</div><div class="meta">' + esc(t('gov.licence.testMeta', sub, Site.money(fee))) + '</div>' + action + '</div>';
     }
 
     function pLicence() {
@@ -918,41 +1022,41 @@
         loading();
         loadLicence().then(function (st) {
             if (my !== token) return;
-            var l = st.licence, b = st.booking, html = '<h1>Driving licence and tests</h1>';
+            var l = st.licence, b = st.booking, html = '<h1>' + esc(t('gov.licence.title')) + '</h1>';
 
             var pts = l.points, ptsCls = pts >= l.maxPoints ? 'bad' : (pts >= l.maxPoints - 3 ? 'warn' : 'good');
-            html += '<div class="status ' + (l.suspended ? 'bad' : (l.type === 'full' ? 'good' : 'warn')) + '"><span class="k">Your licence</span><h3>' + dlTypeLabel(l) + '</h3>' +
-                '<table class="kv"><tr><th>Categories</th><td>' + (l.categories.length ? l.categories.map(function (c) { return '<span class="tag good">' + esc(c) + '</span>'; }).join(' ') : 'None yet') + '</td></tr>' +
-                '<tr><th>Penalty points</th><td><span class="tag ' + ptsCls + '">' + pts + ' of ' + l.maxPoints + '</span></td></tr>' +
-                (l.issueDate && l.type !== 'none' ? '<tr><th>Issued</th><td>' + esc(l.issueDate) + '</td></tr>' : '') + '</table>' +
-                (l.suspended ? '<p>Your licence has been suspended, so you can’t book any tests.</p>' : '') + '</div>';
+            html += '<div class="status ' + (l.suspended ? 'bad' : (l.type === 'full' ? 'good' : 'warn')) + '"><span class="k">' + esc(t('gov.licence.yourLicence')) + '</span><h3>' + dlTypeLabel(l) + '</h3>' +
+                '<table class="kv"><tr><th>' + esc(t('gov.th.categories')) + '</th><td>' + (l.categories.length ? l.categories.map(function (c) { return '<span class="tag good">' + esc(c) + '</span>'; }).join(' ') : esc(t('gov.licence.noneYet'))) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.licence.penaltyPoints')) + '</th><td><span class="tag ' + ptsCls + '">' + esc(t('gov.licence.points', pts, l.maxPoints)) + '</span></td></tr>' +
+                (l.issueDate && l.type !== 'none' ? '<tr><th>' + esc(t('gov.licence.issued')) + '</th><td>' + esc(l.issueDate) + '</td></tr>' : '') + '</table>' +
+                (l.suspended ? '<p>' + esc(t('gov.licence.suspendedText')) + '</p>' : '') + '</div>';
 
             if (!b.passportOk && b.passportMessage) {
-                html += '<div class="status warn"><h3>You need a passport</h3><p>' + esc(b.passportMessage) + '</p><p><a class="glink" data-go="/passport">Apply for a passport</a></p></div>';
+                html += '<div class="status warn"><h3>' + esc(t('gov.licence.needPassport')) + '</h3><p>' + esc(b.passportMessage) + '</p><p><a class="glink" data-go="/passport">' + esc(t('gov.passport.title')) + '</a></p></div>';
             }
 
-            html += '<h2>Book a test</h2>';
+            html += '<h2>' + esc(t('gov.licence.bookTest')) + '</h2>';
             if (!b.required) {
-                html += '<p class="muted">Tests do not need to be booked. Take them at ' + esc(b.centre) + '.</p>';
+                html += '<p class="muted">' + esc(t('gov.licence.noBooking', b.centre)) + '</p>';
             } else {
-                var t = b.theory, tTag = t.passed ? '<span class="tag good">Passed</span>' : (t.booked ? '<span class="tag good">Booked</span>' : '');
-                html += '<div class="stack">' + dlTestCard('Theory test', '15 questions from the Highway Code', t.fee, tTag,
-                    t.canBook ? '<button class="gbtn" data-go="/driving-licence/book/theory">Book · ' + Site.money(t.fee) + '</button>' :
-                    (t.reason && !t.passed && !t.booked ? '<span class="fine">' + esc(t.reason) + '</span>' : '<span class="fine">' + (t.booked ? 'Take it at ' + esc(b.centre) + '.' : 'Nothing to book.') + '</span>'));
+                var ty = b.theory, tTag = ty.passed ? '<span class="tag good">' + esc(t('gov.licence.passed')) + '</span>' : (ty.booked ? '<span class="tag good">' + esc(t('gov.licence.booked')) + '</span>' : '');
+                html += '<div class="stack">' + dlTestCard(esc(t('gov.licence.theory.title')), t('gov.licence.theory.sub'), ty.fee, tTag,
+                    ty.canBook ? '<button class="gbtn" data-go="/driving-licence/book/theory">' + esc(t('gov.licence.bookBtn', Site.money(ty.fee))) + '</button>' :
+                    (ty.reason && !ty.passed && !ty.booked ? '<span class="fine">' + esc(ty.reason) + '</span>' : '<span class="fine">' + esc(ty.booked ? t('gov.licence.takeAt', b.centre) : t('gov.licence.nothingToBook')) + '</span>'));
                 b.practical.filter(function (c) { return !c.held; }).forEach(function (c) {
-                    html += dlTestCard(esc(c.icon || '') + ' Practical test · ' + esc(c.label) + ' (' + esc(c.name) + ')', esc(c.description || ''), c.fee,
-                        c.booked ? '<span class="tag good">Booked</span>' : '',
-                        c.canBook ? '<button class="gbtn" data-go="/driving-licence/book/practical/' + esc(encodeURIComponent(c.label)) + '">Book · ' + Site.money(c.fee) + '</button>' :
-                        '<span class="fine">' + (c.booked ? 'Take it at ' + esc(b.centre) + '.' : esc(c.reason || '')) + '</span>');
+                    html += dlTestCard(esc(t('gov.licence.practical.title', c.icon || '', c.label, c.name)), c.description || '', c.fee,
+                        c.booked ? '<span class="tag good">' + esc(t('gov.licence.booked')) + '</span>' : '',
+                        c.canBook ? '<button class="gbtn" data-go="/driving-licence/book/practical/' + esc(encodeURIComponent(c.label)) + '">' + esc(t('gov.licence.bookBtn', Site.money(c.fee))) + '</button>' :
+                        '<span class="fine">' + (c.booked ? esc(t('gov.licence.takeAt', b.centre)) : esc(c.reason || '')) + '</span>');
                 });
-                html += '</div><p class="fine" style="margin-top:12px">Take your tests at ' + esc(b.centre) + '. A booking is used up when you take the test, pass or fail.</p>';
+                html += '</div><p class="fine" style="margin-top:12px">' + esc(t('gov.licence.takeTests', b.centre)) + '</p>';
             }
 
-            html += '<h2>Other services</h2><div class="glist">' +
-                (l.replace && l.replace.pending ? '<div><a class="glink" data-go="/driving-licence/replace">Your replacement licence</a><div class="desc">On its way · ready by ' + Site.datetime(l.replace.pending.readyAt) + '</div></div>' :
-                    (l.canReplace ? '<div><a class="glink" data-go="/driving-licence/replace">Replace a lost licence</a><div class="desc">Fee ' + Site.money(l.replaceFee) + ' · delivered to a Postal Prime locker</div></div>' : '')) +
-                '<div><a class="glink" data-go="/driving-licence/history">Test history and penalty points</a></div></div>';
-            setPage('Driving licence and tests', html, dlTrail());
+            html += '<h2>' + esc(t('gov.licence.otherServices')) + '</h2><div class="glist">' +
+                (l.replace && l.replace.pending ? '<div><a class="glink" data-go="/driving-licence/replace">' + esc(t('gov.licence.yourReplacement')) + '</a><div class="desc">' + esc(t('gov.licence.onItsWayLine', Site.datetime(l.replace.pending.readyAt))) + '</div></div>' :
+                    (l.canReplace ? '<div><a class="glink" data-go="/driving-licence/replace">' + esc(t('gov.licence.replaceLost')) + '</a><div class="desc">' + esc(t('gov.licence.replaceFeeLine', Site.money(l.replaceFee))) + '</div></div>' : '')) +
+                '<div><a class="glink" data-go="/driving-licence/history">' + esc(t('gov.licence.historyTitle')) + '</a></div></div>';
+            setPage(t('gov.licence.title'), html, dlTrail());
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
@@ -962,26 +1066,26 @@
         loadLicence().then(function (st) {
             if (my !== token) return;
             var b = st.booking, entry, title, sub;
-            if (kind === 'theory') { entry = b.theory; title = 'Theory test'; sub = '15 questions from the Highway Code'; }
-            else { entry = byId(b.practical.map(function (c) { c.id = c.label; return c; }), category); title = entry ? 'Practical test · ' + entry.label + ' (' + entry.name + ')' : ''; sub = entry ? entry.description : ''; }
+            if (kind === 'theory') { entry = b.theory; title = t('gov.licence.theory.title'); sub = t('gov.licence.theory.sub'); }
+            else { entry = byId(b.practical.map(function (c) { c.id = c.label; return c; }), category); title = entry ? t('gov.licence.practical.titleNoIcon', entry.label, entry.name) : ''; sub = entry ? entry.description : ''; }
             if (!entry) return pNotFound();
             if (!entry.canBook) {
-                setPage('Book a test', '<h1>Book a test</h1><div class="status warn"><h3>You can’t book this right now</h3><p>' + esc(entry.reason || '') + '</p></div>' +
-                    '<p><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail());
+                setPage(t('gov.licence.bookTest'), '<h1>' + esc(t('gov.licence.bookTest')) + '</h1><div class="status warn"><h3>' + esc(t('gov.licence.cantBook')) + '</h3><p>' + esc(entry.reason || '') + '</p></div>' +
+                    '<p><a class="glink" data-go="/driving-licence">' + esc(t('gov.licence.backTo')) + '</a></p>', dlTrail());
                 return;
             }
-            setPage('Confirm and pay',
-                '<h1>Confirm and pay</h1><p><b>' + esc(title) + '</b></p>' +
+            setPage(t('gov.confirmPay'),
+                '<h1>' + esc(t('gov.confirmPay')) + '</h1><p><b>' + esc(title) + '</b></p>' +
                 (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-                '<table class="kv"><tr><th>Test</th><td>' + esc(title) + '</td></tr>' + (sub ? '<tr><th>About</th><td>' + esc(sub) + '</td></tr>' : '') +
-                '<tr><th>Take it at</th><td>' + esc(b.centre) + '</td></tr>' +
-                '<tr><th>Amount to pay</th><td><b>' + Site.money(entry.fee) + '</b></td></tr></table>' +
-                '<p class="fine" style="margin-top:12px">The payment is taken from your bank account. Your booking is used up when you take the test, pass or fail.</p>' +
-                '<button class="gbtn block" id="pay">Pay ' + Site.money(entry.fee) + '</button>' +
-                '<p style="margin-top:12px"><a class="glink" data-go="/driving-licence">Cancel</a></p>', dlTrail([{ t: 'Confirm' }]));
+                '<table class="kv"><tr><th>' + esc(t('gov.licence.th.test')) + '</th><td>' + esc(title) + '</td></tr>' + (sub ? '<tr><th>' + esc(t('gov.licence.th.about')) + '</th><td>' + esc(sub) + '</td></tr>' : '') +
+                '<tr><th>' + esc(t('gov.licence.th.takeAt')) + '</th><td>' + esc(b.centre) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.amountToPay')) + '</th><td><b>' + Site.money(entry.fee) + '</b></td></tr></table>' +
+                '<p class="fine" style="margin-top:12px">' + esc(t('gov.licence.bookNote')) + '</p>' +
+                '<button class="gbtn block" id="pay">' + esc(t('gov.pay', Site.money(entry.fee))) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/driving-licence">' + esc(t('gov.cancel')) + '</a></p>', dlTrail([{ t: t('gov.crumb.confirm') }]));
             document.getElementById('pay').onclick = function () {
                 var btn = this;
-                btn.disabled = true; btn.textContent = 'Processing…';
+                btn.disabled = true; btn.textContent = t('gov.processing');
                 Site.call('licenceBook', { kind: kind, category: category || '' }).then(function (r) {
                     dlReceipt = { book: r }; Site.go('/driving-licence/booked');
                 }).catch(function (e) { pLicenceBook(kind, category, e.message); });
@@ -992,11 +1096,11 @@
     function pLicenceBooked() {
         if (!dlReceipt || !dlReceipt.book) return Site.go('/driving-licence');
         var r = dlReceipt.book;
-        setPage('Test booked',
-            '<div class="receipt"><h1>Test booked</h1><p style="margin:0">' + esc(r.label) + '</p></div>' +
-            '<table class="kv"><tr><th>Amount paid</th><td>' + Site.money(r.price) + '</td></tr><tr><th>Take it at</th><td>' + esc(r.centre) + '</td></tr></table>' +
-            '<p class="fine" style="margin-top:12px">We have emailed you a confirmation. Your booking is used up when you take the test, pass or fail.</p>' +
-            '<p style="margin-top:16px"><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail([{ t: 'Booked' }]));
+        setPage(t('gov.licence.booked.title'),
+            '<div class="receipt"><h1>' + esc(t('gov.licence.booked.title')) + '</h1><p style="margin:0">' + esc(r.label) + '</p></div>' +
+            '<table class="kv"><tr><th>' + esc(t('gov.th.amountPaid')) + '</th><td>' + Site.money(r.price) + '</td></tr><tr><th>' + esc(t('gov.licence.th.takeAt')) + '</th><td>' + esc(r.centre) + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">' + esc(t('gov.licence.booked.note')) + '</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/driving-licence">' + esc(t('gov.licence.backTo')) + '</a></p>', dlTrail([{ t: t('gov.crumb.booked') }]));
     }
 
     function pLicenceReplace(err, lockerPick) {
@@ -1007,44 +1111,44 @@
             var l = st.licence, r = l.replace || {};
             if (r.pending) {
                 var p = r.pending;
-                setPage('Replacement licence', '<h1>Your replacement licence</h1><div class="status good"><h3>On its way</h3>' +
-                    '<p>' + (p.late ? 'It is being sent to you now.' : 'It will be ready by ' + Site.datetime(p.readyAt) + '.') + '</p>' +
-                    (p.lockerLabel ? '<p>We will send it to <b>' + esc(p.lockerLabel) + '</b>. You will get an email and a notification, then collect it with a pickup code from Postal Prime.</p>' : '<p>It will be added to your inventory when it is ready.</p>') +
-                    '<p>Your old licence was cancelled when you ordered.</p></div>' +
-                    '<p><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail());
+                setPage(t('gov.licence.replacement.title'), '<h1>' + esc(t('gov.licence.replacement.h1')) + '</h1><div class="status good"><h3>' + esc(t('gov.licence.onItsWay')) + '</h3>' +
+                    '<p>' + esc(p.late ? t('gov.licence.beingSent') : t('gov.licence.readyBy', Site.datetime(p.readyAt))) + '</p>' +
+                    (p.lockerLabel ? '<p>' + t('gov.licence.sendTo', esc(p.lockerLabel)) + '</p>' : '<p>' + esc(t('gov.licence.toInventory')) + '</p>') +
+                    '<p>' + esc(t('gov.licence.oldCancelled')) + '</p></div>' +
+                    '<p><a class="glink" data-go="/driving-licence">' + esc(t('gov.licence.backTo')) + '</a></p>', dlTrail());
                 return;
             }
             if (!r.canReplace) {
-                setPage('Replace a licence', '<h1>Replace a lost licence</h1><div class="status warn"><h3>You can’t do this right now</h3><p>' + esc(r.reason || 'You don’t have a licence to replace.') + '</p></div>' +
-                    '<p><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail());
+                setPage(t('gov.licence.replace.title'), '<h1>' + esc(t('gov.licence.replaceLost')) + '</h1><div class="status warn"><h3>' + esc(t('gov.cantDoNow')) + '</h3><p>' + esc(r.reason || t('gov.licence.noLicence')) + '</p></div>' +
+                    '<p><a class="glink" data-go="/driving-licence">' + esc(t('gov.licence.backTo')) + '</a></p>', dlTrail());
                 return;
             }
             var pick = lockerPick || (r.lockers[0] && r.lockers[0].id) || '';
             var where;
             if (r.mode === 'locker') {
-                where = '<div class="field"><span class="lbl">Where should we send it?</span><span class="hint">You collect it from a Postal Prime locker with a pickup code.</span>' +
+                where = '<div class="field"><span class="lbl">' + esc(t('gov.order.where')) + '</span><span class="hint">' + esc(t('gov.order.whereHint')) + '</span>' +
                     r.lockers.map(function (lk) {
                         return '<label class="checkrow" style="display:flex;gap:10px;align-items:center;padding:8px 0"><input type="radio" name="locker" value="' + esc(lk.id) + '"' + (lk.id === pick ? ' checked' : '') + ' style="width:22px;height:22px"><span>' + esc(lk.label) + '</span></label>';
                     }).join('') + '</div>';
             } else {
-                where = '<p class="fine">Your new licence will be added to your inventory when it is ready.</p>';
+                where = '<p class="fine">' + esc(t('gov.licence.newToInventory')) + '</p>';
             }
-            setPage('Replace a licence',
-                '<h1>Replace a lost licence</h1><p class="lead">Only use this if your licence has been lost, stolen or destroyed.</p>' +
+            setPage(t('gov.licence.replace.title'),
+                '<h1>' + esc(t('gov.licence.replaceLost')) + '</h1><p class="lead">' + esc(t('gov.licence.replace.lead')) + '</p>' +
                 (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-                '<table class="kv"><tr><th>Categories</th><td>' + esc(l.categories.join(' · ') || '-') + '</td></tr>' +
-                '<tr><th>Ready in about</th><td>' + waitText(r.waitSeconds) + '</td></tr>' +
-                '<tr><th>Amount to pay</th><td><b>' + Site.money(r.fee) + '</b></td></tr></table>' +
-                '<div class="status bad"><h3>Your old licence will be cancelled straight away</h3><p>You will not be able to use it again, even if you find it. The new licence keeps your categories.</p></div>' +
+                '<table class="kv"><tr><th>' + esc(t('gov.th.categories')) + '</th><td>' + esc(l.categories.join(' · ') || '-') + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.readyIn')) + '</th><td>' + esc(waitText(r.waitSeconds)) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.amountToPay')) + '</th><td><b>' + Site.money(r.fee) + '</b></td></tr></table>' +
+                '<div class="status bad"><h3>' + esc(t('gov.licence.replace.warn.title')) + '</h3><p>' + esc(t('gov.licence.replace.warn.body')) + '</p></div>' +
                 where +
-                '<p class="fine">The payment is taken from your bank account.</p>' +
-                '<button class="gbtn block" id="pay"' + (r.mode === 'locker' && !r.lockers.length ? ' disabled' : '') + '>Pay ' + Site.money(r.fee) + ' and order</button>' +
-                '<p style="margin-top:12px"><a class="glink" data-go="/driving-licence">Cancel</a></p>', dlTrail([{ t: 'Replace' }]));
+                '<p class="fine">' + esc(t('gov.bankNote')) + '</p>' +
+                '<button class="gbtn block" id="pay"' + (r.mode === 'locker' && !r.lockers.length ? ' disabled' : '') + '>' + esc(t('gov.payOrder', Site.money(r.fee))) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/driving-licence">' + esc(t('gov.cancel')) + '</a></p>', dlTrail([{ t: t('gov.crumb.replace') }]));
             document.getElementById('pay').onclick = function () {
                 var btn = this, lockerId;
                 var rad = document.querySelector('input[name="locker"]:checked');
                 if (r.mode === 'locker') { if (!rad) return; lockerId = rad.value; }
-                btn.disabled = true; btn.textContent = 'Processing…';
+                btn.disabled = true; btn.textContent = t('gov.processing');
                 Site.call('licenceReplace', { lockerId: lockerId }).then(function (res) {
                     dlReceipt = { replace: res }; Site.go('/driving-licence/replaced');
                 }).catch(function (e) { pLicenceReplace(e.message, lockerId); });
@@ -1055,13 +1159,13 @@
     function pLicenceReplaced() {
         if (!dlReceipt || !dlReceipt.replace) return Site.go('/driving-licence');
         var r = dlReceipt.replace;
-        setPage('Order received',
-            '<div class="receipt"><h1>Order received</h1><p style="margin:0">We will send your replacement licence when it is ready.</p></div>' +
-            '<table class="kv"><tr><th>Amount paid</th><td>' + Site.money(r.fee) + '</td></tr>' +
-            '<tr><th>Ready by</th><td>' + Site.datetime(r.readyAt) + '</td></tr>' +
-            '<tr><th>Delivery</th><td>' + (r.lockerLabel ? esc(r.lockerLabel) + ' (Postal Prime locker)' : 'Your inventory') + '</td></tr></table>' +
-            '<p class="fine" style="margin-top:12px">We have emailed you a confirmation. Your old licence has been cancelled. You will get a notification when the new one has been sent.</p>' +
-            '<p style="margin-top:16px"><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>', dlTrail([{ t: 'Done' }]));
+        setPage(t('gov.orderReceived'),
+            '<div class="receipt"><h1>' + esc(t('gov.orderReceived')) + '</h1><p style="margin:0">' + esc(t('gov.licence.replaced.body')) + '</p></div>' +
+            '<table class="kv"><tr><th>' + esc(t('gov.th.amountPaid')) + '</th><td>' + Site.money(r.fee) + '</td></tr>' +
+            '<tr><th>' + esc(t('gov.th.readyBy')) + '</th><td>' + Site.datetime(r.readyAt) + '</td></tr>' +
+            '<tr><th>' + esc(t('gov.licence.th.delivery')) + '</th><td>' + (r.lockerLabel ? esc(t('gov.licence.deliveryLocker', r.lockerLabel)) : esc(t('gov.licence.deliveryInventory'))) + '</td></tr></table>' +
+            '<p class="fine" style="margin-top:12px">' + esc(t('gov.licence.replaced.note')) + '</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/driving-licence">' + esc(t('gov.licence.backTo')) + '</a></p>', dlTrail([{ t: t('gov.crumb.done') }]));
     }
 
     function pLicenceHistory() {
@@ -1070,21 +1174,447 @@
         loadLicence().then(function (st) {
             if (my !== token) return;
             var l = st.licence;
-            var html = '<h1>Test history and penalty points</h1><h2>Theory tests</h2>';
-            html += l.theoryTests.length ? '<div class="glist">' + l.theoryTests.map(function (t) {
-                return '<div><div class="vrow"><b>' + t.score + ' / ' + t.max + '</b><span class="tag ' + (t.passed ? 'good' : 'bad') + '">' + (t.passed ? 'Pass' : 'Fail') + '</span></div><div class="desc">' + esc(t.date) + '</div></div>';
-            }).join('') + '</div>' : '<p class="muted">No theory tests taken.</p>';
-            html += '<h2>Practical tests</h2>';
-            html += l.practicalTests.length ? '<div class="glist">' + l.practicalTests.map(function (t) {
-                return '<div><div class="vrow"><b>Category ' + esc(t.category) + '</b><span class="tag ' + (t.passed ? 'good' : 'bad') + '">' + (t.passed ? 'Pass' : 'Fail') + '</span></div><div class="desc">' + esc(t.date) + ' · ' + t.minor + ' minor, ' + t.major + ' major faults</div></div>';
-            }).join('') + '</div>' : '<p class="muted">No practical tests taken.</p>';
-            html += '<h2>Penalty points (' + l.points + ' of ' + l.maxPoints + ')</h2>';
-            html += l.penalties.length ? '<div class="glist">' + l.penalties.map(function (t) {
-                return '<div><div class="vrow"><b>' + esc(t.offence) + '</b><span class="tag bad">' + t.points + ' pts</span></div><div class="desc">' + esc(t.date) + (t.by ? ' · ' + esc(t.by) : '') + '</div></div>';
-            }).join('') + '</div>' : '<p class="muted">You have no penalty points.</p>';
-            html += '<p style="margin-top:16px"><a class="glink" data-go="/driving-licence">Back to driving licence</a></p>';
-            setPage('Test history', html, dlTrail([{ t: 'History' }]));
+            var html = '<h1>' + esc(t('gov.licence.historyTitle')) + '</h1><h2>' + esc(t('gov.licence.history.theory')) + '</h2>';
+            html += l.theoryTests.length ? '<div class="glist">' + l.theoryTests.map(function (ty) {
+                return '<div><div class="vrow"><b>' + ty.score + ' / ' + ty.max + '</b><span class="tag ' + (ty.passed ? 'good' : 'bad') + '">' + esc(ty.passed ? t('gov.pass') : t('gov.fail')) + '</span></div><div class="desc">' + esc(ty.date) + '</div></div>';
+            }).join('') + '</div>' : '<p class="muted">' + esc(t('gov.licence.history.noTheory')) + '</p>';
+            html += '<h2>' + esc(t('gov.licence.history.practical')) + '</h2>';
+            html += l.practicalTests.length ? '<div class="glist">' + l.practicalTests.map(function (ty) {
+                return '<div><div class="vrow"><b>' + esc(t('gov.licence.history.category', ty.category)) + '</b><span class="tag ' + (ty.passed ? 'good' : 'bad') + '">' + esc(ty.passed ? t('gov.pass') : t('gov.fail')) + '</span></div><div class="desc">' + esc(t('gov.licence.history.faults', ty.date, ty.minor, ty.major)) + '</div></div>';
+            }).join('') + '</div>' : '<p class="muted">' + esc(t('gov.licence.history.noPractical')) + '</p>';
+            html += '<h2>' + esc(t('gov.licence.history.points', l.points, l.maxPoints)) + '</h2>';
+            html += l.penalties.length ? '<div class="glist">' + l.penalties.map(function (ty) {
+                return '<div><div class="vrow"><b>' + esc(ty.offence) + '</b><span class="tag bad">' + esc(t('gov.licence.history.pts', ty.points)) + '</span></div><div class="desc">' + esc(ty.date) + (ty.by ? ' · ' + esc(ty.by) : '') + '</div></div>';
+            }).join('') + '</div>' : '<p class="muted">' + esc(t('gov.licence.history.noPoints')) + '</p>';
+            html += '<p style="margin-top:16px"><a class="glink" data-go="/driving-licence">' + esc(t('gov.licence.backTo')) + '</a></p>';
+            setPage(t('gov.licence.history.title'), html, dlTrail([{ t: t('gov.crumb.history') }]));
         }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+
+    // ------------------------------------------------------------------ MOT booking
+
+    var MB = null;          // the booking being made: { plate, garage, date, time, change, avail }
+    var motCache = null;    // last motState result
+    var motReceipt = null;  // { kind: 'book' | 'move' | 'cancel', b, refund }
+
+    function MOT_TRAIL(extra) {
+        var base = [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.driving'), go: '/browse/driving' }];
+        if (extra) return base.concat([{ t: t('gov.mot.title'), go: '/book-mot' }], extra);
+        return base.concat([{ t: t('gov.mot.title') }]);
+    }
+    function loadMot() { return Site.call('motState').then(function (s) { motCache = s; return s; }); }
+    function noonTs(d) { var p = String(d).split('-'); return new Date(+p[0], +p[1] - 1, +p[2], 12, 0, 0).getTime() / 1000; }
+    function dayName(d) {
+        var p = String(d).split('-');
+        var wd = new Date(+p[0], +p[1] - 1, +p[2], 12, 0, 0).getDay();
+        return (t('gov.mot.weekdays').split(',')[wd] || '').trim();
+    }
+    function dayText(d) { return dayName(d) + ' ' + Site.date(noonTs(d)); }
+    function whenText(b) { return dayText(b.date) + ', ' + b.time; }
+    function motTag(v) {
+        var m = v.mot;
+        if (!m || !m.enabled) return '';
+        if (m.status === 'valid') return '<span class="tag good">' + esc(t('gov.mot.tag.valid', Site.date(m.expiry))) + '</span>';
+        if (m.status === 'expired') return '<span class="tag bad">' + esc(t('gov.mot.tag.expired')) + '</span>';
+        if (m.status === 'failed') return '<span class="tag bad">' + esc(t('gov.mot.tag.failed')) + '</span>';
+        return '<span class="tag warn">' + esc(t('gov.mot.tag.none')) + '</span>';
+    }
+    function motBookingCard(b, cfg) {
+        var acts = b.canCancel ?
+            '<div class="acts"><a class="gbtn grey" data-go="/book-mot/change/' + b.id + '">' + esc(t('gov.mot.change')) + '</a>' +
+            '<a class="gbtn grey" data-go="/book-mot/cancel/' + b.id + '">' + esc(t('gov.mot.cancelBooking')) + '</a></div>' :
+            '<span class="fine">' + esc(t('gov.mot.locked', cfg.cancelMinutes)) + '</span>';
+        return '<div class="veh"><div class="vrow">' + plateHtml(b.plate, true) + '<span class="tag good">' + esc(t('gov.mot.tag.booked')) + '</span></div>' +
+            '<div class="meta"><b>' + esc(whenText(b)) + '</b><br>' + esc(b.garageName) + (b.address ? ', ' + esc(b.address) : '') + (b.vehicle ? '<br>' + esc(b.vehicle) : '') + '</div>' + acts + '</div>';
+    }
+
+    function pMotList(err) {
+        var my = ++token;
+        loading();
+        Promise.all([loadMot(), loadGarage()]).then(function (r) {
+            if (my !== token) return;
+            var s = r[0], g = r[1], cfg = s.config;
+            var booked = {};
+            s.upcoming.forEach(function (b) { booked[plateKey(b.plate)] = true; });
+            var html = '<h1>' + esc(t('gov.mot.title')) + '</h1><p class="lead">' + esc(t('gov.mot.lead', cfg.cancelMinutes)) + '</p>' +
+                (err ? '<div class="notice bad" style="margin:12px 0">' + esc(err) + '</div>' : '');
+            html += '<h2>' + esc(t('gov.mot.yourBookings')) + '</h2>';
+            html += s.upcoming.length ? s.upcoming.map(function (b) { return motBookingCard(b, cfg); }).join('') : '<p class="muted">' + esc(t('gov.mot.noBookings')) + '</p>';
+            html += '<h2>' + esc(t('gov.mot.yourVehicles')) + '</h2>';
+            var cars = g.vehicles.filter(function (v) { return !v.exempt; });
+            if (!cars.length) {
+                html += '<div class="status warn"><h3>' + esc(t('gov.mot.noVehicles.title')) + '</h3><p>' + esc(t('gov.mot.noVehicles.body')) + '</p></div>';
+            } else {
+                html += cars.map(function (v) {
+                    var has = !!booked[v.plateKey];
+                    return '<div class="veh"><div class="vrow">' + plateHtml(v.plate, true) + motTag(v) + '</div>' +
+                        '<div class="meta">' + esc(v.colour) + ' ' + esc(v.make) + ' ' + esc(v.model) + '</div>' +
+                        (has ? '<span class="fine">' + esc(t('gov.mot.hasBooking')) + '</span>' :
+                            '<a class="gbtn" data-go="/book-mot/' + esc(v.plateKey) + '">' + esc(t('gov.mot.book')) + '</a>') + '</div>';
+                }).join('');
+            }
+            if (s.past.length) {
+                html += '<h2>' + esc(t('gov.mot.pastBookings')) + '</h2><div class="glist">' + s.past.map(function (b) {
+                    var cls = b.status === 'done' ? 'good' : (b.status === 'missed' ? 'bad' : '');
+                    return '<div><div class="vrow"><b>' + esc(b.plate) + '</b><span class="tag ' + cls + '">' + esc(t('gov.mot.status.' + b.status)) + '</span></div>' +
+                        '<div class="desc">' + esc(whenText(b)) + ' · ' + esc(b.garageName) + '</div></div>';
+                }).join('') + '</div>';
+            }
+            setPage(t('gov.mot.title'), html, MOT_TRAIL());
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    // choose a garage, day and time. opts = { plate } for a new booking, { change: id } to move one.
+    function pMotPick(opts) {
+        var my = ++token;
+        loading();
+        var needVeh = opts.change ? Promise.resolve(null) : loadGarage();
+        Promise.all([loadMot(), needVeh]).then(function (r) {
+            if (my !== token) return;
+            var s = r[0], cfg = s.config, veh = null, old = null;
+            if (opts.change) {
+                s.upcoming.forEach(function (b) { if (b.id === opts.change) old = b; });
+                if (!old || !old.canCancel) return pMotList(t('gov.mot.err.too_late'));
+                MB = { change: old.id, plate: old.plate, garage: old.garage, date: null, time: null, avail: {}, old: old };
+            } else {
+                r[1].vehicles.forEach(function (v) { if (v.plateKey === opts.plate) veh = v; });
+                if (!veh) return pNotFound();
+                var already = s.upcoming.some(function (b) { return plateKey(b.plate) === opts.plate; });
+                if (already) return pMotList();
+                MB = { change: null, plate: veh.plate, garage: cfg.garages[0].id, date: null, time: null, avail: {}, vehicle: veh.colour + ' ' + veh.make + ' ' + veh.model };
+            }
+            var title = opts.change ? t('gov.mot.change.title') : t('gov.mot.pick.title');
+            setPage(title,
+                '<h1>' + esc(title) + '</h1><p>' + plateHtml(MB.plate) + '</p>' +
+                (opts.change ? '<div class="status"><p style="margin:0">' + esc(t('gov.mot.th.oldTime')) + ': <b>' + esc(whenText(old)) + '</b>, ' + esc(old.garageName) + '</p><p class="fine" style="margin:6px 0 0">' + esc(t('gov.mot.change.note')) + '</p></div>' : '') +
+                '<div id="mb-body"></div>',
+                MOT_TRAIL([{ t: opts.change ? t('gov.mot.crumb.change') : t('gov.mot.crumb.pick') }]));
+            var body = document.getElementById('mb-body');
+            body.onclick = function (e) {
+                var el = e.target.closest ? e.target.closest('[data-mg],[data-md],[data-ms],#mb-next') : null;
+                if (!el || el.disabled) return;
+                if (el.getAttribute('data-mg')) { MB.garage = el.getAttribute('data-mg'); MB.date = null; MB.time = null; }
+                else if (el.getAttribute('data-md')) { MB.date = el.getAttribute('data-md'); MB.time = null; }
+                else if (el.getAttribute('data-ms')) { MB.time = el.getAttribute('data-ms'); }
+                else if (el.id === 'mb-next') { return Site.go('/book-mot/confirm'); }
+                drawPick(cfg);
+            };
+            drawPick(cfg);
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pickDay(av) {
+        for (var i = 0; i < av.days.length; i++) if (av.days[i].date === MB.date) return av.days[i];
+        return null;
+    }
+    function drawPick(cfg) {
+        var body = document.getElementById('mb-body');
+        if (!body || !MB) return;
+        var html = '';
+        if (cfg.garages.length > 1) {
+            html += '<h2>' + esc(t('gov.mot.garage')) + '</h2><div class="opts">' + cfg.garages.map(function (g) {
+                return '<button class="opt' + (g.id === MB.garage ? ' on' : '') + '" data-mg="' + esc(g.id) + '">' + esc(g.name) + (g.address ? '<small>' + esc(g.address) + '</small>' : '') + '</button>';
+            }).join('') + '</div>';
+        } else {
+            var g0 = cfg.garages[0];
+            html += '<p><b>' + esc(g0.name) + '</b>' + (g0.address ? '<br><span class="fine">' + esc(g0.address) + '</span>' : '') + '</p>';
+        }
+        var av = MB.avail[MB.garage];
+        if (!av) {
+            body.innerHTML = html + '<div class="spinner"></div>';
+            var gid = MB.garage;
+            Site.call('motSlots', { garage: gid }).then(function (res) {
+                MB.avail[gid] = res; if (MB && MB.garage === gid) drawPick(cfg);
+            }).catch(function (e) { body.innerHTML = '<div class="notice bad">' + esc(e && e.message ? e.message : t('gov.error')) + '</div>'; });
+            return;
+        }
+        if (!MB.date || !pickDay(av)) {
+            MB.date = null;
+            for (var i = 0; i < av.days.length && !MB.date; i++) {
+                if (av.days[i].slots.some(function (x) { return x.free; })) MB.date = av.days[i].date;
+            }
+            MB.time = null;
+        }
+        html += '<h2>' + esc(t('gov.mot.day')) + '</h2><div class="opts">' + av.days.map(function (d) {
+            var free = d.slots.some(function (x) { return x.free; });
+            return '<button class="opt' + (d.date === MB.date ? ' on' : '') + '" data-md="' + esc(d.date) + '"' + (free ? '' : ' disabled') + '>' + esc(dayName(d.date)) + '<small>' + esc(Site.date(noonTs(d.date))) + '</small></button>';
+        }).join('') + '</div>';
+        var day = MB.date ? pickDay(av) : null;
+        if (!day) {
+            html += '<p class="muted">' + esc(t('gov.mot.noSlots')) + '</p>';
+        } else {
+            html += '<h2>' + esc(t('gov.mot.time')) + '</h2><div class="slots">' + day.slots.map(function (x) {
+                return '<button class="opt' + (x.time === MB.time ? ' on' : '') + '" data-ms="' + esc(x.time) + '"' + (x.free ? '' : ' disabled') + '>' + esc(x.time) + '</button>';
+            }).join('') + '</div>';
+        }
+        var fee = MB.change ? null : av.garage.fee;
+        html += '<p class="fine" style="margin-top:14px">' + esc(MB.change ? t('gov.mot.change.note') : (fee > 0 ? t('gov.mot.th.fee') + ': ' + Site.money(fee) + '. ' + t('gov.bankNote') : t('gov.mot.free'))) + '</p>' +
+            '<button class="gbtn block" id="mb-next"' + (MB.time ? '' : ' disabled') + '>' + esc(MB.time ? t('gov.mot.continue') : t('gov.mot.selectSlot')) + '</button>';
+        body.innerHTML = html;
+    }
+
+    function mbGarage() {
+        var g = null;
+        if (motCache) motCache.config.garages.forEach(function (x) { if (x.id === MB.garage) g = x; });
+        return g;
+    }
+
+    function pMotConfirm(err) {
+        if (!MB || !MB.time || !motCache) return Site.go('/book-mot');
+        ++token;
+        var g = mbGarage() || { name: MB.garage }, change = !!MB.change;
+        var fee = change ? 0 : (g.fee || 0);
+        var btn = change ? t('gov.mot.confirmChange') : (fee > 0 ? t('gov.mot.confirmBook', Site.money(fee)) : t('gov.mot.confirmBookFree'));
+        var trail = MOT_TRAIL([{ t: t('gov.crumb.confirm') }]);
+        setPage(t('gov.mot.confirm.title'),
+            '<h1>' + esc(t('gov.mot.confirm.title')) + '</h1><p>' + plateHtml(MB.plate) + '</p>' +
+            (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+            '<table class="kv">' + (MB.vehicle ? '<tr><th>' + esc(t('gov.th.vehicle')) + '</th><td>' + esc(MB.vehicle) + '</td></tr>' : '') +
+            '<tr><th>' + esc(t('gov.mot.th.garage')) + '</th><td>' + esc(g.name) + (g.address ? '<br><span class="fine">' + esc(g.address) + '</span>' : '') + '</td></tr>' +
+            (change ? '<tr><th>' + esc(t('gov.mot.th.oldTime')) + '</th><td>' + esc(whenText(MB.old)) + '</td></tr>' : '') +
+            '<tr><th>' + esc(change ? t('gov.mot.th.newTime') : t('gov.mot.th.when')) + '</th><td><b>' + esc(dayText(MB.date) + ', ' + MB.time) + '</b></td></tr>' +
+            '<tr><th>' + esc(t('gov.mot.th.fee')) + '</th><td><b>' + (change ? esc(t('gov.mot.free')) : (fee > 0 ? Site.money(fee) : esc(t('gov.mot.free')))) + '</b></td></tr></table>' +
+            (fee > 0 ? '<p class="fine" style="margin-top:12px">' + esc(t('gov.bankNote')) + '</p>' : '') +
+            '<button class="gbtn block" id="mb-pay">' + esc(btn) + '</button>' +
+            '<p style="margin-top:12px"><a class="glink" data-go="/book-mot">' + esc(t('gov.cancel')) + '</a></p>', trail);
+        document.getElementById('mb-pay').onclick = function () {
+            var b = this;
+            b.disabled = true; b.textContent = t('gov.processing');
+            var call = change ? Site.call('motMove', { id: MB.change, garage: MB.garage, date: MB.date, time: MB.time })
+                              : Site.call('motBook', { plate: MB.plate, garage: MB.garage, date: MB.date, time: MB.time });
+            call.then(function (res) {
+                motReceipt = { kind: change ? 'move' : 'book', b: res };
+                motCache = null; garage = null; MB = null;
+                Site.go('/book-mot/done');
+            }).catch(function (e) {
+                if (MB) MB.avail = {};
+                pMotConfirm(e && e.message ? e.message : t('gov.error'));
+            });
+        };
+    }
+
+    function pMotDone() {
+        if (!motReceipt || motReceipt.kind === 'cancel') return Site.go('/book-mot');
+        var r = motReceipt, b = r.b, moved = r.kind === 'move';
+        setPage(t(moved ? 'gov.mot.moved.title' : 'gov.mot.done.title'),
+            '<div class="receipt"><h1>' + esc(t(moved ? 'gov.mot.moved.title' : 'gov.mot.done.title')) + '</h1><div>' + plateHtml(b.plate) + '</div></div>' +
+            '<table class="kv"><tr><th>' + esc(t('gov.mot.th.garage')) + '</th><td>' + esc(b.garageName) + (b.address ? '<br><span class="fine">' + esc(b.address) + '</span>' : '') + '</td></tr>' +
+            '<tr><th>' + esc(t('gov.mot.th.when')) + '</th><td><b>' + esc(whenText(b)) + '</b></td></tr>' +
+            (!moved ? '<tr><th>' + esc(t('gov.th.amountPaid')) + '</th><td>' + (b.paid > 0 ? Site.money(b.paid) : esc(t('gov.mot.free'))) + '</td></tr>' : '') + '</table>' +
+            '<p class="fine" style="margin-top:12px">' + esc(t(moved ? 'gov.mot.moved.note' : 'gov.mot.done.note')) + '</p>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/book-mot">' + esc(t('gov.mot.backTo')) + '</a></p>', MOT_TRAIL([{ t: t('gov.crumb.done') }]));
+    }
+
+    function pMotCancel(id, err) {
+        var my = ++token;
+        loading();
+        var have = motCache ? Promise.resolve(motCache) : loadMot();
+        have.then(function (s) {
+            if (my !== token) return;
+            var b = null;
+            s.upcoming.forEach(function (x) { if (x.id === id) b = x; });
+            if (!b || !b.canCancel) return pMotList(t('gov.mot.err.too_late'));
+            setPage(t('gov.mot.cancel.title'),
+                '<h1>' + esc(t('gov.mot.cancel.title')) + '</h1><p>' + plateHtml(b.plate) + '</p>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<table class="kv"><tr><th>' + esc(t('gov.mot.th.garage')) + '</th><td>' + esc(b.garageName) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.mot.th.when')) + '</th><td><b>' + esc(whenText(b)) + '</b></td></tr></table>' +
+                '<p style="margin-top:12px">' + esc(b.fee > 0 ? t('gov.mot.cancel.refund', Site.money(b.fee)) : t('gov.mot.cancel.refundNone')) + '</p>' +
+                '<button class="gbtn block" id="mb-cancel">' + esc(t('gov.mot.cancel.yes')) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/book-mot">' + esc(t('gov.mot.cancel.keep')) + '</a></p>', MOT_TRAIL([{ t: t('gov.mot.crumb.cancel') }]));
+            document.getElementById('mb-cancel').onclick = function () {
+                var btn = this;
+                btn.disabled = true; btn.textContent = t('gov.processing');
+                Site.call('motCancel', { id: id }).then(function (res) {
+                    motReceipt = { kind: 'cancel', b: res.booking, refund: res.refund };
+                    motCache = null; garage = null;
+                    Site.go('/book-mot/cancelled');
+                }).catch(function (e) { pMotCancel(id, e && e.message ? e.message : t('gov.error')); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pMotCancelled() {
+        if (!motReceipt || motReceipt.kind !== 'cancel') return Site.go('/book-mot');
+        var r = motReceipt;
+        setPage(t('gov.mot.cancelled.title'),
+            '<div class="receipt"><h1>' + esc(t('gov.mot.cancelled.title')) + '</h1><div>' + plateHtml(r.b.plate) + '</div>' +
+            (r.refund > 0 ? '<p style="margin:12px 0 0">' + esc(t('gov.mot.cancelled.refunded', Site.money(r.refund))) + '</p>' : '') + '</div>' +
+            '<p style="margin-top:16px"><a class="glink" data-go="/book-mot">' + esc(t('gov.mot.backTo')) + '</a></p>', MOT_TRAIL([{ t: t('gov.crumb.done') }]));
+    }
+
+    // ------------------------------------------------------------------ penalty points and fines
+
+    function PEN_TRAIL() { return [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.driving'), go: '/browse/driving' }, { t: t('gov.penalties.title') }]; }
+
+    function pPenalties() {
+        var my = ++token;
+        loading();
+        Site.call('penaltiesState').then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>' + esc(t('gov.penalties.title')) + '</h1><p class="lead">' + esc(t('gov.penalties.lead')) + '</p>' + flashHtml();
+            if (st.licence) {
+                var l = st.licence, cls = l.points >= l.maxPoints ? 'bad' : (l.points >= l.maxPoints - 3 ? 'warn' : 'good');
+                var pct = Math.min(100, Math.round(l.points / Math.max(1, l.maxPoints) * 100));
+                html += '<h2>' + esc(t('gov.penalties.points')) + '</h2>' +
+                    '<div class="status ' + (l.suspended ? 'bad' : cls) + '"><span class="k">' + esc(t('gov.licence.penaltyPoints')) + '</span><h3>' + esc(t('gov.licence.points', l.points, l.maxPoints)) + '</h3>' +
+                    '<div class="meter"><i class="' + cls + '" style="width:' + pct + '%"></i></div><p>' +
+                    esc(l.suspended ? t('gov.penalties.suspended') : (l.points >= l.maxPoints ? t('gov.penalties.atLimit', l.maxPoints) : t('gov.penalties.limit', l.maxPoints - l.points, l.maxPoints))) + '</p></div>';
+                html += l.penalties.length ? '<div class="glist">' + l.penalties.map(function (ty) {
+                    return '<div><div class="vrow"><b>' + esc(ty.offence) + '</b><span class="tag bad">' + esc(t('gov.licence.history.pts', ty.points)) + '</span></div><div class="desc">' + esc(ty.date) + (ty.by ? ' · ' + esc(ty.by) : '') + '</div></div>';
+                }).join('') + '</div>' : '<p class="muted">' + esc(t('gov.licence.history.noPoints')) + '</p>';
+                if (findService('driving-licence') && findService('driving-licence').status === 'live') {
+                    html += '<p style="margin-top:12px"><a class="glink" data-go="/driving-licence">' + esc(t('gov.penalties.toLicence')) + '</a></p>';
+                }
+            }
+            if (st.fines) html += '<h2>' + esc(t('gov.penalties.fines')) + '</h2>' + finesHtml(st.fines);
+            setPage(t('gov.penalties.title'), html, PEN_TRAIL());
+            if (st.fines) bindFines(pPenalties);
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    // ------------------------------------------------------------------ criminal record (DBS) checks
+
+    var dbsReceipt = null;
+    function DBS_TRAIL(extra) {
+        var base = [{ t: t('gov.home'), go: '/' }, { t: t('gov.crumb.crime'), go: '/browse/crime' }];
+        return extra ? base.concat([{ t: t('gov.dbs.title'), go: '/dbs' }], extra) : base.concat([{ t: t('gov.dbs.title') }]);
+    }
+    function certTag(c) {
+        if (c.status === 'processing') return '<span class="tag warn">' + esc(t('gov.dbs.tag.processing')) + '</span>';
+        if (c.expired) return '<span class="tag">' + esc(t('gov.dbs.tag.expired')) + '</span>';
+        return '<span class="tag ' + (c.result === 'clear' ? 'good' : 'bad') + '">' + esc(t('gov.dbs.result.' + c.result)) + '</span>';
+    }
+
+    function pDbs() {
+        var my = ++token;
+        loading();
+        Site.call('dbsState').then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>' + esc(t('gov.dbs.title')) + '</h1><p class="lead">' + esc(t('gov.dbs.lead')) + '</p>' + flashHtml();
+            var pending = st.certs.filter(function (c) { return c.status === 'processing'; })[0];
+            if (pending) {
+                html += '<div class="status warn"><h3>' + esc(t('gov.dbs.pending.title')) + '</h3><p>' + esc(t('gov.dbs.pending.body', pending.levelLabel, Site.datetime(pending.readyAt))) + '</p></div>';
+            }
+            if (st.certs.length) {
+                html += '<h2>' + esc(t('gov.dbs.yourCerts')) + '</h2><div class="glist">' + st.certs.map(function (c) {
+                    return '<div><div class="vrow"><b>' + esc(c.levelLabel) + '</b>' + certTag(c) + '</div>' +
+                        '<div class="desc">' + esc(c.number) + ' · ' + esc(t('gov.dbs.appliedOn', Site.date(c.appliedAt))) + '</div>' +
+                        (c.status === 'issued' ? '<p style="margin:8px 0 0"><a class="glink" data-go="/dbs/certificate/' + esc(c.number) + '">' + esc(t('gov.dbs.viewCert')) + '</a></p>' : '') + '</div>';
+                }).join('') + '</div>';
+            }
+            html += '<h2>' + esc(t('gov.dbs.request')) + '</h2>';
+            html += st.levels.map(function (l) {
+                return '<div class="veh"><div class="vrow"><b>' + esc(l.label) + '</b><b>' + Site.money(l.fee) + '</b></div>' +
+                    (l.description ? '<div class="meta">' + esc(l.description) + '</div>' : '') +
+                    (pending ? '' : '<a class="gbtn" data-go="/dbs/apply/' + esc(l.id) + '">' + esc(t('gov.dbs.apply')) + '</a>') + '</div>';
+            }).join('');
+            html += '<p class="fine">' + esc(st.processingMinutes > 0 ? t('gov.dbs.takes', minutesText(st.processingMinutes)) : t('gov.dbs.instant')) +
+                (st.validDays > 0 ? ' ' + esc(t('gov.dbs.validFor', st.validDays)) : '') + '</p>';
+            html += '<h2>' + esc(t('gov.dbs.employers')) + '</h2><p>' + esc(t('gov.dbs.employersText')) + '</p><p><a class="gbtn grey" data-go="/dbs/verify">' + esc(t('gov.dbs.verifyBtn')) + '</a></p>';
+            setPage(t('gov.dbs.title'), html, DBS_TRAIL());
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pDbsApply(id, err) {
+        var my = ++token;
+        loading();
+        Site.call('dbsState').then(function (st) {
+            if (my !== token) return;
+            var l = byId(st.levels, id);
+            if (!l) return pNotFound();
+            setPage(t('gov.confirmPay'),
+                '<h1>' + esc(t('gov.confirmPay')) + '</h1><p><b>' + esc(l.label) + '</b></p>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<table class="kv"><tr><th>' + esc(t('gov.th.service')) + '</th><td>' + esc(l.label) + '</td></tr>' +
+                (l.description ? '<tr><th>' + esc(t('gov.dbs.th.covers')) + '</th><td>' + esc(l.description) + '</td></tr>' : '') +
+                '<tr><th>' + esc(t('gov.th.amountToPay')) + '</th><td><b>' + Site.money(l.fee) + '</b></td></tr></table>' +
+                '<p class="fine" style="margin-top:12px">' + esc(t('gov.dbs.applyNote')) + '</p>' +
+                '<button class="gbtn block" id="pay">' + esc(t('gov.pay', Site.money(l.fee))) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/dbs">' + esc(t('gov.cancel')) + '</a></p>', DBS_TRAIL([{ t: t('gov.crumb.confirm') }]));
+            document.getElementById('pay').onclick = function () {
+                var btn = this;
+                btn.disabled = true; btn.textContent = t('gov.processing');
+                Site.call('dbsApply', { level: id }).then(function (r) { dbsReceipt = r; Site.go('/dbs/done'); })
+                    .catch(function (e) { pDbsApply(id, e.message); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pDbsDone() {
+        if (!dbsReceipt) return Site.go('/dbs');
+        var r = dbsReceipt, ready = r.status === 'issued';
+        setPage(t('gov.dbs.done.title'),
+            '<div class="receipt"><h1>' + esc(ready ? t('gov.dbs.done.ready') : t('gov.dbs.done.title')) + '</h1><p style="margin:0">' + esc(r.levelLabel) + '</p></div>' +
+            '<table class="kv"><tr><th>' + esc(t('gov.th.certificateNumber')) + '</th><td>' + esc(r.number) + '</td></tr><tr><th>' + esc(t('gov.th.amountPaid')) + '</th><td>' + Site.money(r.paid) + '</td></tr>' +
+            (ready ? '' : '<tr><th>' + esc(t('gov.th.readyBy')) + '</th><td>' + Site.datetime(r.readyAt) + '</td></tr>') + '</table>' +
+            '<p class="fine" style="margin-top:12px">' + esc(ready ? t('gov.dbs.done.noteReady') : t('gov.dbs.done.noteWait')) + '</p>' +
+            (ready ? '<p style="margin-top:16px"><a class="gbtn" data-go="/dbs/certificate/' + esc(r.number) + '">' + esc(t('gov.dbs.viewCert')) + '</a></p>' : '') +
+            '<p style="margin-top:16px"><a class="glink" data-go="/dbs">' + esc(t('gov.dbs.back')) + '</a></p>', DBS_TRAIL([{ t: t('gov.crumb.done') }]));
+    }
+
+    function pDbsCert(number) {
+        var my = ++token;
+        loading();
+        Site.call('dbsCertificate', { number: number }).then(function (c) {
+            if (my !== token) return;
+            var html = '<h1>' + esc(t('gov.dbs.cert.title')) + '</h1>';
+            if (c.status !== 'issued') {
+                html += '<div class="status warn"><h3>' + esc(t('gov.dbs.pending.title')) + '</h3><p>' + esc(t('gov.dbs.pending.body', c.levelLabel, Site.datetime(c.readyAt))) + '</p></div>';
+            } else {
+                html += '<div class="paper"><div class="ptitle">' + esc(c.levelLabel) + '</div><div class="pnum">' + esc(c.number) + '</div>' +
+                    '<table class="kv"><tr><th>' + esc(t('gov.dbs.th.holder')) + '</th><td>' + esc(c.name) + '</td></tr>' +
+                    '<tr><th>' + esc(t('gov.dbs.th.issued')) + '</th><td>' + Site.datetime(c.issuedAt) + '</td></tr>' +
+                    (c.expiresAt ? '<tr><th>' + esc(t('gov.dbs.th.validUntil')) + '</th><td>' + Site.date(c.expiresAt) + (c.expired ? ' <span class="tag bad">' + esc(t('gov.dbs.tag.expired')) + '</span>' : '') + '</td></tr>' : '') + '</table>' +
+                    '<div class="status ' + (c.result === 'clear' ? 'good' : 'bad') + '"><span class="k">' + esc(t('gov.dbs.th.result')) + '</span><h3>' + esc(t('gov.dbs.result.' + c.result)) + '</h3>' +
+                    (c.result === 'clear' ? '<p>' + esc(t('gov.dbs.clearText')) + '</p>' : '') + '</div>';
+                if (c.records && c.records.length) {
+                    html += '<div class="glist">' + c.records.map(function (r) {
+                        return '<div><div class="vrow"><b>' + esc(r.offence) + '</b>' + (r.spent ? '<span class="tag">' + esc(t('gov.dbs.spent')) + '</span>' : '') + '</div>' +
+                            '<div class="desc">' + Site.date(r.date) + (r.sentence ? ' · ' + esc(r.sentence) : '') + (r.by ? ' · ' + esc(r.by) : '') + '</div>' +
+                            (r.notes ? '<div class="desc">' + esc(t('gov.dbs.policeNote', r.notes)) + '</div>' : '') + '</div>';
+                    }).join('') + '</div>';
+                }
+                html += '</div><p class="fine">' + esc(t('gov.dbs.cert.note')) + '</p>' +
+                    '<p><button class="gbtn grey" id="cp">' + esc(t('gov.dbs.copyNumber')) + '</button></p>';
+            }
+            html += '<p style="margin-top:16px"><a class="glink" data-go="/dbs">' + esc(t('gov.dbs.back')) + '</a></p>';
+            setPage(t('gov.dbs.cert.title'), html, DBS_TRAIL([{ t: c.number }]));
+            var cp = document.getElementById('cp');
+            if (cp) cp.onclick = function () { Site.copy(c.number); cp.textContent = t('gov.dbs.copied'); };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pDbsVerify(vals, res, err) {
+        vals = vals || {};
+        var html = '<h1>' + esc(t('gov.dbs.verify.title')) + '</h1><p class="lead">' + esc(t('gov.dbs.verify.lead')) + '</p>';
+        html += '<form id="f"><label class="field"><span class="lbl">' + esc(t('gov.dbs.verify.number')) + '</span>' +
+            '<input type="text" id="cn" class="bigin" maxlength="20" autocomplete="off" spellcheck="false" value="' + esc(vals.number || '') + '"></label>' +
+            '<label class="field"><span class="lbl">' + esc(t('gov.dbs.verify.surname')) + '</span>' +
+            '<input type="text" id="sn" maxlength="40" autocomplete="off" spellcheck="false" value="' + esc(vals.surname || '') + '"></label>' +
+            (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+            '<button class="gbtn" type="submit">' + esc(t('gov.dbs.verify.button')) + '</button></form>';
+        if (res) {
+            if (!res.valid) {
+                html += '<div class="status bad"><h3>' + esc(t('gov.dbs.verify.invalid')) + '</h3><p>' + esc(t('gov.dbs.verify.invalidText')) + '</p></div>';
+            } else {
+                html += '<div class="status ' + (res.expired ? 'warn' : (res.result === 'clear' ? 'good' : 'bad')) + '"><span class="k">' + esc(t('gov.dbs.verify.genuine')) + '</span><h3>' + esc(res.name) + '</h3>' +
+                    '<table class="kv"><tr><th>' + esc(t('gov.dbs.th.level')) + '</th><td>' + esc(res.levelLabel) + '</td></tr>' +
+                    '<tr><th>' + esc(t('gov.dbs.th.issued')) + '</th><td>' + Site.date(res.issuedAt) + '</td></tr>' +
+                    (res.expiresAt ? '<tr><th>' + esc(t('gov.dbs.th.validUntil')) + '</th><td>' + Site.date(res.expiresAt) + '</td></tr>' : '') +
+                    '<tr><th>' + esc(t('gov.dbs.th.result')) + '</th><td><b>' + esc(t('gov.dbs.result.' + res.result)) + '</b></td></tr></table>' +
+                    (res.expired ? '<p><b>' + esc(t('gov.dbs.verify.expired')) + '</b></p>' : '') +
+                    (res.changed ? '<p><b>' + esc(t('gov.dbs.verify.changed')) + '</b></p>' : '<p>' + esc(t('gov.dbs.verify.unchanged')) + '</p>') + '</div>';
+            }
+        }
+        setPage(t('gov.dbs.verify.title'), html, DBS_TRAIL([{ t: t('gov.dbs.verify.title') }]));
+        document.getElementById('f').onsubmit = function (e) {
+            e.preventDefault();
+            var v = { number: document.getElementById('cn').value, surname: document.getElementById('sn').value };
+            if (!v.number.trim() || !v.surname.trim()) return pDbsVerify(v, null, t('gov.dbs.err.verifyInput'));
+            Site.call('dbsVerify', v).then(function (r) { pDbsVerify(v, r); }).catch(function (er) { pDbsVerify(v, null, er.message); });
+        };
     }
 
     // ------------------------------------------------------------------ router
@@ -1108,6 +1638,15 @@
             if (p[1] === 'history') return pLicenceHistory();
             return pLicence();
         }
+        if (head === 'book-mot') {
+            if (!p[1]) return pMotList();
+            if (p[1] === 'change' && p[2]) return pMotPick({ change: parseInt(p[2], 10) });
+            if (p[1] === 'cancel' && p[2]) return pMotCancel(parseInt(p[2], 10));
+            if (p[1] === 'confirm') return pMotConfirm();
+            if (p[1] === 'done') return pMotDone();
+            if (p[1] === 'cancelled') return pMotCancelled();
+            return pMotPick({ plate: plateKey(p[1]) });
+        }
         if (head === 'council-tax') {
             if (p[1] === 'pay' && p[2]) return pCouncilPay(decodeURIComponent(p[2]));
             if (p[1] === 'done') return pCouncilDone();
@@ -1120,7 +1659,20 @@
             return pBirthcert();
         }
         if (head === 'pay-fine') return pFines();
-        if (head === 'benefits') return pBenefits();
+        if (head === 'benefits') {
+            if (p[1] === 'apply') return pBenefitsForm();
+            if (p[1] === 'result') return pBenefitsResult();
+            benUpdating = false;
+            return pBenefits();
+        }
+        if (head === 'penalties') return pPenalties();
+        if (head === 'dbs') {
+            if (p[1] === 'apply' && p[2]) return pDbsApply(decodeURIComponent(p[2]));
+            if (p[1] === 'done') return pDbsDone();
+            if (p[1] === 'certificate' && p[2]) return pDbsCert(decodeURIComponent(p[2]));
+            if (p[1] === 'verify') return pDbsVerify();
+            return pDbs();
+        }
         if (head === 'marriage') return pMarriage();
         if (head === 'register-business') return pBusiness();
         if (head === 'passport') {
@@ -1137,22 +1689,22 @@
     }
 
     document.addEventListener('click', function (e) {
-        var t = e.target;
-        while (t && t !== document.body) {
-            if (t.getAttribute) {
-                var g = t.getAttribute('data-go');
+        var el = e.target;
+        while (el && el !== document.body) {
+            if (el.getAttribute) {
+                var g = el.getAttribute('data-go');
                 if (g) { e.preventDefault(); Site.go(g); return; }
-                var o = t.getAttribute('data-open');
+                var o = el.getAttribute('data-open');
                 if (o) { e.preventDefault(); Site.open(o); return; }
             }
-            t = t.parentNode;
+            el = el.parentNode;
         }
     });
 
     Site.call('home').then(function (h) {
         home = h;
         document.getElementById('govName').textContent = h.name;
-        document.getElementById('foot').innerHTML = '<b>' + esc(h.name) + '</b><br>Roleplay use only';
+        document.getElementById('foot').innerHTML = '<b>' + esc(h.name) + '</b><br>' + esc(t('gov.roleplayOnly'));
         Site.onRoute(render);
     }).catch(failure);
 })();

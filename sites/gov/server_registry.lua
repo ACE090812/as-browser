@@ -3,25 +3,25 @@
 -- If it is not running the pages say so.
 
 local function running()
-    return GetResourceState('as-registry') == 'started'
+    return Browser.govScriptOn('registry') and GetResourceState('as-registry') == 'started'
 end
 
-local NOT_RUNNING = 'The register office is not available right now. Please try again later.'
+local function NOT_RUNNING() return T('gov.registry.notRunning') end
 
 local function call(name, src, data)
     local ok, a, b = pcall(function() return exports['as-registry'][name](exports['as-registry'], src, data) end)
     if not ok then
         print(('^5[as-browser]^0 gov: as-registry %s failed: %s'):format(name, tostring(a)))
-        return nil, 'Something went wrong. You have not been charged, please try again.'
+        return nil, T('gov.err.notCharged')
     end
     return a, b
 end
 
 local function pass(handler, export, build)
     Browser.handler('gov', handler, function(src, data)
-        if not running() then return nil, NOT_RUNNING end
+        if not running() then return nil, NOT_RUNNING() end
         local res, err = call(export, src, build and build(data) or nil)
-        if not res then return nil, err or NOT_RUNNING end
+        if not res then return nil, err or NOT_RUNNING() end
         return res
     end)
 end

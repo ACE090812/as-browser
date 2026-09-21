@@ -2,6 +2,9 @@
 -- Each site has its own SERVER-ONLY config in sites/<name>/config.lua for content and secrets.
 Config = {}
 
+-- Language: any file in locales/ (locales/en.lua = English). Copy en.lua to add a language.
+Config.locale = 'en'
+
 -- 'auto' detects qbx_core / qb-core / es_extended and falls back to 'standalone'.
 -- Standalone has no real bank accounts, so every payment succeeds.
 Config.framework = 'auto'
@@ -30,6 +33,9 @@ Config.Sites = {
     gov        = { enabled = true, domain = 'lsgov.co.uk' },         -- Los Santos Government
     insurance  = { enabled = true, domain = 'covercompare.co.uk' },  -- roleplay car insurance comparison
     jobs       = { enabled = true, domain = 'lscareers.co.uk' },     -- jobs and applications
+    plates     = { enabled = true, domain = 'lsplates.co.uk' },        -- personalised number plates: buy, fit, sell to other players
+    vehiclecheck = { enabled = true, domain = 'lsvehiclecheck.co.uk' }, -- vehicle history reports (owners, plate changes, MOT mileage, stolen / written off)
+    parts      = { enabled = true, domain = 'lspartsdirect.co.uk' }, -- trade parts shop for garages (desktop browser only, paid from the job's society account)
 }
 
 -- Symbol shown next to prices. Money is always whole numbers.

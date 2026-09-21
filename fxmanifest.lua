@@ -5,11 +5,13 @@ lua54 'yes'
 name 'as-browser'
 author 'you'
 description 'In-game web browser for sd-phone with built-in websites: server info, Los Santos Government, CoverCompare and Los Santos Careers. Each site can be switched on or off in config.lua.'
-version '1.0.0'
+version '1.2.0'
 
 shared_scripts {
     '@ox_lib/init.lua',
     'config.lua',
+    'shared/locale.lua',
+    'locales/*.lua',
 }
 
 -- Order matters: every site's config.lua loads before any site's server.lua. The per-site config

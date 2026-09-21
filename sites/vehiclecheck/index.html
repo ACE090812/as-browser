@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LS Vehicle Check</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root { --accent: #0f766e; --accent-fg: #fff; --gold: #f7d117; --ok: #0a7a3d; --bad: #c0392b; --focus: #ffdd00; }
+    :root[data-theme="dark"] { --accent: #2dd4bf; --accent-fg: #042f2c; }
+    .top { background: var(--accent); color: var(--accent-fg); padding: 14px 16px; }
+    .top .brand { display: flex; align-items: baseline; gap: 10px; font-weight: 800; font-size: 21px; cursor: pointer; letter-spacing: -.01em; }
+    .top .brand small { font-weight: 400; font-size: 12.5px; opacity: .85; }
+    .page { padding: 16px; max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 26px; font-weight: 800; margin: 4px 0 10px; }
+    h2 { font-size: 19px; font-weight: 800; margin: 22px 0 8px; }
+    .lead { color: var(--muted); font-size: 16px; margin-bottom: 14px; }
+    .glink { color: var(--accent); text-decoration: underline; font-weight: 600; cursor: pointer; }
+    .glist > * { padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .glist .desc, .desc { color: var(--muted); font-size: 14.5px; margin-top: 2px; }
+    .gbtn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 20px; background: var(--accent); color: var(--accent-fg); font-weight: 700; font-size: 16px; border-radius: 8px; cursor: pointer; }
+    .gbtn.grey { background: var(--surface-2); color: var(--fg); }
+    .gbtn.block { display: flex; width: 100%; }
+    .gbtn:disabled { opacity: .55; }
+    .plate { display: inline-flex; align-items: stretch; border-radius: 6px; overflow: hidden; border: 2px solid #111; background: var(--gold); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+    .plate .gb { background: #0a3d91; color: #fff; font-size: 10px; font-weight: 800; padding: 4px 6px; display: flex; align-items: flex-end; }
+    .plate .reg { color: #111; font-family: "Arial Black", Impact, Arial, sans-serif; font-weight: 900; font-size: 30px; letter-spacing: .06em; padding: 4px 14px; text-transform: uppercase; }
+    .plate.small .reg { font-size: 18px; padding: 2px 9px; }
+    .plate.small .gb { font-size: 8px; padding: 2px 4px; }
+    .status { padding: 14px; margin: 12px 0; border-left: 8px solid var(--line); background: var(--surface); border-radius: 6px; }
+    .status.good { border-color: var(--ok); }
+    .status.bad { border-color: var(--bad); }
+    .status.warn { border-color: #f59e0b; }
+    .status h3 { font-size: 19px; margin: 0 0 4px; }
+    .status .k { font-size: 13px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+    .vrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .chk { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .chk .ic { flex: 0 0 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 15px; background: var(--muted); }
+    .chk.pass .ic { background: #0a7a3d; }
+    .chk.warn .ic { background: #f59e0b; }
+    .chk.fail .ic { background: #c0392b; }
+    .fine { font-size: 13.5px; color: var(--muted); }
+    .foot { margin-top: 30px; padding: 16px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 13px; }
+    .plans { display: grid; gap: 10px; }
+    .plan { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--surface); }
+    .plan.pop { border: 2px solid var(--accent); }
+    .incl { margin: 8px 0 12px 18px; font-size: 14.5px; }
+    .plan .gbtn { margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="top"><div class="brand" data-go="/"><span id="siteName">LS Vehicle Check</span><small id="siteTag"></small></div></div>
+<div class="page" id="app"><div class="spinner"></div></div>
+<div class="foot" id="foot"></div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc;
+    var app = document.getElementById('app');
+    var token = 0;
+
+    function plateKey(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    function plateHtml(p, small) {
+        return '<span class="plate' + (small ? ' small' : '') + '"><span class="gb">GB</span><span class="reg">' + esc(p) + '</span></span>';
+    }
+    function crumbs() {}
+    function setPage(title, html) {
+        Site.title(title + ' – ' + t('vc.name'));
+        app.innerHTML = html;
+        window.scrollTo(0, 0);
+    }
+    function loading() { app.innerHTML = '<div class="spinner"></div>'; }
+    function failure(e) {
+        app.innerHTML = '<div class="notice bad">' + esc(e && e.message ? e.message : t('gov.error')) + '</div>' +
+            '<p style="margin-top:14px"><a class="glink" data-go="/">' + esc(t('vc.backHome')) + '</a></p>';
+    }
+    function pNotFound() { app.innerHTML = '<div class="notice bad">' + esc(t('gov.history.notFound')) + '</div><p style="margin-top:14px"><a class="glink" data-go="/">' + esc(t('vc.backHome')) + '</a></p>'; }
+    var cache = null;
+
+    // ------------------------------------------------------------------ vehicle history check
+
+    function VH_TRAIL(extra) {
+        return extra ? [{ t: t('vc.title'), go: '/' }].concat(extra) : [{ t: t('vc.title') }];
+    }
+    function verdictTag(v) {
+        return '<span class="tag ' + (v === 'fail' ? 'bad' : (v === 'warn' ? 'warn' : 'good')) + '">' + esc(t('gov.history.verdict.' + v)) + '</span>';
+    }
+    function unitLabel(u) { var k = 'gov.history.unit.' + (u || 'miles'); var s = t(k); return s === k ? (u || '') : s; }
+    function checkRow(c) {
+        var icon = c.status === 'pass' ? '✓' : (c.status === 'fail' ? '✕' : (c.status === 'warn' ? '!' : 'i'));
+        return '<div class="chk ' + esc(c.status) + '"><span class="ic">' + icon + '</span><div><b>' + esc(c.label) + '</b><div class="desc">' + esc(c.detail || '') + '</div></div></div>';
+    }
+
+    function sectionList(ids) {
+        return '<ul class="incl">' + ids.map(function (i) { return '<li>' + esc(t('vc.section.' + i)) + '</li>'; }).join('') + '</ul>';
+    }
+    function plansHtml(plans, key) {
+        return '<div class="plans">' + plans.map(function (p) {
+            var price = key ? (p.fee === 0 && p.price > 0 ? '<s>' + Site.money(p.price) + '</s> ' + esc(t('vc.free')) : Site.money(p.price)) : Site.money(p.price);
+            return '<div class="plan' + (p.popular ? ' pop' : '') + '">' + (p.popular ? '<span class="tag good">' + esc(t('vc.popular')) + '</span>' : '') +
+                '<div class="vrow"><b>' + esc(p.name) + '</b><b>' + price + '</b></div>' +
+                '<div class="desc">' + esc(p.description) + '</div>' + sectionList(p.includes) +
+                (key ? '<a class="gbtn block" data-go="/buy/' + esc(key) + '/' + esc(p.id) + '">' + esc(p.fee > 0 ? t('vc.choose', Site.money(p.fee)) : t('vc.open')) + '</a>' : '') + '</div>';
+        }).join('') + '</div>';
+    }
+
+    function pHistory(err, val) {
+        var my = ++token;
+        loading();
+        Site.call('state').then(function (st) {
+            if (my !== token) return;
+            var html = '<h1>' + esc(t('vc.title')) + '</h1><p class="lead">' + esc(t('gov.history.lead')) + '</p>' +
+                '<form id="f"><label class="field"><span class="lbl">' + esc(t('gov.checker.label')) + '</span><span class="hint">' + esc(t('gov.checker.hint')) + '</span>' +
+                '<input type="text" id="p" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-transform:uppercase;font-size:24px;font-weight:800;letter-spacing:.06em;max-width:280px;border:2px solid var(--fg);border-radius:0" value="' + esc(val || '') + '">' +
+                (err ? '<span class="err">' + esc(err) + '</span>' : '') + '</label>' +
+                '<button class="gbtn" type="submit">' + esc(t('gov.history.start')) + '</button></form>' +
+                '<h2>' + esc(t('vc.plans')) + '</h2>' + plansHtml(st.plans, null) +
+                (st.ownedFree ? '<p class="fine">' + esc(t('gov.history.ownFree')) + '</p>' : '');
+            if (st.reports.length) {
+                html += '<h2>' + esc(t('gov.history.yourReports')) + '</h2><div class="glist">' + st.reports.map(function (r) {
+                    return '<div><div class="vrow"><a class="glink" data-go="/report/' + r.id + '">' + esc(r.plate) + '</a>' + verdictTag(r.verdict) + '</div><div class="desc">' + esc(t('gov.history.boughtOn', Site.date(r.at))) + '</div></div>';
+                }).join('') + '</div>';
+            }
+            setPage(t('vc.title'), html);
+            document.getElementById('f').onsubmit = function (e) {
+                e.preventDefault();
+                var k = plateKey(document.getElementById('p').value);
+                if (k.length < 2) return pHistory(t('gov.checker.enterPlate'), '');
+                Site.go('/check/' + k);
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pHistoryCheck(key) {
+        var my = ++token;
+        loading();
+        Site.call('lookup', { plate: key }).then(function (v) {
+            if (my !== token) return;
+            var trail = VH_TRAIL([{ t: v.plate || key }]);
+            if (!v.found) {
+                setPage(t('gov.checker.notFound.title'),
+                    '<h1>' + esc(t('gov.checker.notFound.h1')) + '</h1><p>' + plateHtml(key) + '</p><div class="status bad"><h3>' + esc(t('gov.checker.notFound.h3')) + '</h3><p>' + esc(t('gov.checker.notFound.body')) + '</p></div>' +
+                    '<p><a class="gbtn" data-go="/">' + esc(t('gov.checker.tryAnother')) + '</a></p>');
+                return;
+            }
+            var html = '<h1>' + esc(t('gov.history.summary')) + '</h1><p>' + plateHtml(v.plate) + '</p>' +
+                '<table class="kv"><tr><th>' + esc(t('gov.checker.make')) + '</th><td>' + esc(v.make) + '</td></tr><tr><th>' + esc(t('gov.checker.model')) + '</th><td>' + esc(v.model) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.checker.colour')) + '</th><td>' + esc(v.colour) + '</td></tr><tr><th>' + esc(t('gov.th.type')) + '</th><td>' + esc(v.class) + '</td></tr></table>' +
+                '<div class="status ' + (v.issues ? 'warn' : 'good') + '"><span class="k">' + esc(t('gov.history.checksRun', v.checks)) + '</span><h3>' +
+                esc(v.issues === 0 ? t('gov.history.noIssues') : (v.issues === 1 ? t('gov.history.issues.one', v.issues) : t('gov.history.issues.other', v.issues))) + '</h3><p>' + esc(t('gov.history.teaser')) + '</p></div>';
+            if (v.reportId) {
+                html += '<p>' + esc(t('gov.history.haveReport', Site.date(v.reportAt))) + '</p><p><a class="gbtn" data-go="/report/' + v.reportId + '">' + esc(t('gov.history.viewSaved')) + '</a></p>';
+            }
+            html += '<h2>' + esc(t('vc.choosePlan')) + '</h2>' + plansHtml(v.plans, key);
+            html += '<p style="margin-top:12px"><a class="glink" data-go="/">' + esc(t('gov.history.another')) + '</a></p>';
+            setPage(v.plate, html);
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function buyHistory(key, plan, again) {
+        Site.call('buy', { plate: key, plan: plan }).then(function (r) { cache = r; Site.go('/report/' + r.id); })
+            .catch(function (e) { if (again) again(e.message); else failure(e); });
+    }
+
+    function pHistoryBuy(key, planId, err) {
+        var my = ++token;
+        loading();
+        Site.call('lookup', { plate: key }).then(function (v) {
+            if (my !== token) return;
+            if (!v.found) return pNotFound();
+            var plan = null;
+            v.plans.forEach(function (p) { if (p.id === planId) plan = p; });
+            if (!plan) return Site.go('/check/' + key);
+            setPage(t('gov.confirmPay'),
+                '<h1>' + esc(t('gov.confirmPay')) + '</h1><p>' + plateHtml(v.plate) + '</p>' +
+                (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
+                '<table class="kv"><tr><th>' + esc(t('gov.th.service')) + '</th><td>' + esc(plan.name) + '</td></tr><tr><th>' + esc(t('gov.th.vehicle')) + '</th><td>' + esc(v.colour) + ' ' + esc(v.make) + ' ' + esc(v.model) + '</td></tr>' +
+                '<tr><th>' + esc(t('gov.th.amountToPay')) + '</th><td><b>' + Site.money(plan.fee) + '</b></td></tr></table>' +
+                '<p class="desc">' + esc(t('vc.youGet')) + '</p>' + sectionList(plan.includes) +
+                '<p class="fine" style="margin-top:12px">' + esc(t('gov.history.buyNote')) + '</p>' +
+                '<button class="gbtn block" id="pay">' + esc(plan.fee > 0 ? t('gov.pay', Site.money(plan.fee)) : t('vc.open')) + '</button>' +
+                '<p style="margin-top:12px"><a class="glink" data-go="/check/' + esc(key) + '">' + esc(t('gov.cancel')) + '</a></p>');
+            document.getElementById('pay').onclick = function () {
+                var btn = this; btn.disabled = true; btn.textContent = t('gov.processing');
+                buyHistory(key, planId, function (m) { pHistoryBuy(key, planId, m); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function drawReport(r) {
+        function has(sec) { return !r.sections || r.sections.indexOf(sec) !== -1; }
+        var html = '<h1>' + esc(t('gov.history.reportTitle')) + '</h1><p>' + plateHtml(r.plate) + '</p>' +
+            '<table class="kv"><tr><th>' + esc(t('gov.th.vehicle')) + '</th><td>' + esc(r.vehicle.colour) + ' ' + esc(r.vehicle.make) + ' ' + esc(r.vehicle.model) + '</td></tr>' +
+            (r.plan ? '<tr><th>' + esc(t('vc.plan')) + '</th><td>' + esc(r.plan.name) + '</td></tr>' : '') + '<tr><th>' + esc(t('gov.th.type')) + '</th><td>' + esc(r.vehicle.class) + '</td></tr><tr><th>' + esc(t('gov.history.th.checkedOn')) + '</th><td>' + Site.datetime(r.at) + '</td></tr></table>' +
+            '<div class="status ' + (r.verdict === 'fail' ? 'bad' : (r.verdict === 'warn' ? 'warn' : 'good')) + '"><span class="k">' + esc(t('gov.history.overall')) + '</span><h3>' +
+            esc(r.issues === 0 ? t('gov.history.noIssues') : (r.issues === 1 ? t('gov.history.issues.one', r.issues) : t('gov.history.issues.other', r.issues))) + '</h3></div>';
+        html += '<h2>' + esc(t('gov.history.checks')) + '</h2>' + r.checks.map(checkRow).join('');
+        if (r.personalised) html += '<div class="status"><b>' + esc(t('vc.personalised.title')) + '</b><div class="desc">' + esc(t('vc.personalised.body', r.personalised.plate, r.personalised.original)) + '</div></div>';
+        if (r.previousPlates.length) {
+            html += '<h2>' + esc(t('gov.history.prevPlates')) + '</h2><div class="glist">' + r.previousPlates.map(function (p) {
+                return '<div class="vrow">' + plateHtml(p.plate, true) + '<span>→</span>' + plateHtml(p.to, true) + '<span class="desc">' + esc(t('gov.history.changedOn', Site.date(p.at))) + '</span></div>';
+            }).join('') + '</div>';
+        }
+        if (has('events')) html += '<h2>' + esc(t('gov.history.events')) + '</h2>';
+        if (has('events')) html += r.events.length ? '<div class="glist">' + r.events.map(function (e) {
+            return '<div><div class="vrow"><b>' + esc(e.label) + '</b><span class="desc">' + Site.date(e.at) + '</span></div>' + (e.text ? '<div class="desc">' + esc(e.text) + '</div>' : '') + '</div>';
+        }).join('') + '</div>' : '<p class="muted">' + esc(t('gov.history.noEvents')) + '</p>';
+        if (has('tests')) html += '<h2>' + esc(t('gov.history.tests')) + '</h2>';
+        if (has('tests')) html += r.tests.length ? '<div class="glist">' + r.tests.map(function (x) {
+            return '<div><div class="vrow"><b>' + Site.date(x.testedAt) + '</b><span class="tag ' + (x.passed ? 'good' : 'bad') + '">' + esc(x.passed ? t('gov.pass') : t('gov.fail')) + '</span></div>' +
+                '<div class="desc">' + (x.mileage ? esc(t('gov.history.mileageRow', Math.round(x.mileage), unitLabel(x.unit))) : esc(t('gov.history.noMileage'))) + (x.location ? ' · ' + esc(x.location) : '') + '</div></div>';
+        }).join('') + '</div>' : '<p class="muted">' + esc(t('gov.history.noTests')) + '</p>';
+        if (r.locked && r.locked.length) html += '<div class="status"><b>' + esc(t('vc.notIncluded')) + '</b>' + sectionList(r.locked) + '<a class="glink" data-go="/check/' + esc(r.key) + '">' + esc(t('vc.upgrade')) + '</a></div>';
+        html += '<p class="fine" style="margin-top:14px">' + esc(t('gov.history.snapshot')) + '</p>' +
+            '<p><a class="glink" data-go="/">' + esc(t('gov.history.another')) + '</a></p>';
+        return html;
+    }
+
+    function pHistoryReport(id) {
+        var my = ++token;
+        var show = function (r) {
+            if (my !== token) return;
+            setPage(t('gov.history.reportTitle'), drawReport(r));
+        };
+        if (cache && cache.id === id) { var r0 = cache; return show(r0); }
+        loading();
+        Site.call('report', { id: id }).then(show).catch(function (e) { if (my === token) failure(e); });
+    }
+
+
+    // ------------------------------------------------------------------ router
+
+    function render(path) {
+        var p = path.split('/').filter(Boolean);
+        token++;
+        if (p[0] === 'check' && p[1]) return pHistoryCheck(plateKey(p[1]));
+        if (p[0] === 'buy' && p[1]) return pHistoryBuy(plateKey(p[1]), p[2] || '');
+        if (p[0] === 'report' && p[1]) return pHistoryReport(parseInt(p[1], 10));
+        pHistory();
+    }
+
+    document.addEventListener('click', function (e) {
+        var el = e.target;
+        while (el && el !== document.body) {
+            if (el.getAttribute) {
+                var g = el.getAttribute('data-go');
+                if (g) { e.preventDefault(); Site.go(g); return; }
+                var o = el.getAttribute('data-open');
+                if (o) { e.preventDefault(); Site.open(o); return; }
+            }
+            el = el.parentNode;
+        }
+    });
+
+    Site.onReady(function () {
+        document.getElementById('siteName').textContent = t('vc.name');
+        document.getElementById('siteTag').textContent = t('vc.tagline');
+        document.getElementById('foot').innerHTML = '<b>' + esc(t('vc.name')) + '</b><br>' + esc(t('vc.roleplayOnly'));
+        Site.onRoute(render);
+    });
+})();
+</script>
+</body>
+</html>

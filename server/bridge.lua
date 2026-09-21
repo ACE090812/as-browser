@@ -48,6 +48,16 @@ function Bridge.getIdentifier(source)
     return source and ('standalone:' .. tostring(source)) or nil
 end
 
+--- The server id of an online character, from their character id. nil when they are not online.
+function Bridge.findSource(identifier)
+    if not identifier then return nil end
+    for _, id in ipairs(GetPlayers()) do
+        local src = tonumber(id)
+        if src and Bridge.getIdentifier(src) == identifier then return src end
+    end
+    return nil
+end
+
 local function trim(s) return (tostring(s or ''):gsub('^%s+', ''):gsub('%s+$', '')) end
 
 --- In-character name, never the FiveM/Steam name unless the framework can't give one.
@@ -66,7 +76,7 @@ function Bridge.getCharacterName(source)
             if ok and name and name ~= '' then return name end
         end
     end
-    return GetPlayerName(source) or 'Citizen'
+    return GetPlayerName(source) or T('shell.citizen')
 end
 
 --- { name, label } of the character's job, or nil.
@@ -80,6 +90,28 @@ function Bridge.getJob(source)
         local x = ESX.GetPlayerFromId(source)
         local j = x and x.getJob and x.getJob()
         if j then return { name = j.name, label = j.label or j.name } end
+    end
+    return nil
+end
+
+--- { name, label, grade (number), gradeLabel, isBoss } of the character's job, or nil.
+function Bridge.getJobGrade(source)
+    ensureCore()
+    if framework == 'qb' or framework == 'qbx' then
+        local p = getPlayer(source)
+        local j = p and p.PlayerData.job
+        if j then
+            local g = type(j.grade) == 'table' and j.grade or {}
+            return { name = j.name, label = j.label or j.name, grade = tonumber(g.level) or tonumber(j.grade) or 0,
+                     gradeLabel = g.name or tostring(g.level or ''), isBoss = j.isboss == true or g.isboss == true }
+        end
+    elseif framework == 'esx' and ESX then
+        local x = ESX.GetPlayerFromId(source)
+        local j = x and x.getJob and x.getJob()
+        if j then
+            return { name = j.name, label = j.label or j.name, grade = tonumber(j.grade) or 0,
+                     gradeLabel = j.grade_label or j.grade_name or '', isBoss = j.grade_name == 'boss' }
+        end
     end
     return nil
 end

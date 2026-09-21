@@ -4,7 +4,7 @@
 --
 -- Settings are in Config.gov.council (sites/gov/config.lua).
 local C = Config.gov.council
-if not C or C.enabled == false then return end
+if not C or C.enabled == false or Config.gov.scripts and Config.gov.scripts.council == false then return end
 
 local DAY = 86400
 local function now() return os.time() end
@@ -37,6 +37,11 @@ end)
 -- Finding a character's homes
 -- ---------------------------------------------------------------------------------------------
 
+--- A piece of text as a quoted SQL string (the "Property" fallback name comes from the locale).
+local function sqlText(s)
+    return "'" .. (tostring(s):gsub('\\', '\\\\'):gsub("'", "''")) .. "'"
+end
+
 local function ident(s)
     return type(s) == 'string' and s:match('^[%w_]+$') and s or nil
 end
@@ -61,7 +66,7 @@ local candidates = {}
 candidates['qbx_properties'] = { resource = 'qbx_properties', build = function()
     local cols = columnsOf('properties')
     if not hasAll(cols, { 'id', 'owner', 'price' }) then return nil end
-    local name = cols.property_name and 'property_name' or "CONCAT('Property ', id)"
+    local name = cols.property_name and 'property_name' or ("CONCAT(%s, ' ', id)"):format(sqlText(T('gov.council.property')))
     local rented = cols.rent_interval and '(rent_interval IS NOT NULL)' or '0'
     return { id = 'qbx', sql = ('SELECT id AS id, %s AS name, price AS value, %s AS rented FROM properties WHERE owner = ?'):format(name, rented) }
 end }
@@ -69,7 +74,7 @@ end }
 candidates['ps-housing'] = { resource = 'ps-housing', build = function()
     local cols = columnsOf('properties')
     if not hasAll(cols, { 'property_id', 'owner_citizenid', 'price' }) then return nil end
-    local name = cols.street and "COALESCE(street, 'Property')" or "'Property'"
+    local name = cols.street and ('COALESCE(street, %s)'):format(sqlText(T('gov.council.property'))) or sqlText(T('gov.council.property'))
     return { id = 'ps', sql = ('SELECT property_id AS id, CONCAT(%s, \' \', property_id) AS name, price AS value, 0 AS rented FROM properties WHERE owner_citizenid = ?'):format(name) }
 end }
 
@@ -145,7 +150,7 @@ local function homesOf(cid)
     for i = 1, math.min(#(rows or {}), 50) do
         local r = rows[i]
         out[#out + 1] = {
-            key = a.id .. ':' .. tostring(r.id), name = tostring(r.name or 'Property'):sub(1, 80),
+            key = a.id .. ':' .. tostring(r.id), name = tostring(r.name or T('gov.council.property')):sub(1, 80),
             value = tonumber(r.value) or 0, rented = r.rented == 1 or r.rented == true,
         }
     end
@@ -203,9 +208,9 @@ end
 
 Browser.handler('gov', 'councilState', function(src)
     local cid = Bridge.getIdentifier(src)
-    if not cid then return nil, 'You are not signed in.' end
+    if not cid then return nil, T('shell.err.notSignedIn') end
     local homes = homesOf(cid)
-    if not homes then return nil, 'Council tax is not available right now. Please try again later.' end
+    if not homes then return nil, T('gov.council.unavailable') end
 
     local out, owed = {}, 0
     for i = 1, #homes do
@@ -218,7 +223,7 @@ end)
 
 Browser.handler('gov', 'councilHistory', function(src)
     local cid = Bridge.getIdentifier(src)
-    if not cid then return nil, 'You are not signed in.' end
+    if not cid then return nil, T('shell.err.notSignedIn') end
     local rows = MySQL.query.await(
         'SELECT label, periods, amount, paid_at FROM browser_council_payments WHERE citizenid = ? ORDER BY id DESC LIMIT 40', { cid }) or {}
     local out = {}
@@ -242,32 +247,31 @@ local function discordLog(fields)
         out[#out + 1] = { name = f[1], value = v:sub(1, 200), inline = true }
     end
     PerformHttpRequest(C.webhook, function() end, 'POST', json.encode({
-        embeds = { { title = 'Council tax payment', color = 0x0f766e, fields = out, timestamp = os.date('!%Y-%m-%dT%H:%M:%SZ'), footer = { text = 'as-browser' } } },
+        embeds = { { title = T('gov.discord.councilTitle'), color = 0x0f766e, fields = out, timestamp = os.date('!%Y-%m-%dT%H:%M:%SZ'), footer = { text = 'as-browser' } } },
         allowed_mentions = { parse = {} },
     }), { ['Content-Type'] = 'application/json' })
 end
 
 local function pay(src, data)
     local cid = Bridge.getIdentifier(src)
-    if not cid then return nil, 'You are not signed in.' end
+    if not cid then return nil, T('shell.err.notSignedIn') end
     local key = tostring(data.key or '')
-    if #key > 96 then return nil, 'That home could not be found.' end
+    if #key > 96 then return nil, T('gov.council.homeNotFound') end
 
     local homes = homesOf(cid)
-    if not homes then return nil, 'Council tax is not available right now. Please try again later.' end
+    if not homes then return nil, T('gov.council.unavailable') end
     local home
     for i = 1, #homes do if homes[i].key == key then home = homes[i] end end
-    if not home then return nil, 'You can only pay council tax for a home you own.' end
+    if not home then return nil, T('gov.council.notOwner') end
 
     local a = assess(home, cid)
     if not a.canPay then
-        return nil, ('There is nothing to pay yet. You can pay the next bill from %s.'):format(
-            os.date('%d %b %Y', a.paidUntil - (C.payAheadDays or 0) * DAY))
+        return nil, T('gov.council.nothingToPay', Browser.date(a.paidUntil - (C.payAheadDays or 0) * DAY))
     end
 
     local total = a.payAmount
     if not Bridge.removeMoney(src, Config.account, total, 'council-tax') then
-        return nil, 'You do not have enough money in your bank account.'
+        return nil, T('shell.err.insufficientFunds')
     end
 
     local newUntil = a.paidUntil + a.payPeriods * periodSeconds()
@@ -277,7 +281,7 @@ local function pay(src, data)
         { newUntil, now(), home.key, cid, a.paidUntil })
     if not changed or changed < 1 then
         Bridge.addMoney(src, Config.account, total, 'council-tax-refund')
-        return nil, 'Something changed while you were paying. You have not been charged, please try again.'
+        return nil, T('gov.err.changed')
     end
 
     MySQL.insert.await(
@@ -286,21 +290,20 @@ local function pay(src, data)
 
     pcall(function()
         exports['sd-phone']:addBankTransaction(cid, {
-            label = ('Council tax %s'):format(home.name), amount = -total, category = 'government', counterparty = C.authority,
+            label = T('gov.council.bankLabel', home.name), amount = -total, category = 'government', counterparty = C.authority,
         })
     end)
 
     local name = Bridge.getCharacterName(src)
-    Bridge.sendPhoneMail(src, cid, C.mailFrom, ('Council tax receipt - %s'):format(home.name),
-        ('Hello %s,\n\nThank you. We have received your council tax payment.\n\nProperty: %s\nPeriods paid: %d\nAmount paid: %s%d\nPaid until: %s\n\nKeep this email as your receipt.'):format(
-            name, home.name, a.payPeriods, Config.currency, total, os.date('%d %b %Y', newUntil)))
-    discordLog({ { 'Character', name }, { 'Citizen ID', cid }, { 'Property', home.name }, { 'Periods', a.payPeriods }, { 'Paid', Config.currency .. total } })
+    Bridge.sendPhoneMail(src, cid, C.mailFrom, T('gov.council.mailSubject', home.name),
+        T('gov.council.mailBody', name, home.name, a.payPeriods, Config.currency, total, Browser.date(newUntil)))
+    discordLog({ { T('gov.discord.character'), name }, { T('gov.discord.citizenId'), cid }, { T('gov.discord.property'), home.name }, { T('gov.discord.periods'), a.payPeriods }, { T('gov.discord.paid'), Config.currency .. total } })
 
     return { name = home.name, periods = a.payPeriods, amount = total, paidUntil = newUntil, now = now() }
 end
 
 Browser.handler('gov', 'councilPay', function(src, data)
-    if busy[src] then return nil, 'Please wait, your last request is still being processed.' end
+    if busy[src] then return nil, T('shell.err.busy') end
     busy[src] = true
     local ok, res, err = pcall(pay, src, data)
     busy[src] = nil
@@ -336,8 +339,8 @@ CreateThread(function()
                         reminded[cid] = now()
                         pcall(function()
                             exports['sd-phone']:notify(src, {
-                                app = 'as-browser', appId = 'as-browser', title = 'Council tax',
-                                body = ('You owe %s%d in council tax. Pay it on lsgov.co.uk.'):format(Config.currency, owed), time = 'now',
+                                app = 'as-browser', appId = 'as-browser', title = T('gov.council.reminderTitle'),
+                                body = T('gov.council.reminderBody', Config.currency, owed), time = 'now',
                             })
                         end)
                     end

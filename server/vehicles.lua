@@ -99,7 +99,8 @@ local function loadInfo()
 end
 
 local function prettify(spawn)
-    spawn = tostring(spawn or 'Unknown')
+    if not spawn then return T('vehicle.unknownModel') end
+    spawn = tostring(spawn)
     return (spawn:sub(1, 1):upper() .. spawn:sub(2):lower())
 end
 
@@ -125,15 +126,38 @@ local COLOURS = {
     { 144, 144, 'Green' }, { 145, 145, 'Purple' }, { 146, 146, 'Blue' }, { 147, 147, 'Black' },
 }
 
+local colourText
+local function colourNames()
+    if not colourText then
+        colourText = {
+            Black = T('vehicle.colour.Black'),
+            Grey = T('vehicle.colour.Grey'),
+            Red = T('vehicle.colour.Red'),
+            Orange = T('vehicle.colour.Orange'),
+            Gold = T('vehicle.colour.Gold'),
+            Yellow = T('vehicle.colour.Yellow'),
+            Green = T('vehicle.colour.Green'),
+            Blue = T('vehicle.colour.Blue'),
+            Brown = T('vehicle.colour.Brown'),
+            Beige = T('vehicle.colour.Beige'),
+            White = T('vehicle.colour.White'),
+            Silver = T('vehicle.colour.Silver'),
+            Pink = T('vehicle.colour.Pink'),
+            Purple = T('vehicle.colour.Purple'),
+        }
+    end
+    return colourText
+end
+
 function Vehicles.colourName(idx)
-    if type(idx) == 'table' then return 'Custom' end
+    if type(idx) == 'table' then return T('vehicle.colour.Custom') end
     idx = tonumber(idx)
-    if not idx then return 'Unknown' end
+    if not idx then return T('vehicle.colour.Unknown') end
     for i = 1, #COLOURS do
         local r = COLOURS[i]
-        if idx >= r[1] and idx <= r[2] then return r[3] end
+        if idx >= r[1] and idx <= r[2] then return colourNames()[r[3]] end
     end
-    return 'Other'
+    return T('vehicle.colour.Other')
 end
 
 -- ---------------------------------------------------------------------------------------------
@@ -220,6 +244,79 @@ function Vehicles.ownedBy(identifier)
         out[#out + 1] = v
     end
     return out
+end
+
+--- One page of (plate, owner) pairs, for background sweeps. Read in the same order every time.
+function Vehicles.page(offset, limit)
+    local c = tableCfg()
+    local rows = MySQL.query.await(
+        ('SELECT `%s` AS plate, `%s` AS owner FROM `%s` ORDER BY `%s` LIMIT ? OFFSET ?'):format(c.plate, c.owner, c.table, c.plate),
+        { limit, offset }) or {}
+    return rows
+end
+
+--- Any other column of an owned vehicle (e.g. the garage `state`), or nil. The column name must be a plain identifier.
+--- Returns nil, 'error' when the column does not exist, so callers can tell "no value" from "cannot check".
+function Vehicles.column(plateKey, column)
+    if type(column) ~= 'string' or not column:match('^[%w_]+$') then return nil, 'error' end
+    local c = tableCfg()
+    local ok, row = pcall(function()
+        return MySQL.single.await(('SELECT `%s` AS v FROM `%s` WHERE REPLACE(UPPER(`%s`), " ", "") = ? LIMIT 1'):format(column, c.table, c.plate), { plateKey })
+    end)
+    if not ok then return nil, 'error' end
+    return row and row.v or nil
+end
+
+--- Gives one or more owned vehicles a new registration. `changes` is a list of { oldKey, newPlate, owner } applied in
+--- order (so a plate can move from one vehicle to another: free it first, then use it). `extra` is a list of
+--- { sql, params } run in ONE transaction afterwards (other tables that hold the plate). If any step fails, every
+--- earlier step is undone. Returns true / false.
+function Vehicles.setPlates(changes, extra)
+    local c = tableCfg()
+    local selectSql = ('SELECT `%s` FROM `%s` WHERE REPLACE(UPPER(`%s`), " ", "") = ? AND `%s` = ? LIMIT 1'):format(c.plate, c.table, c.plate, c.owner)
+    local updateSql = ('UPDATE `%s` SET `%s` = ? WHERE REPLACE(UPPER(`%s`), " ", "") = ? AND `%s` = ?'):format(c.table, c.plate, c.plate, c.owner)
+    local done = {}
+    local function rollback()
+        for i = #done, 1, -1 do
+            local d = done[i]
+            pcall(function() MySQL.update.await(updateSql, { d.raw, d.newKey, d.owner }) end)
+        end
+    end
+    for _, ch in ipairs(changes) do
+        local raw = MySQL.scalar.await(selectSql, { ch.oldKey, ch.owner })
+        if raw == nil then rollback(); return false end
+        local ok, n = pcall(function() return MySQL.update.await(updateSql, { ch.newPlate, ch.oldKey, ch.owner }) end)
+        if not ok or (tonumber(n) or 0) < 1 then
+            if not ok then print(('^5[as-browser]^0 plate change failed: %s'):format(tostring(n))) end
+            rollback()
+            return false
+        end
+        done[#done + 1] = { raw = raw, newKey = Vehicles.normalizePlate(ch.newPlate) or ch.newPlate, owner = ch.owner }
+    end
+    if extra and #extra > 0 then
+        local ok, res = pcall(function() return MySQL.transaction.await(extra) end)
+        if not ok or not res then
+            if not ok then print(('^5[as-browser]^0 plate change failed: %s'):format(tostring(res))) end
+            rollback()
+            return false
+        end
+    end
+    -- Frameworks keep the plate inside the vehicle properties too; keep that copy in step. Best effort: a
+    -- column that is not JSON is simply left alone.
+    for _, ch in ipairs(changes) do
+        pcall(function()
+            MySQL.update.await(
+                ('UPDATE `%s` SET `%s` = JSON_SET(`%s`, "$.plate", ?) WHERE `%s` = ? AND JSON_EXTRACT(`%s`, "$.plate") IS NOT NULL'):format(
+                    c.table, c.mods, c.mods, c.plate, c.mods),
+                { ch.newPlate, ch.newPlate })
+        end)
+    end
+    return true
+end
+
+--- Puts a new registration on one owned vehicle (kept for other scripts; see Vehicles.setPlates).
+function Vehicles.rename(oldKey, newPlate, owner, extra)
+    return Vehicles.setPlates({ { oldKey = oldKey, newPlate = newPlate, owner = owner } }, extra)
 end
 
 --- Adds the friendly fields: make, model, colour, class, exemption and price.

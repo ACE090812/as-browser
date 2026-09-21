@@ -11,8 +11,8 @@
     <div id="topbar">
         <div id="urlbar">
             <span class="lockicon" id="lockIcon"></span>
-            <input id="urlInput" type="text" placeholder="Search or enter address" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
-            <button class="iconbtn" id="reloadBtn" aria-label="Reload"></button>
+            <input id="urlInput" type="text" data-i18n-placeholder="shell.urlPlaceholder" placeholder="Search or enter address" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
+            <button class="iconbtn" id="reloadBtn" data-i18n-aria-label="shell.reload" aria-label="Reload"></button>
         </div>
         <div id="progress"><i></i></div>
     </div>
@@ -20,19 +20,19 @@
     <div id="viewport"></div>
 
     <div id="toolbar">
-        <button id="backBtn" aria-label="Back"></button>
-        <button id="fwdBtn" aria-label="Forward"></button>
-        <button id="starBtn" aria-label="Bookmark"></button>
-        <button id="tabBtn" aria-label="Tabs"><span id="tabCount">1</span></button>
-        <button id="menuBtn" aria-label="Menu"></button>
+        <button id="backBtn" data-i18n-aria-label="shell.back" aria-label="Back"></button>
+        <button id="fwdBtn" data-i18n-aria-label="shell.forward" aria-label="Forward"></button>
+        <button id="starBtn" data-i18n-aria-label="shell.bookmark" aria-label="Bookmark"></button>
+        <button id="tabBtn" data-i18n-aria-label="shell.tabs" aria-label="Tabs"><span id="tabCount">1</span></button>
+        <button id="menuBtn" data-i18n-aria-label="shell.menu" aria-label="Menu"></button>
     </div>
 
     <div id="tabsOverlay">
-        <div class="head"><b id="tabsTitle">Tabs</b></div>
+        <div class="head"><b id="tabsTitle" data-i18n="shell.tabs">Tabs</b></div>
         <div id="tabsGrid"></div>
         <div id="tabsFoot">
-            <button class="linkbtn" id="newTabBtn">New tab</button>
-            <button class="linkbtn" id="tabsDoneBtn">Done</button>
+            <button class="linkbtn" id="newTabBtn" data-i18n="shell.newTab">New tab</button>
+            <button class="linkbtn" id="tabsDoneBtn" data-i18n="shell.done">Done</button>
         </div>
     </div>
 

@@ -38,12 +38,14 @@
 (function () {
     var esc = Site.esc;
     var info = null;
-    var TABS = [['/', 'Home'], ['/rules', 'Rules'], ['/staff', 'Staff'], ['/changelog', 'Changelog'], ['/discord', 'Discord']];
+    function tabs() {
+        return [['/', t('serverinfo.nav.home')], ['/rules', t('serverinfo.nav.rules')], ['/staff', t('serverinfo.nav.staff')], ['/changelog', t('serverinfo.nav.changelog')], ['/discord', t('serverinfo.nav.discord')]];
+    }
 
     function nav(path) {
         var root = '/' + (path.split('/')[1] || '');
-        document.getElementById('nav').innerHTML = TABS.map(function (t) {
-            return '<button data-p="' + t[0] + '" class="' + (t[0] === root ? 'on' : '') + '">' + t[1] + '</button>';
+        document.getElementById('nav').innerHTML = tabs().map(function (tab) {
+            return '<button data-p="' + tab[0] + '" class="' + (tab[0] === root ? 'on' : '') + '">' + esc(tab[1]) + '</button>';
         }).join('');
         Array.prototype.forEach.call(document.querySelectorAll('#nav button'), function (b) {
             b.onclick = function () { Site.go(b.getAttribute('data-p')); };
@@ -52,28 +54,28 @@
 
     function home() {
         return '<div class="stack">' +
-            TABS.slice(1).map(function (t) {
-                var blurb = { '/rules': 'Read the rulebook before you play.', '/staff': 'Meet the people who run the server.', '/changelog': 'See what is new.', '/discord': 'Join the community.' }[t[0]];
-                return '<button class="card link" data-p="' + t[0] + '"><h3>' + t[1] + '</h3><div class="muted">' + blurb + '</div></button>';
+            tabs().slice(1).map(function (tab) {
+                var blurb = { '/rules': t('serverinfo.blurb.rules'), '/staff': t('serverinfo.blurb.staff'), '/changelog': t('serverinfo.blurb.changelog'), '/discord': t('serverinfo.blurb.discord') }[tab[0]];
+                return '<button class="card link" data-p="' + tab[0] + '"><h3>' + esc(tab[1]) + '</h3><div class="muted">' + esc(blurb) + '</div></button>';
             }).join('') + '</div>';
     }
 
     function rules() {
-        return '<h2>Server rules</h2><div class="stack">' + (info.rules || []).map(function (sec, i) {
+        return '<h2>' + esc(t('serverinfo.rules')) + '</h2><div class="stack">' + (info.rules || []).map(function (sec, i) {
             return '<details class="acc"' + (i === 0 ? ' open' : '') + '><summary>' + esc(sec.title) + '</summary><ol>' +
                 (sec.items || []).map(function (it) { return '<li>' + esc(it) + '</li>'; }).join('') + '</ol></details>';
         }).join('') + '</div>';
     }
 
     function staff() {
-        return '<h2>Staff team</h2><div class="stack">' + (info.staff || []).map(function (p) {
+        return '<h2>' + esc(t('serverinfo.staff')) + '</h2><div class="stack">' + (info.staff || []).map(function (p) {
             return '<div class="card person"><div class="avatar">' + esc((p.name || '?').charAt(0).toUpperCase()) + '</div>' +
                 '<div><b>' + esc(p.name) + '</b><div class="muted small">' + esc(p.role) + '</div></div></div>';
         }).join('') + '</div>';
     }
 
     function changelog() {
-        return '<h2>Changelog</h2><div class="stack">' + (info.changelog || []).map(function (c) {
+        return '<h2>' + esc(t('serverinfo.changelog')) + '</h2><div class="stack">' + (info.changelog || []).map(function (c) {
             return '<div class="card"><div class="row between"><span class="ver">v' + esc(c.version) + '</span><span class="muted small">' + esc(c.date) + '</span></div>' +
                 '<ul style="margin:8px 0 0;padding-left:20px">' + (c.items || []).map(function (it) { return '<li>' + esc(it) + '</li>'; }).join('') + '</ul></div>';
         }).join('') + '</div>';
@@ -81,9 +83,9 @@
 
     function discord() {
         var d = info.discord || {};
-        return '<h2>' + esc(d.label || 'Discord') + '</h2><p class="muted">' + esc(d.text || '') + '</p>' +
+        return '<h2>' + esc(d.label || t('serverinfo.discord')) + '</h2><p class="muted">' + esc(d.text || '') + '</p>' +
             '<div class="code" id="invite">' + esc(d.invite || '') + '</div>' +
-            '<p style="margin-top:12px"><button class="btn block" id="copyInvite">Copy invite</button></p>';
+            '<p style="margin-top:12px"><button class="btn block" id="copyInvite">' + esc(t('serverinfo.copyInvite')) + '</button></p>';
     }
 
     function render(path) {
@@ -91,7 +93,7 @@
         var section = path.split('/')[1] || '';
         nav(path);
         var view = { '': home, rules: rules, staff: staff, changelog: changelog, discord: discord }[section] || home;
-        var titles = { '': info.name, rules: 'Server rules', staff: 'Staff team', changelog: 'Changelog', discord: 'Discord' };
+        var titles = { '': info.name, rules: t('serverinfo.rules'), staff: t('serverinfo.staff'), changelog: t('serverinfo.changelog'), discord: t('serverinfo.discord') };
         Site.title((titles[section] || info.name) + (section ? ' – ' + info.name : ''));
         document.getElementById('app').innerHTML = view();
         Array.prototype.forEach.call(document.querySelectorAll('[data-p]'), function (b) {

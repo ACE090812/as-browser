@@ -47,6 +47,28 @@ local function clean(s, max)
     return s:sub(1, max)
 end
 
+--- Turns a translated, comma separated keyword list ("rules, staff, team") into a Lua list. Used for
+--- the search keywords of the built-in sites, so a translation can add words people would type.
+function Browser.words(text)
+    local out = {}
+    for w in tostring(text or ''):gmatch('[^,]+') do
+        local word = w:gsub('^%s+', ''):gsub('%s+$', '')
+        if word ~= '' then out[#out + 1] = word end
+    end
+    return out
+end
+
+--- Date text for emails, receipts and errors: "05 Sep 2026" (month names and order come from the locale).
+function Browser.date(ts)
+    local month = Browser.words(T('shell.months'))[tonumber(os.date('%m', ts))] or os.date('%b', ts)
+    return T('shell.dateFmt', os.date('%d', ts), month, os.date('%Y', ts))
+end
+
+--- The same with the time: "05 Sep 2026 14:30".
+function Browser.datetime(ts)
+    return T('shell.dateTimeFmt', Browser.date(ts), os.date('%H:%M', ts))
+end
+
 --- Called by each built-in site's server.lua. The on/off switch and address come from
 --- Config.Sites[key] in config.lua.
 function Browser.defineSite(key, def)
@@ -66,13 +88,14 @@ function Browser.defineSite(key, def)
         title       = cfg.title or def.title or key,
         description = def.description or '',
         keywords    = def.keywords or {},
-        category    = def.category or 'General',
+        category    = def.category or T('shell.categoryGeneral'),
         icon        = def.icon or '🌐',
         color       = def.color or '#2563eb',
         resource    = RESOURCE,
         page        = def.page or ('sites/' .. key .. '/index.html'),
         pages       = def.pages or {},
         featured    = def.featured ~= false,
+        desktopOnly = def.desktopOnly == true,   -- only reachable from a desktop browser (as-computer's Scout), never the phone
         enabled     = cfg.enabled ~= false,
         external    = false,
     }
@@ -97,10 +120,10 @@ local function publicSite(s)
     }
 end
 
-function Browser.publicSites()
+function Browser.publicSites(desktop)
     local out = {}
     for _, s in pairs(Browser.sites) do
-        if s.enabled then out[#out + 1] = publicSite(s) end
+        if s.enabled and (desktop or not s.desktopOnly) then out[#out + 1] = publicSite(s) end
     end
     table.sort(out, function(a, b) return a.title:lower() < b.title:lower() end)
     return out
@@ -143,6 +166,18 @@ function Browser.setEnabled(key, on)
 end
 
 -- ---------------------------------------------------------------------------------------------
+-- Callbacks. Every callback below is also reachable from other server resources through the
+-- `handle` export, so a desktop browser (as-computer's Scout) can use the same sites, bookmarks and history.
+-- ---------------------------------------------------------------------------------------------
+
+local callbacks = {}
+local desktopCallbacks = {}   -- same callbacks, but for a desktop browser: desktop-only sites are visible and reachable
+local function registerCb(name, fn)
+    callbacks[name] = fn
+    lib.callback.register(name, fn)
+end
+
+-- ---------------------------------------------------------------------------------------------
 -- Requests from site pages
 -- ---------------------------------------------------------------------------------------------
 
@@ -168,67 +203,78 @@ AddEventHandler('playerDropped', function()
     end
 end)
 
-lib.callback.register('as-browser:sites', function()
-    return Browser.publicSites()
+registerCb('as-browser:sites', function()
+    return Browser.publicSites(false)
 end)
+desktopCallbacks['as-browser:sites'] = function()
+    return Browser.publicSites(true)
+end
 
-lib.callback.register('as-browser:player', function(src)
+registerCb('as-browser:player', function(src)
     return { name = Bridge.getCharacterName(src) }
 end)
 
-lib.callback.register('as-browser:siteCall', function(src, domain, name, data)
+local function siteCall(desktop, src, domain, name, data)
     local site, key = siteByDomain(domain)
-    if not site or not site.enabled then return { ok = false, error = 'This site is not available.' } end
-    if type(name) ~= 'string' or #name > 48 then return { ok = false, error = 'Bad request.' } end
+    if not site or not site.enabled then return { ok = false, error = T('shell.err.siteUnavailable') } end
+    if site.desktopOnly and not desktop then return { ok = false, error = T('shell.err.desktopOnly') } end
+    if type(name) ~= 'string' or #name > 48 then return { ok = false, error = T('shell.err.badRequest') } end
     local handler = Browser.handlers[key] and Browser.handlers[key][name]
-    if not handler then return { ok = false, error = 'Unknown request.' } end
-    if not rateAllowed(src, key) then return { ok = false, error = 'Too many requests. Please slow down.' } end
+    if not handler then return { ok = false, error = T('shell.err.unknownRequest') } end
+    if not rateAllowed(src, key) then return { ok = false, error = T('shell.err.tooManyRequests') } end
 
     if data ~= nil then
-        if type(data) ~= 'table' then return { ok = false, error = 'Bad request.' } end
+        if type(data) ~= 'table' then return { ok = false, error = T('shell.err.badRequest') } end
         local encoded = json.encode(data)
-        if #encoded > (Config.maxPayloadBytes or 16384) then return { ok = false, error = 'That request is too large.' } end
+        if #encoded > (Config.maxPayloadBytes or 16384) then return { ok = false, error = T('shell.err.tooLarge') } end
     end
 
     local ok, result, err = pcall(handler, src, data or {})
     if not ok then
         log('handler %s/%s failed: %s', key, name, tostring(result))
-        return { ok = false, error = 'Something went wrong. Please try again.' }
+        return { ok = false, error = T('shell.err.generic') }
     end
     if result == nil and err then return { ok = false, error = tostring(err) } end
     return { ok = true, data = result }
+end
+
+registerCb('as-browser:siteCall', function(src, domain, name, data)
+    return siteCall(false, src, domain, name, data)
 end)
+desktopCallbacks['as-browser:siteCall'] = function(src, domain, name, data)
+    return siteCall(true, src, domain, name, data)
+end
 
 -- ---------------------------------------------------------------------------------------------
 -- Bookmarks and history (per character)
 -- ---------------------------------------------------------------------------------------------
 
-lib.callback.register('as-browser:bookmarks:list', function(src)
+registerCb('as-browser:bookmarks:list', function(src)
     local cid = Bridge.getIdentifier(src)
     if not cid then return {} end
     return MySQL.query.await('SELECT url, title FROM browser_bookmarks WHERE citizenid = ? ORDER BY id DESC', { cid }) or {}
 end)
 
-lib.callback.register('as-browser:bookmarks:add', function(src, url, title)
+registerCb('as-browser:bookmarks:add', function(src, url, title)
     local cid = Bridge.getIdentifier(src)
     local norm = validUrl(url)
     if not cid or not norm then return false end
     local count = MySQL.scalar.await('SELECT COUNT(*) FROM browser_bookmarks WHERE citizenid = ?', { cid }) or 0
-    if count >= (Config.limits.bookmarks or 60) then return false, 'You have too many bookmarks.' end
+    if count >= (Config.limits.bookmarks or 60) then return false, T('shell.err.tooManyBookmarks') end
     MySQL.insert.await(
         'INSERT INTO browser_bookmarks (citizenid, url, title) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE title = VALUES(title)',
         { cid, norm, clean(title, 100) })
     return true
 end)
 
-lib.callback.register('as-browser:bookmarks:remove', function(src, url)
+registerCb('as-browser:bookmarks:remove', function(src, url)
     local cid = Bridge.getIdentifier(src)
     if not cid or type(url) ~= 'string' then return false end
     MySQL.update.await('DELETE FROM browser_bookmarks WHERE citizenid = ? AND url = ?', { cid, url:sub(1, 200) })
     return true
 end)
 
-lib.callback.register('as-browser:history:list', function(src)
+registerCb('as-browser:history:list', function(src)
     local cid = Bridge.getIdentifier(src)
     if not cid then return {} end
     return MySQL.query.await(
@@ -236,7 +282,7 @@ lib.callback.register('as-browser:history:list', function(src)
         { cid, Config.limits.history or 100 }) or {}
 end)
 
-lib.callback.register('as-browser:history:add', function(src, url, title)
+registerCb('as-browser:history:add', function(src, url, title)
     local cid = Bridge.getIdentifier(src)
     local norm = validUrl(url)
     if not cid or not norm then return false end
@@ -252,7 +298,7 @@ lib.callback.register('as-browser:history:add', function(src, url, title)
     return true
 end)
 
-lib.callback.register('as-browser:history:clear', function(src)
+registerCb('as-browser:history:clear', function(src)
     local cid = Bridge.getIdentifier(src)
     if not cid then return false end
     MySQL.update.await('DELETE FROM browser_history WHERE citizenid = ?', { cid })
@@ -267,7 +313,7 @@ local function reply(src, msg)
     if src == 0 then
         log('%s', msg)
     else
-        TriggerClientEvent('ox_lib:notify', src, { title = 'Browser', description = msg, type = 'inform' })
+        TriggerClientEvent('ox_lib:notify', src, { title = T('shell.cmd.title'), description = msg, type = 'inform' })
     end
 end
 
@@ -277,13 +323,13 @@ RegisterCommand('browsersite', function(src, args)
         local names = {}
         for k, s in pairs(Browser.sites) do names[#names + 1] = ('%s (%s)'):format(k, s.enabled and 'on' or 'off') end
         table.sort(names)
-        return reply(src, 'Usage: /browsersite <site> on|off. Sites: ' .. table.concat(names, ', '))
+        return reply(src, T('shell.cmd.usage', table.concat(names, ', ')))
     end
     local site = Browser.sites[key]
-    if not site then return reply(src, ('No site called "%s".'):format(key)) end
-    if mode ~= 'on' and mode ~= 'off' then return reply(src, 'Say "on" or "off".') end
+    if not site then return reply(src, T('shell.cmd.noSite', key)) end
+    if mode ~= 'on' and mode ~= 'off' then return reply(src, T('shell.cmd.sayOnOff')) end
     Browser.setEnabled(key, mode == 'on')
-    reply(src, ('%s is now %s (until the resource restarts).'):format(site.domain, mode))
+    reply(src, T('shell.cmd.now', site.domain, mode))
 end, true)
 
 -- ---------------------------------------------------------------------------------------------
@@ -307,7 +353,7 @@ exports('registerSite', function(def)
     Browser.sites[key] = {
         key = key, domain = domain, title = clean(def.title or domain, 60),
         description = clean(def.description, 200), keywords = def.keywords or {},
-        category = clean(def.category or 'General', 40), icon = clean(def.icon or '🌐', 8),
+        category = clean(def.category or T('shell.categoryGeneral'), 40), icon = clean(def.icon or '🌐', 8),
         color = clean(def.color or '#2563eb', 16), resource = invoking,
         page = ui:sub(#invoking + 2), pages = def.pages or {}, featured = def.featured ~= false,
         enabled = true, external = true,
@@ -345,6 +391,19 @@ AddEventHandler('onResourceStop', function(res)
         end
     end
     if changed then TriggerClientEvent('as-browser:client:sitesChanged', -1) end
+end)
+
+-- For other resources' desktop browsers: exports['as-browser']:handle('as-browser:siteCall', source, domain, name, data)
+-- The calling resource passes the real player source; only callbacks registered above can be reached.
+exports('handle', function(name, src, ...)
+    local fn = desktopCallbacks[name] or callbacks[name]
+    if not fn or type(src) ~= 'number' then return nil end
+    return fn(src, ...)
+end)
+
+--- Language dictionary + currency, so a desktop shell can hand the same text to the site pages.
+exports('shellInfo', function()
+    return { dict = LocaleDict(), currency = Config.currency or '£' }
 end)
 
 exports('isSiteEnabled', function(domain)

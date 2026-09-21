@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LS Plates</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root { --accent: #0b3d91; --accent-fg: #fff; --gold: #f7d117; --ok: #0a7a3d; --bad: #c0392b; }
+    :root[data-theme="dark"] { --accent: #6aa0ff; --accent-fg: #06122b; }
+    .top { background: var(--accent); color: var(--accent-fg); padding: 12px 16px 0; }
+    .top .brand { display: flex; align-items: baseline; gap: 10px; font-weight: 800; font-size: 21px; cursor: pointer; letter-spacing: -.01em; }
+    .top .brand small { font-weight: 400; font-size: 12.5px; opacity: .8; }
+    .tabs { display: flex; gap: 2px; margin-top: 10px; overflow-x: auto; }
+    .tabs a { padding: 9px 14px; font-weight: 700; font-size: 14.5px; color: inherit; opacity: .8; cursor: pointer; border-radius: 8px 8px 0 0; white-space: nowrap; }
+    .tabs a.on { background: var(--bg); color: var(--fg); opacity: 1; }
+    .page { padding: 16px; max-width: 680px; margin: 0 auto; }
+    h1 { font-size: 26px; font-weight: 800; margin: 4px 0 8px; }
+    h2 { font-size: 18px; font-weight: 800; margin: 22px 0 8px; }
+    .lead { color: var(--muted); font-size: 16px; margin-bottom: 14px; }
+    .plate { display: inline-flex; align-items: stretch; border-radius: 6px; overflow: hidden; border: 2px solid #111; background: var(--gold); box-shadow: 0 1px 0 rgba(0,0,0,.25); max-width: 100%; }
+    .plate .gb { background: #0a3d91; color: #fff; font-size: 10px; font-weight: 800; padding: 4px 6px; display: flex; align-items: flex-end; }
+    .plate .reg { color: #111; font-family: "Arial Black", Impact, Arial, sans-serif; font-weight: 900; font-size: 30px; letter-spacing: .06em; padding: 4px 14px; text-transform: uppercase; white-space: nowrap; }
+    .plate.big .reg { font-size: 44px; padding: 6px 20px; }
+    .plate.small .reg { font-size: 19px; padding: 2px 10px; }
+    .plate.small .gb { font-size: 8px; padding: 2px 4px; }
+    .plate.ghost { opacity: .45; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 18px; background: var(--accent); color: var(--accent-fg); font-weight: 700; font-size: 15.5px; border-radius: 8px; cursor: pointer; }
+    .btn.grey { background: var(--surface-2); color: var(--fg); }
+    .btn.red { background: var(--bad); color: #fff; }
+    .btn.block { display: flex; width: 100%; }
+    .btn:disabled { opacity: .5; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .fine { font-size: 13px; color: var(--muted); }
+    .hero { text-align: center; padding: 18px 0 8px; }
+    .cards { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 16px; }
+    .cards .card { cursor: pointer; margin: 0; }
+    .cards .card b { display: block; font-size: 16px; }
+    .cards .card span { color: var(--muted); font-size: 14px; }
+    .plateinput { text-transform: uppercase; font-size: 26px; font-weight: 800; letter-spacing: .08em; max-width: 300px; text-align: center; }
+    .status { padding: 12px 14px; border-left: 6px solid var(--line); background: var(--surface); border-radius: 6px; margin: 12px 0; }
+    .status.good { border-color: var(--ok); }
+    .status.bad { border-color: var(--bad); }
+    .status.warn { border-color: #f59e0b; }
+    .status h3 { font-size: 17px; margin: 0 0 4px; }
+    .tag.listed { background: #f59e0b; color: #fff; }
+    .tag.fitted { background: var(--ok); color: #fff; }
+    .tag.kept { background: var(--surface-2); color: var(--fg); }
+    .receipt { text-align: center; background: var(--ok); color: #fff; padding: 22px 14px; border-radius: 12px; margin-bottom: 14px; }
+    .receipt h1 { color: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+    .grid .card { margin: 0; text-align: center; }
+    .grid .price { font-size: 18px; font-weight: 800; margin: 8px 0; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .toolbar input { flex: 1 1 140px; text-transform: uppercase; }
+    .toolbar select { flex: 0 0 auto; }
+    .pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 14px 0; }
+    .foot { margin-top: 30px; padding: 16px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="top">
+    <div class="brand" data-go="/"><span id="siteName">LS Plates</span><small id="siteTag"></small></div>
+    <nav class="tabs" id="tabs"></nav>
+</div>
+<div class="page" id="app"><div class="spinner"></div></div>
+<div class="foot" id="foot"></div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc;
+    var app = document.getElementById('app');
+    var token = 0;
+    var st = null;            // the state call: rules, prices, vehicles, plates
+    var mk = { q: '', sort: 'new', page: 1, data: null };
+    var receipt = null;
+    var flash = '';
+
+    function plateHtml(p, cls) {
+        return '<span class="plate' + (cls ? ' ' + cls : '') + '"><span class="gb">GB</span><span class="reg">' + esc(p) + '</span></span>';
+    }
+    function keyOf(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    function loading() { app.innerHTML = '<div class="spinner"></div>'; }
+    function failure(e) {
+        app.innerHTML = '<div class="notice bad">' + esc(e && e.message ? e.message : t('plates.error')) + '</div>' +
+            '<p style="margin-top:14px"><a class="btn grey" data-go="/">' + esc(t('plates.backHome')) + '</a></p>';
+    }
+    function tabs(active) {
+        var items = [['/', 'home'], ['/buy', 'buy'], ['/market', 'market'], ['/mine', 'mine']];
+        document.getElementById('tabs').innerHTML = items.map(function (i) {
+            return '<a data-go="' + i[0] + '" class="' + (i[1] === active ? 'on' : '') + '">' + esc(t('plates.nav.' + i[1])) + '</a>';
+        }).join('');
+    }
+    function setPage(title, html, active) {
+        Site.title(title + ' – ' + (st ? st.name || 'LS Plates' : 'LS Plates'));
+        tabs(active);
+        app.innerHTML = (flash ? '<div class="status good"><b>' + esc(flash) + '</b></div>' : '') + html;
+        flash = '';
+        window.scrollTo(0, 0);
+    }
+    function loadState() { return Site.call('state').then(function (s) { st = s; return s; }); }
+    function vehicleLabel(v) { return v.plate + ' · ' + [v.colour, v.make, v.model].filter(Boolean).join(' '); }
+    function vehicleOptions(withNone, selected) {
+        var html = withNone ? '<option value="">' + esc(t('plates.fit.none')) + '</option>' : '';
+        st.vehicles.forEach(function (v) {
+            var bad = !v.canFit;
+            html += '<option value="' + esc(v.plateKey) + '"' + (bad ? ' disabled' : '') + (selected === v.plateKey ? ' selected' : '') + '>' +
+                esc(vehicleLabel(v) + (bad && v.reason ? ' — ' + v.reason : '')) + '</option>';
+        });
+        return html;
+    }
+    function priceRows() {
+        var h = '<table class="kv">';
+        st.prices.forEach(function (p) { h += '<tr><th>' + esc(t('plates.priceRow', p.length)) + '</th><td>' + Site.money(p.price) + '</td></tr>'; });
+        h += '<tr><th>' + esc(t('plates.priceOther')) + '</th><td>' + Site.money(st.defaultPrice) + '</td></tr>' +
+            '<tr><th>' + esc(t('plates.assignFee')) + '</th><td>' + Site.money(st.assignFee) + '</td></tr></table>';
+        return h;
+    }
+
+    // ------------------------------------------------------------------ home / buy
+
+    function checkForm(box, val) {
+        box.innerHTML =
+            '<div style="text-align:center"><div id="pv" style="margin:8px 0 12px">' + plateHtml(val || t('plates.preview'), 'big' + (val ? '' : ' ghost')) + '</div>' +
+            '<form id="cf"><input type="text" id="pi" class="plateinput" maxlength="' + (st.rules.max + 2) + '" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="' + esc(t('plates.placeholder')) + '" value="' + esc(val || '') + '">' +
+            '<p class="fine" style="margin:6px 0 12px">' + esc(t('plates.rules', st.rules.min, st.rules.max)) + '</p>' +
+            '<button class="btn" type="submit">' + esc(t('plates.check')) + '</button></form></div><div id="cres"></div>';
+        var inp = document.getElementById('pi');
+        inp.oninput = function () {
+            var v = inp.value.toUpperCase();
+            document.getElementById('pv').innerHTML = plateHtml(v.trim() || t('plates.preview'), 'big' + (v.trim() ? '' : ' ghost'));
+        };
+        document.getElementById('cf').onsubmit = function (e) {
+            e.preventDefault();
+            var v = inp.value;
+            var res = document.getElementById('cres');
+            if (!keyOf(v)) { res.innerHTML = '<div class="notice bad">' + esc(t('plates.enter')) + '</div>'; return; }
+            res.innerHTML = '<div class="spinner"></div>';
+            Site.call('check', { plate: v }).then(function (r) {
+                if (!r.ok) { res.innerHTML = '<div class="status bad"><h3>' + esc(t('plates.unavailable')) + '</h3><p>' + esc(r.reason) + '</p></div>'; return; }
+                res.innerHTML = '<div class="status good"><h3>' + esc(t('plates.available')) + '</h3><p>' + plateHtml(r.plate, 'small') + '</p>' +
+                    '<table class="kv"><tr><th>' + esc(t('plates.th.plate')) + '</th><td>' + Site.money(r.price) + '</td></tr>' +
+                    '<tr><th>' + esc(t('plates.assignFee')) + '</th><td>' + Site.money(r.assignFee) + '</td></tr></table>' +
+                    '<p style="margin-top:12px"><button class="btn" id="goBuy">' + esc(t('plates.buyThis')) + '</button></p></div>';
+                document.getElementById('goBuy').onclick = function () { Site.go('/buy/' + encodeURIComponent(r.plate)); };
+            }).catch(function (er) { res.innerHTML = '<div class="notice bad">' + esc(er.message) + '</div>'; });
+        };
+    }
+
+    function pHome() {
+        var my = ++token; loading();
+        loadState().then(function () {
+            if (my !== token) return;
+            var html = '<div class="hero"><h1>' + esc(t('plates.home.title')) + '</h1><p class="lead">' + esc(t('plates.home.lead')) + '</p></div><div id="cf-box"></div>' +
+                '<div class="cards">' +
+                '<div class="card" data-go="/market"><b>' + esc(t('plates.home.market')) + '</b><span>' + esc(t('plates.home.marketText')) + '</span></div>' +
+                '<div class="card" data-go="/mine"><b>' + esc(t('plates.home.mine')) + '</b><span>' + esc(t('plates.home.mineText', st.plates.length)) + '</span></div></div>';
+            setPage(t('plates.nav.home'), html, 'home');
+            checkForm(document.getElementById('cf-box'));
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pBuy() {
+        var my = ++token; loading();
+        loadState().then(function () {
+            if (my !== token) return;
+            setPage(t('plates.nav.buy'), '<h1>' + esc(t('plates.buy.title')) + '</h1><p class="lead">' + esc(t('plates.buy.lead')) + '</p><div id="cf-box"></div>' +
+                '<h2>' + esc(t('plates.prices')) + '</h2>' + priceRows(), 'buy');
+            checkForm(document.getElementById('cf-box'));
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pBuyConfirm(plate, err) {
+        var my = ++token; loading();
+        Promise.all([loadState(), Site.call('check', { plate: plate })]).then(function (rs) {
+            if (my !== token) return;
+            var r = rs[1];
+            if (!r.ok) return setPage(t('plates.nav.buy'), '<div class="status bad"><h3>' + esc(t('plates.unavailable')) + '</h3><p>' + esc(r.reason) + '</p></div><p><a class="btn" data-go="/buy">' + esc(t('plates.another')) + '</a></p>', 'buy');
+            setPage(t('plates.confirm'),
+                '<h1>' + esc(t('plates.confirm')) + '</h1><p style="text-align:center">' + plateHtml(r.plate, 'big') + '</p>' +
+                (err ? '<div class="notice bad" style="margin:10px 0">' + esc(err) + '</div>' : '') +
+                '<label class="field"><span class="lbl">' + esc(t('plates.fit.label')) + '</span><select id="veh">' + vehicleOptions(true, '') + '</select></label>' +
+                '<table class="kv" id="sum"></table><p class="fine">' + esc(t('plates.buyNote')) + '</p>' +
+                '<button class="btn block" id="pay"></button>' +
+                '<p style="margin-top:12px"><a data-go="/buy" class="fine" style="text-decoration:underline">' + esc(t('plates.cancel')) + '</a></p>', 'buy');
+            var sel = document.getElementById('veh');
+            function sum() {
+                var total = r.price + (sel.value ? r.assignFee : 0);
+                document.getElementById('sum').innerHTML = '<tr><th>' + esc(t('plates.th.plate')) + '</th><td>' + Site.money(r.price) + '</td></tr>' +
+                    (sel.value ? '<tr><th>' + esc(t('plates.assignFee')) + '</th><td>' + Site.money(r.assignFee) + '</td></tr>' : '') +
+                    '<tr><th>' + esc(t('plates.th.total')) + '</th><td><b>' + Site.money(total) + '</b></td></tr>';
+                document.getElementById('pay').textContent = t('plates.pay', Site.money(total));
+            }
+            sel.onchange = sum; sum();
+            document.getElementById('pay').onclick = function () {
+                var btn = this; btn.disabled = true; btn.textContent = t('plates.processing');
+                Site.call('buy', { plate: r.plate, vehicle: sel.value || '' }).then(function (res) {
+                    receipt = { kind: 'buy', res: res };
+                    Site.go('/done');
+                }).catch(function (e) { pBuyConfirm(plate, e.message); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pDone() {
+        if (!receipt) return Site.go('/mine');
+        var r = receipt.res, html = '';
+        if (receipt.kind === 'buy') {
+            html = '<div class="receipt"><h1>' + esc(t('plates.done.bought')) + '</h1>' + plateHtml(r.plate, 'big') + '<p style="margin:10px 0 0">' + esc(t('plates.done.paid', Site.money(r.paid))) + '</p></div>';
+            if (r.fitted) html += '<div class="status good"><h3>' + esc(t('plates.done.fitted', r.fitted.vehicle.plate)) + '</h3><p>' + esc(t('plates.done.follows')) + '</p></div>';
+            else if (r.fitError) html += '<div class="status warn"><h3>' + esc(t('plates.done.notFitted')) + '</h3><p>' + esc(r.fitError) + '</p></div>';
+            else html += '<div class="status"><p>' + esc(t('plates.done.kept')) + '</p></div>';
+        } else {
+            html = '<div class="receipt"><h1>' + esc(t('plates.done.fittedTitle')) + '</h1>' + plateHtml(r.plate, 'big') +
+                '<p style="margin:10px 0 0">' + esc(t('plates.done.fitted', r.vehicle.plate)) + '</p></div><div class="status good"><p>' + esc(t('plates.done.follows')) + '</p></div>';
+            if (r.returned) html += '<div class="status"><p>' + esc(t('plates.done.returned', r.returned.plate)) + '</p></div>';
+        }
+        html += '<p><a class="btn" data-go="/mine">' + esc(t('plates.done.mine')) + '</a></p>';
+        setPage(t('plates.done.title'), html, 'mine');
+    }
+
+    // ------------------------------------------------------------------ marketplace
+
+    function pMarket() {
+        var my = ++token; loading();
+        Promise.all([loadState(), Site.call('market', { q: mk.q, sort: mk.sort, page: mk.page })]).then(function (rs) {
+            if (my !== token) return;
+            var m = rs[1]; mk.data = m;
+            var html = '<h1>' + esc(t('plates.market.title')) + '</h1><p class="lead">' + esc(t('plates.market.lead')) + '</p>' +
+                '<form class="toolbar" id="mf"><input type="text" id="mq" maxlength="10" placeholder="' + esc(t('plates.market.search')) + '" value="' + esc(mk.q) + '" autocomplete="off">' +
+                '<select id="ms">' + ['new', 'low', 'high', 'short'].map(function (s) { return '<option value="' + s + '"' + (mk.sort === s ? ' selected' : '') + '>' + esc(t('plates.sort.' + s)) + '</option>'; }).join('') + '</select>' +
+                '<button class="btn" type="submit">' + esc(t('plates.market.go')) + '</button></form>';
+            if (!m.listings.length) html += '<div class="status"><p>' + esc(mk.q ? t('plates.market.noneMatch') : t('plates.market.none')) + '</p></div>';
+            else html += '<div class="grid">' + m.listings.map(function (l) {
+                return '<div class="card">' + plateHtml(l.plate) + '<div class="price">' + Site.money(l.price) + '</div>' +
+                    (l.mine ? '<span class="tag">' + esc(t('plates.market.yours')) + '</span>' : '<button class="btn block" data-go="/market/' + l.id + '">' + esc(t('plates.market.view')) + '</button>') + '</div>';
+            }).join('') + '</div>';
+            if (m.pages > 1) html += '<div class="pager"><button class="btn grey" id="pp"' + (m.page <= 1 ? ' disabled' : '') + '>‹</button><span>' + esc(t('plates.market.page', m.page, m.pages)) + '</span><button class="btn grey" id="pn"' + (m.page >= m.pages ? ' disabled' : '') + '>›</button></div>';
+            html += '<p class="fine">' + esc(t('plates.market.feeNote', m.feePercent)) + '</p>';
+            setPage(t('plates.nav.market'), html, 'market');
+            document.getElementById('mf').onsubmit = function (e) { e.preventDefault(); mk.q = document.getElementById('mq').value; mk.sort = document.getElementById('ms').value; mk.page = 1; pMarket(); };
+            document.getElementById('ms').onchange = function () { mk.sort = this.value; mk.page = 1; mk.q = document.getElementById('mq').value; pMarket(); };
+            var pp = document.getElementById('pp'), pn = document.getElementById('pn');
+            if (pp) pp.onclick = function () { mk.page--; pMarket(); };
+            if (pn) pn.onclick = function () { mk.page++; pMarket(); };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function pListing(id, err) {
+        var my = ++token; loading();
+        Promise.all([loadState(), Site.call('listing', { id: id })]).then(function (rs) {
+            if (my !== token) return;
+            var l = rs[1].listing;
+            if (!l) return setPage(t('plates.nav.market'), '<div class="status warn"><h3>' + esc(t('plates.gone')) + '</h3></div><p><a class="btn" data-go="/market">' + esc(t('plates.market.back')) + '</a></p>', 'market');
+            if (l.mine) return setPage(t('plates.nav.market'), '<p>' + plateHtml(l.plate, 'big') + '</p><div class="status"><p>' + esc(t('plates.market.yours')) + '</p></div><p><a class="btn" data-go="/mine">' + esc(t('plates.done.mine')) + '</a></p>', 'market');
+            setPage(t('plates.confirm'),
+                '<h1>' + esc(t('plates.confirm')) + '</h1><p style="text-align:center">' + plateHtml(l.plate, 'big') + '</p>' +
+                (err ? '<div class="notice bad" style="margin:10px 0">' + esc(err) + '</div>' : '') +
+                '<label class="field"><span class="lbl">' + esc(t('plates.fit.label')) + '</span><select id="veh">' + vehicleOptions(true, '') + '</select></label>' +
+                '<table class="kv" id="sum"></table><p class="fine">' + esc(t('plates.market.buyNote')) + '</p>' +
+                '<button class="btn block" id="pay"></button>' +
+                '<p style="margin-top:12px"><a data-go="/market" class="fine" style="text-decoration:underline">' + esc(t('plates.cancel')) + '</a></p>', 'market');
+            var sel = document.getElementById('veh');
+            function sum() {
+                var total = l.price + (sel.value ? st.assignFee : 0);
+                document.getElementById('sum').innerHTML = '<tr><th>' + esc(t('plates.market.asking')) + '</th><td>' + Site.money(l.price) + '</td></tr>' +
+                    (sel.value ? '<tr><th>' + esc(t('plates.assignFee')) + '</th><td>' + Site.money(st.assignFee) + '</td></tr>' : '') +
+                    '<tr><th>' + esc(t('plates.th.total')) + '</th><td><b>' + Site.money(total) + '</b></td></tr>';
+                document.getElementById('pay').textContent = t('plates.pay', Site.money(total));
+            }
+            sel.onchange = sum; sum();
+            document.getElementById('pay').onclick = function () {
+                var btn = this; btn.disabled = true; btn.textContent = t('plates.processing');
+                Site.call('buyListing', { listing: l.id, price: l.price, vehicle: sel.value || '' }).then(function (res) {
+                    receipt = { kind: 'buy', res: res };
+                    Site.go('/done');
+                }).catch(function (e) { pListing(id, e.message); });
+            };
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    // ------------------------------------------------------------------ my plates
+
+    function statusTag(p) { return '<span class="tag ' + p.status + '">' + esc(t('plates.status.' + p.status)) + '</span>'; }
+
+    function pMine() {
+        var my = ++token; loading();
+        Promise.all([loadState(), Site.call('activity')]).then(function (rs) {
+            if (my !== token) return;
+            var act = rs[1], html = '<h1>' + esc(t('plates.mine.title')) + '</h1><p class="lead">' + esc(t('plates.mine.lead')) + '</p>';
+            if (act.owed > 0) html += '<div class="status warn"><p>' + esc(t('plates.mine.owed', Site.money(act.owed))) + '</p></div>';
+            if (!st.plates.length) html += '<div class="status"><h3>' + esc(t('plates.mine.none')) + '</h3><p><a class="btn" data-go="/buy">' + esc(t('plates.nav.buy')) + '</a></p></div>';
+            html += st.plates.map(function (p) {
+                var body = '<div class="row">' + plateHtml(p.plate) + statusTag(p) + '</div>';
+                if (p.status === 'fitted') body += '<p class="fine" style="margin-top:8px">' + esc(t('plates.mine.onVehicle', p.vehicle ? vehicleLabel(p.vehicle) : '')) + ' · ' + esc(t('plates.mine.original', p.original)) + '</p>';
+                if (p.status === 'listed') body += '<p class="fine" style="margin-top:8px">' + esc(t('plates.mine.listedFor', Site.money(p.price))) + '</p>';
+                body += '<div class="acts" data-id="' + p.id + '">';
+                if (p.status === 'listed') body += '<button class="btn grey" data-act="unlist">' + esc(t('plates.mine.unlist')) + '</button>';
+                else {
+                    body += '<button class="btn" data-act="fit">' + esc(p.status === 'fitted' ? t('plates.mine.move') : t('plates.mine.fit')) + '</button>';
+                    if (p.status === 'fitted') body += '<button class="btn grey" data-act="remove">' + esc(t('plates.mine.remove')) + '</button>';
+                    if (st.market.enabled) body += '<button class="btn grey" data-act="sell">' + esc(t('plates.mine.sell')) + '</button>';
+                }
+                body += '</div><div class="panel" id="pn' + p.id + '"></div>';
+                return '<div class="card">' + body + '</div>';
+            }).join('');
+            if (act.items.length) {
+                html += '<h2>' + esc(t('plates.mine.activity')) + '</h2><div class="card">' + act.items.map(function (a) {
+                    return '<div class="row" style="padding:6px 0"><span>' + plateHtml(a.plate, 'small') + ' <span class="fine">' + esc(t('plates.act.' + a.kind)) + '</span></span><span><b>' + Site.money(a.price) + '</b> <span class="fine">' + Site.date(a.at) + '</span></span></div>';
+                }).join('') + '</div>';
+            }
+            html += '<p class="fine">' + esc(t('plates.mine.rules', st.assignFee > 0 ? Site.money(st.assignFee) : t('plates.free'), st.cooldownHours)) + '</p>';
+            setPage(t('plates.nav.mine'), html, 'mine');
+            Array.prototype.forEach.call(app.querySelectorAll('.acts button'), function (b) {
+                b.onclick = function () { act_(this.parentNode.getAttribute('data-id'), this.getAttribute('data-act')); };
+            });
+        }).catch(function (e) { if (my === token) failure(e); });
+    }
+
+    function byId(id) { for (var i = 0; i < st.plates.length; i++) if (String(st.plates[i].id) === String(id)) return st.plates[i]; return null; }
+    function note(id, html, cls) { var el = document.getElementById('pn' + id); if (el) el.innerHTML = html ? '<div class="' + (cls || 'notice') + '" style="margin-top:10px">' + html + '</div>' : ''; }
+
+    function act_(id, kind) {
+        var p = byId(id), box = document.getElementById('pn' + id);
+        if (!p || !box) return;
+        if (kind === 'unlist') {
+            Site.call('unlist', { asset: +id }).then(function () { flash = t('plates.mine.unlisted', p.plate); pMine(); }).catch(function (e) { note(id, esc(e.message), 'notice bad'); });
+        } else if (kind === 'remove') {
+            box.innerHTML = '<div style="margin-top:10px"><p class="fine">' + esc(t('plates.mine.removeNote', p.original, Site.money(st.removeFee))) + '</p><button class="btn red" id="go' + id + '">' + esc(t('plates.mine.removeGo')) + '</button></div>';
+            document.getElementById('go' + id).onclick = function () {
+                this.disabled = true;
+                Site.call('remove', { asset: +id }).then(function (r) { flash = t('plates.mine.removed', r.returned ? r.returned.plate : ''); pMine(); }).catch(function (e) { note(id, esc(e.message), 'notice bad'); });
+            };
+        } else if (kind === 'fit') {
+            box.innerHTML = '<div style="margin-top:10px"><label class="field"><span class="lbl">' + esc(t('plates.fit.label2')) + '</span><select id="fv' + id + '">' + vehicleOptions(false, '') + '</select></label>' +
+                '<p class="fine">' + esc(t('plates.fit.note', Site.money(st.assignFee))) + '</p><button class="btn" id="go' + id + '">' + esc(t('plates.fit.go')) + '</button></div>';
+            document.getElementById('go' + id).onclick = function () {
+                var v = document.getElementById('fv' + id).value;
+                if (!v) return note(id, esc(t('plates.fit.pick')), 'notice bad');
+                this.disabled = true;
+                Site.call('fit', { asset: +id, vehicle: v }).then(function (r) { receipt = { kind: 'fit', res: r }; Site.go('/done'); }).catch(function (e) { note(id, esc(e.message), 'notice bad'); document.getElementById('go' + id).disabled = false; });
+            };
+        } else if (kind === 'sell') {
+            var m = st.market;
+            box.innerHTML = '<div style="margin-top:10px"><label class="field"><span class="lbl">' + esc(t('plates.sell.price')) + '</span><input type="number" id="sp' + id + '" min="' + m.minPrice + '" max="' + m.maxPrice + '" inputmode="numeric" placeholder="' + esc(t('plates.sell.placeholder')) + '"></label>' +
+                '<p class="fine" id="sr' + id + '">' + esc(t('plates.sell.note', m.feePercent)) + '</p>' +
+                (p.status === 'fitted' ? '<p class="fine">' + esc(t('plates.sell.fittedNote', p.original)) + '</p>' : '') +
+                '<button class="btn" id="go' + id + '">' + esc(t('plates.sell.go')) + '</button></div>';
+            var inp = document.getElementById('sp' + id);
+            inp.oninput = function () {
+                var v = Math.floor(+inp.value || 0), fee = Math.floor(v * m.feePercent / 100);
+                document.getElementById('sr' + id).textContent = v > 0 ? t('plates.sell.receive', Site.money(v - fee), Site.money(fee), m.feePercent) : t('plates.sell.note', m.feePercent);
+            };
+            document.getElementById('go' + id).onclick = function () {
+                var v = Math.floor(+inp.value || 0);
+                if (v < m.minPrice || v > m.maxPrice) return note(id, esc(t('plates.sell.range', Site.money(m.minPrice), Site.money(m.maxPrice))), 'notice bad');
+                this.disabled = true;
+                Site.call('list', { asset: +id, price: v }).then(function (r) { flash = t('plates.sell.listed', p.plate, Site.money(r.price)) + (r.returned ? ' ' + t('plates.done.returned', r.returned.plate) : ''); pMine(); })
+                    .catch(function (e) { note(id, esc(e.message), 'notice bad'); document.getElementById('go' + id).disabled = false; });
+            };
+        }
+    }
+
+    // ------------------------------------------------------------------ router
+
+    function render(path) {
+        var p = path.split('/').filter(Boolean), head = p[0] || '';
+        token++;
+        if (head === '') return pHome();
+        if (head === 'buy') {
+            if (p[1]) return pBuyConfirm(decodeURIComponent(p[1]));
+            return pBuy();
+        }
+        if (head === 'market') return p[1] ? pListing(parseInt(p[1], 10)) : pMarket();
+        if (head === 'mine') return pMine();
+        if (head === 'done') return pDone();
+        pHome();
+    }
+
+    document.addEventListener('click', function (e) {
+        var el = e.target;
+        while (el && el !== document.body) {
+            if (el.getAttribute) {
+                var g = el.getAttribute('data-go');
+                if (g) { e.preventDefault(); if (g === Site.route()) render(g); else Site.go(g); return; }
+                var o = el.getAttribute('data-open');
+                if (o) { e.preventDefault(); Site.open(o); return; }
+            }
+            el = el.parentNode;
+        }
+    });
+
+    Site.onReady(function () {
+        document.getElementById('siteName').textContent = t('plates.name');
+        document.getElementById('siteTag').textContent = t('plates.tagline');
+        document.getElementById('foot').innerHTML = '<b>' + esc(t('plates.name')) + '</b><br>' + esc(t('plates.roleplayOnly'));
+        Site.onRoute(render);
+    });
+})();
+</script>
+</body>
+</html>

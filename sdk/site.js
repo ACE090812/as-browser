@@ -15,6 +15,13 @@
    Site.saveLogin({username, password, email})   save to the Passwords app (needs the sd-phone edit)
    Site.onTheme(fn)        fn('light'|'dark'); the page also gets data-theme on <html>
    Site.esc / Site.money / Site.date / Site.datetime   small helpers
+
+   Languages: the shell hands every page the language dictionary (Config.locale, locales/*.lua) before
+   the page draws anything, so a page only needs
+     t(key)                     text for a locale key (extra arguments fill %s / %d in order); a missing key returns the key
+     applyI18n(root)            fills elements that carry a data-i18n attribute (also data-i18n-placeholder / -title / -aria-label)
+     Site.onReady(fn)           fn() runs once the dictionary has arrived (Site.onRoute waits for it too)
+   Keep the English text in the markup as the default, and add the same key to locales/en.lua.
 */
 (function () {
     'use strict';
@@ -26,6 +33,43 @@
     var themeCbs = [];
     var Site = window.Site = { theme: 'light', domain: '', currency: '£' };
 
+    // ---------------------------------------------------------------- language
+
+    var I18N = window.I18N = {};
+    var ready = false;
+    var readyCbs = [];
+
+    window.t = function (key) {
+        var s = Object.prototype.hasOwnProperty.call(I18N, key) ? I18N[key] : key;
+        var args = Array.prototype.slice.call(arguments, 1), i = 0;
+        return String(s).replace(/%[sd]/g, function () { return i < args.length ? args[i++] : ''; });
+    };
+    window.applyI18n = function (root) {
+        root = root || document;
+        root.querySelectorAll('[data-i18n]').forEach(function (el) { if (I18N[el.dataset.i18n] != null) el.textContent = window.t(el.dataset.i18n); });
+        ['placeholder', 'title', 'aria-label'].forEach(function (a) {
+            root.querySelectorAll('[data-i18n-' + a + ']').forEach(function (el) {
+                var k = el.getAttribute('data-i18n-' + a); if (I18N[k] != null) el.setAttribute(a, window.t(k));
+            });
+        });
+    };
+    var t = window.t;
+    // (The three SDK errors below keep an English fallback for the moment before the dictionary arrives.)
+
+    function dateLocale() { return I18N['sdk.dateLocale'] ? t('sdk.dateLocale') : 'en-GB'; }
+
+    function whenReady() {
+        if (ready) return;
+        ready = true;
+        window.applyI18n();
+        readyCbs.forEach(function (cb) { try { cb(); } catch (e) { console.error(e); } });
+        readyCbs = [];
+        setTimeout(fireRoute, 0);
+    }
+    Site.onReady = function (cb) {
+        if (ready) setTimeout(cb, 0); else readyCbs.push(cb);
+    };
+
     function post(msg) {
         msg.__asb = 1;
         try { window.parent.postMessage(msg, '*'); } catch (e) { /* not framed */ }
@@ -33,11 +77,11 @@
 
     function request(type, payload) {
         return new Promise(function (resolve, reject) {
-            if (window.parent === window) { reject(new Error('Open this site in the Browser app.')); return; }
+            if (window.parent === window) { reject(new Error(I18N['sdk.notFramed'] ? t('sdk.notFramed') : 'Open this site in the Browser app.')); return; }
             var id = ++seq;
             var timer = setTimeout(function () {
                 delete pending[id];
-                reject(new Error('The request timed out. Please try again.'));
+                reject(new Error(I18N['sdk.timeout'] ? t('sdk.timeout') : 'The request timed out. Please try again.'));
             }, 20000);
             pending[id] = { resolve: resolve, reject: reject, timer: timer };
             var msg = { type: type, id: id };
@@ -57,6 +101,7 @@
     function currentRoute() { return normalize(location.hash.replace(/^#/, '') || '/'); }
 
     function fireRoute() {
+        if (!ready) return;     // the first draw waits for the dictionary (see whenReady)
         routeCbs.forEach(function (cb) { try { cb(route); } catch (e) { console.error(e); } });
     }
 
@@ -73,7 +118,7 @@
     Site.go = function (path) { setRoute(path, true); };
     Site.onRoute = function (cb) {
         routeCbs.push(cb);
-        setTimeout(function () { try { cb(route); } catch (e) { console.error(e); } }, 0);
+        if (ready) setTimeout(function () { try { cb(route); } catch (e) { console.error(e); } }, 0);
     };
 
     // ---------------------------------------------------------------- talking to the shell
@@ -112,16 +157,16 @@
     };
     Site.money = function (n) {
         n = Number(n) || 0;
-        return Site.currency + n.toLocaleString('en-GB', { maximumFractionDigits: 0 });
+        return Site.currency + n.toLocaleString(dateLocale(), { maximumFractionDigits: 0 });
     };
     Site.date = function (ts) {
         var d = new Date(Number(ts) * 1000);
-        return isNaN(d) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        return isNaN(d) ? '' : d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
     };
     Site.datetime = function (ts) {
         var d = new Date(Number(ts) * 1000);
-        return isNaN(d) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
-            ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        return isNaN(d) ? '' : d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' }) +
+            ', ' + d.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
     };
 
     // ---------------------------------------------------------------- messages from the shell
@@ -136,7 +181,7 @@
             if (!p) return;
             delete pending[d.id];
             clearTimeout(p.timer);
-            if (d.ok) p.resolve(d.data); else p.reject(new Error(d.error || 'Something went wrong.'));
+            if (d.ok) p.resolve(d.data); else p.reject(new Error(d.error || (I18N['sdk.error'] ? t('sdk.error') : 'Something went wrong.')));
         } else if (d.type === 'init') {
             Site.domain = d.domain || '';
             Site.currency = d.currency || Site.currency;
@@ -162,7 +207,17 @@
     // ---------------------------------------------------------------- start
 
     route = currentRoute();
-    function hello() { post({ type: 'hello' }); }
+    function loadLocale() {
+        // Ask the shell for the dictionary. If it is late, framed badly or missing, draw in English.
+        var done = false;
+        var finish = function () { if (!done) { done = true; whenReady(); } };
+        var timer = setTimeout(finish, 4000);
+        request('locale').then(function (d) {
+            if (d && typeof d === 'object') { I18N = window.I18N = d; }
+            clearTimeout(timer); finish();
+        }).catch(function () { clearTimeout(timer); finish(); });
+    }
+    function hello() { post({ type: 'hello' }); loadLocale(); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hello);
     else hello();
 })();

@@ -12,16 +12,31 @@ local function servicePath(s)
     return s.path or ('/s/' .. s.id)
 end
 
+--- Whether a custom script is switched on in Config.gov.scripts (missing = on). Council tax and
+--- benefits also honour their own `enabled` flag.
+local function scriptOn(key)
+    if not key then return true end
+    if G.scripts and G.scripts[key] == false then return false end
+    if key == 'council' and G.council and G.council.enabled == false then return false end
+    if key == 'benefits' and G.benefits and G.benefits.enabled == false then return false end
+    -- the penalties page is built from the licence and fines scripts: it is on while either one is
+    if key == 'penalties' and G.scripts and G.scripts.licence == false and G.scripts.fines == false then return false end
+    return true
+end
+Browser.govScriptOn = scriptOn
+
 local pages = {}
 for _, s in ipairs(G.services) do
+  if scriptOn(s.requires) then
     pages[#pages + 1] = { path = servicePath(s), title = s.title, description = s.description, keywords = s.keywords }
+  end
 end
 
 Browser.defineSite('gov', {
     title       = G.name,
-    description = 'Check a vehicle, tax your vehicle, and find government services.',
-    keywords    = { 'government', 'gov', 'council', 'dvla', 'mot', 'tax', 'passport', 'licence', 'services', 'benefits' },
-    category    = 'Government',
+    description = T('gov.description'),
+    keywords    = Browser.words(T('gov.keywords')),
+    category    = T('gov.category'),
     icon        = '🏛️',
     color       = '#0f2a4a',
     pages       = pages,
@@ -158,6 +173,7 @@ end
 Browser.handler('gov', 'home', function()
     local services = {}
     for _, s in ipairs(G.services) do
+      if scriptOn(s.requires) then
         local svc = {
             id = s.id, title = s.title, description = s.description, category = s.category,
             status = s.status, path = servicePath(s), popular = s.popular == true,
@@ -171,6 +187,7 @@ Browser.handler('gov', 'home', function()
             end
         end
         services[#services + 1] = svc
+      end
     end
     -- A category with no services in it is not shown (so removing a service can't leave an empty page).
     local used, categories = {}, {}
@@ -182,7 +199,7 @@ end)
 
 Browser.handler('gov', 'lookup', function(src, data)
     local key = Vehicles.normalizePlate(tostring(data.plate or ''))
-    if not key then return nil, 'Enter a valid registration number.' end
+    if not key then return nil, T('gov.err.plate') end
     local v = Vehicles.find(key)
     if not v then return { found = false, plate = key, now = now() } end
 
@@ -201,7 +218,7 @@ end)
 
 Browser.handler('gov', 'myVehicles', function(src)
     local cid = Bridge.getIdentifier(src)
-    if not cid then return nil, 'You are not signed in.' end
+    if not cid then return nil, T('shell.err.notSignedIn') end
     local list = Vehicles.ownedBy(cid)
     local out = {}
     for i = 1, math.min(#list, 50) do
@@ -210,7 +227,7 @@ Browser.handler('gov', 'myVehicles', function(src)
         local tax = taxInfo(d, row)
         out[#out + 1] = {
             plate = trimPlate(d.plate), plateKey = d.plateKey, make = d.make, model = d.model, colour = d.colour,
-            class = d.class.label, exempt = d.exempt, tax = tax,
+            class = d.class.label, exempt = d.exempt, tax = tax, mot = motInfo(row),
             canRenew = not d.exempt and (tax.expiry - now()) <= G.tax.renewWindowDays * DAY,
         }
     end
@@ -219,26 +236,25 @@ end)
 
 Browser.handler('gov', 'tax', function(src, data)
     local cid = Bridge.getIdentifier(src)
-    if not cid then return nil, 'You are not signed in.' end
+    if not cid then return nil, T('shell.err.notSignedIn') end
     local key = Vehicles.normalizePlate(tostring(data.plate or ''))
-    if not key then return nil, 'Enter a valid registration number.' end
+    if not key then return nil, T('gov.err.plate') end
 
     local v = Vehicles.find(key)
-    if not v or v.owner ~= cid then return nil, 'You can only tax a vehicle you own.' end
+    if not v or v.owner ~= cid then return nil, T('gov.tax.notOwner') end
     local d = Vehicles.describe(v)
-    if d.exempt then return nil, 'This vehicle does not need to be taxed.' end
+    if d.exempt then return nil, T('gov.tax.exempt') end
 
     local row = statusRow(d.plateKey)
     local current = tonumber(row.tax_expiry) or 0
     local t = now()
     if current - t > G.tax.renewWindowDays * DAY then
-        return nil, ('This vehicle is taxed until %s. You can tax it again in the last %d days.'):format(
-            os.date('%d %b %Y', current), G.tax.renewWindowDays)
+        return nil, T('gov.tax.alreadyTaxed', Browser.date(current), G.tax.renewWindowDays)
     end
 
     local rate = rateFor(d)
     if not Bridge.removeMoney(src, Config.account, rate, 'vehicle-tax') then
-        return nil, 'You do not have enough money in your bank account.'
+        return nil, T('shell.err.insufficientFunds')
     end
 
     local newExpiry = math.max(current, t) + G.tax.periodDays * DAY
@@ -248,12 +264,12 @@ Browser.handler('gov', 'tax', function(src, data)
         { newExpiry, t, d.plateKey, current })
     if not changed or changed < 1 then
         Bridge.addMoney(src, Config.account, rate, 'vehicle-tax-refund')
-        return nil, 'Something changed while you were paying. You have not been charged, please try again.'
+        return nil, T('gov.err.changed')
     end
 
     pcall(function()
         exports['sd-phone']:addBankTransaction(cid, {
-            label = ('Vehicle tax %s'):format(trimPlate(d.plate)), amount = -rate,
+            label = T('gov.tax.bankLabel', trimPlate(d.plate)), amount = -rate,
             category = 'government', counterparty = G.name,
         })
     end)

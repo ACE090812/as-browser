@@ -9,12 +9,33 @@
     var IS_NUI = /^cfx-nui-/.test(location.host);
     var MAX_TABS = 6;
 
+    // ------------------------------------------------------------------ language
+    // English text stays in index.html / the code as the default; loadLocale() fetches the chosen language
+    // (Config.locale, see locales/) from the client script and applyI18n() swaps it in. Keep this block in
+    // sync with sdk/site.js, which does the same for the website pages.
+    var I18N = {};
+    function t(key) {
+        var s = Object.prototype.hasOwnProperty.call(I18N, key) ? I18N[key] : key;
+        var args = Array.prototype.slice.call(arguments, 1), i = 0;
+        return String(s).replace(/%[sd]/g, function () { return i < args.length ? args[i++] : ''; });
+    }
+    function applyI18n(root) {
+        root = root || document;
+        root.querySelectorAll('[data-i18n]').forEach(function (el) { if (I18N[el.dataset.i18n] != null) el.textContent = t(el.dataset.i18n); });
+        ['placeholder', 'title', 'aria-label'].forEach(function (a) {
+            root.querySelectorAll('[data-i18n-' + a + ']').forEach(function (el) {
+                var k = el.getAttribute('data-i18n-' + a); if (I18N[k] != null) el.setAttribute(a, t(k));
+            });
+        });
+    }
+
     var state = {
         sites: [], byDomain: {}, sitesOk: true,
         tabs: [], activeId: null,
         bookmarks: [],
         theme: 'light',
         currency: '£',
+        locale: {},                                 // the dictionary, also handed to website pages
     };
     var nextTabId = 1;
 
@@ -67,6 +88,14 @@
         }).then(function (r) { return r.json(); }).catch(function () { return undefined; });
     }
 
+    function loadLocale() {
+        return api('locale').then(function (d) {
+            if (d && typeof d === 'object') I18N = d;
+            applyI18n();
+            state.locale = I18N;
+        });
+    }
+
     function loadSites() {
         return api('sites').then(function (list) {
             state.sitesOk = Array.isArray(list);
@@ -105,13 +134,13 @@
     }
 
     function resolveInput(text) {
-        var t = String(text || '').trim();
-        if (!t) return 'about:newtab';
-        var s = t.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+        var q = String(text || '').trim();
+        if (!q) return 'about:newtab';
+        var s = q.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
         var host = s.split(/[\/#?]/)[0].toLowerCase();
         if (state.byDomain[host]) return host + s.slice(host.length);
         if (/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(s)) return 'about:error?e=notfound&u=' + encodeURIComponent(host);
-        return 'about:search?q=' + encodeURIComponent(t);
+        return 'about:search?q=' + encodeURIComponent(q);
     }
 
     function frameUrl(site, path) {
@@ -130,7 +159,7 @@
 
     function newTab(url, activate) {
         var tab = {
-            id: nextTabId++, hist: [url || 'about:newtab'], idx: 0, title: 'New tab',
+            id: nextTabId++, hist: [url || 'about:newtab'], idx: 0, title: t('shell.newTab'),
             el: h('div', { class: 'tabview' }), frame: null, frameDomain: null, loading: false,
             histTimer: null, loadTimer: null,
         };
@@ -282,10 +311,10 @@
     function siteForUrl(url) { return parse(url).site; }
 
     function searchBox(tab, value) {
-        var input = h('input', { type: 'text', placeholder: 'Search the Los Santos web', value: value || '', autocapitalize: 'off', spellcheck: 'false' });
+        var input = h('input', { type: 'text', placeholder: t('shell.searchPlaceholder'), value: value || '', autocapitalize: 'off', spellcheck: 'false' });
         var submit = function () { go(tab, resolveInput(input.value)); };
         input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
-        return h('div', { class: 'searchbox' }, [input, h('button', { text: 'Search', onclick: submit })]);
+        return h('div', { class: 'searchbox' }, [input, h('button', { text: t('shell.search'), onclick: submit })]);
     }
 
     function siteRow(tab, s) {
@@ -301,11 +330,11 @@
 
     function pageNewTab(tab) {
         var page = h('div', { class: 'page' });
-        page.appendChild(h('h1', { text: 'Browser' }));
+        page.appendChild(h('h1', { text: t('shell.browser') }));
         page.appendChild(searchBox(tab, ''));
 
         if (state.bookmarks.length) {
-            page.appendChild(h('h2', { text: 'Favourites' }));
+            page.appendChild(h('h2', { text: t('shell.favourites') }));
             var tiles = h('div', { class: 'tiles' });
             state.bookmarks.slice(0, 8).forEach(function (b) {
                 var site = siteForUrl(b.url);
@@ -321,22 +350,22 @@
         if (!state.sitesOk) {
             page.appendChild(h('div', { class: 'empty' }, [
                 h('div', { class: 'big', text: '📡' }),
-                h('div', { text: 'Can’t reach the network right now.' }),
+                h('div', { text: t('shell.offline') }),
             ]));
         } else if (!state.sites.length) {
             page.appendChild(h('div', { class: 'empty' }, [
                 h('div', { class: 'big', text: '🌐' }),
-                h('div', { text: 'There are no websites online yet.' }),
+                h('div', { text: t('shell.noSites') }),
             ]));
         } else {
             var groups = {};
-            state.sites.forEach(function (s) { (groups[s.category || 'Sites'] = groups[s.category || 'Sites'] || []).push(s); });
+            state.sites.forEach(function (s) { var cat = s.category || t('shell.categoryFallback'); (groups[cat] = groups[cat] || []).push(s); });
             Object.keys(groups).sort().forEach(function (cat) {
                 page.appendChild(h('h2', { text: cat }));
                 page.appendChild(h('div', { class: 'rows' }, groups[cat].map(function (s) { return siteRow(tab, s); })));
             });
         }
-        return { el: page, title: 'New tab' };
+        return { el: page, title: t('shell.newTab') };
     }
 
     function score(terms, fields) {
@@ -375,11 +404,11 @@
         if (!results.length) {
             page.appendChild(h('div', { class: 'empty' }, [
                 h('div', { class: 'big', text: '🔍' }),
-                h('div', { text: 'No results for “' + q + '”.' }),
-                h('div', { class: 'sub', text: 'Try a different word, or check the spelling.' }),
+                h('div', { text: t('shell.noResults', q) }),
+                h('div', { class: 'sub', text: t('shell.noResultsHint') }),
             ]));
         } else {
-            page.appendChild(h('h2', { text: results.length + ' result' + (results.length === 1 ? '' : 's') }));
+            page.appendChild(h('h2', { text: results.length === 1 ? t('shell.results.one', results.length) : t('shell.results.other', results.length) }));
             page.appendChild(h('div', { class: 'rows' }, results.map(function (r) {
                 return h('button', { class: 'row', onclick: function () { go(tab, r.url); } }, [
                     siteTile(r.site),
@@ -391,12 +420,12 @@
                 ]);
             })));
         }
-        return { el: page, title: q ? q + ' – Search' : 'Search' };
+        return { el: page, title: q ? t('shell.searchTitle', q) : t('shell.search') };
     }
 
     function pageBookmarks(tab) {
         var page = h('div', { class: 'page' });
-        page.appendChild(h('h1', { text: 'Bookmarks' }));
+        page.appendChild(h('h1', { text: t('shell.bookmarks') }));
         var host = h('div');
         page.appendChild(host);
         var render = function () {
@@ -404,8 +433,8 @@
             if (!state.bookmarks.length) {
                 host.appendChild(h('div', { class: 'empty' }, [
                     h('div', { class: 'big', text: '☆' }),
-                    h('div', { text: 'No bookmarks yet.' }),
-                    h('div', { class: 'sub', text: 'Tap the star while on a site to save it here.' }),
+                    h('div', { text: t('shell.noBookmarks') }),
+                    h('div', { class: 'sub', text: t('shell.noBookmarksHint') }),
                 ]));
                 return;
             }
@@ -416,34 +445,34 @@
                         siteTile(site || { icon: '🔖' }),
                         h('div', { class: 'txt' }, [h('div', { class: 't', text: b.title || b.url }), h('div', { class: 'u', text: b.url })]),
                     ]),
-                    h('button', { class: 'x', 'aria-label': 'Remove', html: I.x, onclick: function () { removeBookmark(b.url).then(render); } }),
+                    h('button', { class: 'x', 'aria-label': t('shell.remove'), html: I.x, onclick: function () { removeBookmark(b.url).then(render); } }),
                 ]);
             })));
         };
         render();
-        return { el: page, title: 'Bookmarks' };
+        return { el: page, title: t('shell.bookmarks') };
     }
 
     function fmtTime(ts) {
         var d = new Date(ts * 1000);
-        return isNaN(d) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        return isNaN(d) ? '' : d.toLocaleDateString(t('shell.dateLocale'), { day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString(t('shell.dateLocale'), { hour: '2-digit', minute: '2-digit' });
     }
 
     function pageHistory(tab) {
         var page = h('div', { class: 'page' });
-        var head = h('div', { class: 'toprow' }, [h('h1', { text: 'History' })]);
+        var head = h('div', { class: 'toprow' }, [h('h1', { text: t('shell.history') })]);
         page.appendChild(head);
-        var host = h('div', {}, [h('div', { class: 'empty', text: 'Loading…' })]);
+        var host = h('div', {}, [h('div', { class: 'empty', text: t('shell.loading') })]);
         page.appendChild(host);
         api('history:list').then(function (rows) {
             host.innerHTML = '';
             rows = Array.isArray(rows) ? rows : [];
             if (!rows.length) {
-                host.appendChild(h('div', { class: 'empty' }, [h('div', { class: 'big', text: '🕘' }), h('div', { text: 'Nothing here yet.' })]));
+                host.appendChild(h('div', { class: 'empty' }, [h('div', { class: 'big', text: '🕘' }), h('div', { text: t('shell.historyEmpty') })]));
                 return;
             }
             head.appendChild(h('button', {
-                class: 'linkbtn', text: 'Clear',
+                class: 'linkbtn', text: t('shell.clear'),
                 onclick: function () { api('history:clear').then(function () { show(tab); }); },
             }));
             host.appendChild(h('div', { class: 'rows' }, rows.map(function (r) {
@@ -458,7 +487,7 @@
                 ]);
             })));
         });
-        return { el: page, title: 'History' };
+        return { el: page, title: t('shell.history') };
     }
 
     function pageError(tab, q) {
@@ -466,15 +495,15 @@
         var unreachable = q.e === 'offline';
         page.appendChild(h('div', { class: 'empty' }, [
             h('div', { class: 'big', text: unreachable ? '📡' : '🧭' }),
-            h('h1', { text: unreachable ? 'Can’t connect' : 'Site not found' }),
+            h('h1', { text: unreachable ? t('shell.cantConnect') : t('shell.siteNotFound') }),
             h('div', { class: 'sub', text: unreachable
-                ? 'The network isn’t responding. Try again in a moment.'
-                : 'We can’t find “' + (q.u || 'that address') + '”. Check the address, or search instead.' }),
-            h('button', { class: 'pill', text: q.u ? 'Search for it' : 'Go to start page', onclick: function () {
+                ? t('shell.networkDown')
+                : t('shell.addressNotFound', q.u || t('shell.thatAddress')) }),
+            h('button', { class: 'pill', text: q.u ? t('shell.searchForIt') : t('shell.goStartPage'), onclick: function () {
                 go(tab, q.u ? 'about:search?q=' + encodeURIComponent(q.u) : 'about:newtab');
             } }),
         ]));
-        return { el: page, title: 'Site not found' };
+        return { el: page, title: t('shell.siteNotFound') };
     }
 
     function buildAbout(tab, p) {
@@ -506,16 +535,16 @@
         var url = displayUrl(currentUrl(tab));
         if (!url) return;
         if (isBookmarked(url)) {
-            removeBookmark(url).then(function () { toast('Bookmark removed'); });
+            removeBookmark(url).then(function () { toast(t('shell.bookmarkRemoved')); });
             return;
         }
         state.bookmarks.unshift({ url: url, title: tab.title });
         chrome();
         api('bookmarks:add', { url: url, title: tab.title }).then(function (res) {
-            if (res && res.ok) { toast('Bookmarked'); return; }
+            if (res && res.ok) { toast(t('shell.bookmarked')); return; }
             state.bookmarks = state.bookmarks.filter(function (b) { return b.url !== url; });
             chrome();
-            toast((res && res.error) || 'Could not save the bookmark');
+            toast((res && res.error) || t('shell.bookmarkFailed'));
         });
     }
 
@@ -523,11 +552,11 @@
 
     var toastTimer;
     function toast(msg) {
-        var t = $('toast');
-        t.textContent = msg;
-        t.classList.add('on');
+        var el = $('toast');
+        el.textContent = msg;
+        el.classList.add('on');
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(function () { t.classList.remove('on'); }, 2200);
+        toastTimer = setTimeout(function () { el.classList.remove('on'); }, 2200);
     }
 
     function openTabs() {
@@ -537,7 +566,7 @@
     function closeTabs() { $('tabsOverlay').classList.remove('on'); }
 
     function renderTabs() {
-        $('tabsTitle').textContent = state.tabs.length + (state.tabs.length === 1 ? ' Tab' : ' Tabs');
+        $('tabsTitle').textContent = state.tabs.length === 1 ? t('shell.tab.one', state.tabs.length) : t('shell.tab.other', state.tabs.length);
         var grid = $('tabsGrid');
         grid.innerHTML = '';
         state.tabs.forEach(function (tab) {
@@ -550,9 +579,9 @@
                 activateTab(tab, true); closeTabs();
             } }, [
                 ico,
-                h('div', { class: 'tt', text: tab.title || 'New tab' }),
-                h('div', { class: 'tu', text: displayUrl(url) || 'Start page' }),
-                h('button', { class: 'close', 'aria-label': 'Close tab', html: I.x, onclick: function (e) {
+                h('div', { class: 'tt', text: tab.title || t('shell.newTab') }),
+                h('div', { class: 'tu', text: displayUrl(url) || t('shell.startPage') }),
+                h('button', { class: 'close', 'aria-label': t('shell.closeTab'), html: I.x, onclick: function (e) {
                     e.stopPropagation(); closeTab(tab); if (state.tabs.length) renderTabs();
                 } }),
             ]));
@@ -567,18 +596,18 @@
             sheet.appendChild(h('button', { class: cls || '', text: label, onclick: function () { closeSheet(); fn(); } }));
         };
         var tab = activeTab();
-        item('New tab', function () { addBlankTab(); });
-        item('Bookmarks', function () { go(tab, 'about:bookmarks'); });
-        item('History', function () { go(tab, 'about:history'); });
-        item('Start page', function () { go(tab, 'about:newtab'); });
-        item('Close this tab', function () { closeTab(tab); }, 'danger');
+        item(t('shell.newTab'), function () { addBlankTab(); });
+        item(t('shell.bookmarks'), function () { go(tab, 'about:bookmarks'); });
+        item(t('shell.history'), function () { go(tab, 'about:history'); });
+        item(t('shell.startPage'), function () { go(tab, 'about:newtab'); });
+        item(t('shell.closeThisTab'), function () { closeTab(tab); }, 'danger');
         $('scrim').classList.add('on');
         sheet.classList.add('on');
     }
     function closeSheet() { $('scrim').classList.remove('on'); $('sheet').classList.remove('on'); }
 
     function addBlankTab() {
-        if (state.tabs.length >= MAX_TABS) { toast('You can have up to ' + MAX_TABS + ' tabs open'); return; }
+        if (state.tabs.length >= MAX_TABS) { toast(t('shell.tabLimit', MAX_TABS)); return; }
         newTab('about:newtab', true);
     }
 
@@ -623,12 +652,16 @@
             case 'call':
                 api('siteCall', { domain: domain, name: d.name, data: d.data || {} }).then(function (res) {
                     if (res && res.ok) reply(tab, d.id, true, res.data);
-                    else reply(tab, d.id, false, (res && res.error) || 'No response from the server.');
+                    else reply(tab, d.id, false, (res && res.error) || t('shell.noServerResponse'));
                 });
                 break;
 
+            case 'locale':
+                reply(tab, d.id, true, state.locale);
+                break;
+
             case 'player':
-                api('player').then(function (res) { reply(tab, d.id, !!res, res || 'No response'); });
+                api('player').then(function (res) { reply(tab, d.id, !!res, res || t('shell.noResponse')); });
                 break;
 
             case 'path': {
@@ -659,7 +692,7 @@
 
             case 'saveLogin':
                 api('savePassword', { username: d.username, password: d.password, email: d.email }).then(function (res) {
-                    reply(tab, d.id, !!(res && res.ok), (res && res.ok) ? true : ((res && res.error) || 'Could not save the login.'));
+                    reply(tab, d.id, !!(res && res.ok), (res && res.ok) ? true : ((res && res.error) || t('shell.saveLoginFailed')));
                 });
                 break;
 
@@ -671,7 +704,7 @@
 
             case 'copy':
                 copyText(String(d.text || ''));
-                toast('Copied');
+                toast(t('shell.copied'));
                 reply(tab, d.id, true, true);
                 break;
 
@@ -787,7 +820,7 @@
         }
         if (typeof window.useNuiEvent === 'function') window.useNuiEvent('sitesChanged', refreshSites);
 
-        Promise.all([loadSites(), loadBookmarks()]).then(restoreSession);
+        Promise.all([loadLocale(), loadSites(), loadBookmarks()]).then(restoreSession);
     }
 
     function whenReady() {

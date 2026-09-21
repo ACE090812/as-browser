@@ -50,10 +50,10 @@
 <body>
 <div class="bar">
     <div class="logo" data-go="/">Cover<b>Compare</b></div>
-    <nav><button data-go="/quote">Quote</button><button data-go="/policies">Policies</button></nav>
+    <nav><button data-go="/quote" data-i18n="insurance.nav.quote">Quote</button><button data-go="/policies" data-i18n="insurance.nav.policies">Policies</button></nav>
 </div>
 <div id="app"><div class="spinner"></div></div>
-<div class="foot">CoverCompare · a fictional comparison site for roleplay</div>
+<div class="foot" data-i18n="insurance.foot">CoverCompare · a fictional comparison site for roleplay</div>
 
 <script src="/sdk/site.js"></script>
 <script>
@@ -72,7 +72,7 @@
     function loading() { app.innerHTML = '<div class="spinner"></div>'; }
     function setPage(title, html) { Site.title(title + ' – CoverCompare'); var y = window.scrollY; app.innerHTML = html; window.scrollTo(0, keep ? y : 0); keep = false; }
     function redraw() { keep = true; pForm(); }
-    function failure(e) { app.innerHTML = wrap('<div class="notice bad">' + esc(e && e.message ? e.message : 'Something went wrong.') + '</div><p style="margin-top:14px"><button class="btn ghost" data-go="/">Back to start</button></p>'); }
+    function failure(e) { app.innerHTML = wrap('<div class="notice bad">' + esc(e && e.message ? e.message : t('insurance.error')) + '</div><p style="margin-top:14px"><button class="btn ghost" data-go="/">' + esc(t('insurance.backToStart')) + '</button></p>'); }
     function stars(r) { var n = Math.round(r); return '<span class="stars">' + '★★★★★'.slice(0, n) + '<span style="opacity:.3">' + '★★★★★'.slice(n) + '</span></span> ' + r.toFixed(1); }
     function steps(n) { return '<div class="steps">' + [1, 2, 3].map(function (i) { return '<i class="' + (i <= n ? 'on' : '') + '"></i>'; }).join('') + '</div>'; }
     function loadGarage() { return Site.call('myVehicles').then(function (g) { garage = g; return g; }); }
@@ -80,14 +80,14 @@
     // ---------------------------------------------------------------- home
 
     function pHome() {
-        setPage('Compare vehicle insurance',
-            '<div class="hero"><h1>Compare vehicle insurance in Los Santos</h1><p>Get quotes from ' + home.providers.length + ' insurers and get covered in minutes.</p>' +
-            '<button class="btn" data-go="/quote">Get a quote</button>' +
-            '<div class="ticks"><span>✓ Free to compare</span><span>✓ Certificate saved to Files</span><span>✓ Pay from your bank</span></div></div>' +
-            wrap('<h2>Our insurers</h2><div class="stack">' + home.providers.map(function (p) {
+        setPage(t('insurance.homeTitle'),
+            '<div class="hero"><h1>' + esc(t('insurance.hero.title')) + '</h1><p>' + esc(t('insurance.hero.sub', home.providers.length)) + '</p>' +
+            '<button class="btn" data-go="/quote">' + esc(t('insurance.getQuote')) + '</button>' +
+            '<div class="ticks"><span>' + esc(t('insurance.tick.free')) + '</span><span>' + esc(t('insurance.tick.certificate')) + '</span><span>' + esc(t('insurance.tick.bank')) + '</span></div></div>' +
+            wrap('<h2>' + esc(t('insurance.ourInsurers')) + '</h2><div class="stack">' + home.providers.map(function (p) {
                 return '<div class="card prov"><div class="pic" style="background:' + esc(p.color) + '">' + esc(p.icon) + '</div><div class="grow"><b>' + esc(p.name) + '</b><div class="muted small">' + esc(p.blurb) + '</div>' + stars(p.rating) + '</div></div>';
             }).join('') + '</div>' +
-            '<p style="margin-top:18px"><button class="btn ghost block" data-go="/policies">See my policies</button></p>'));
+            '<p style="margin-top:18px"><button class="btn ghost block" data-go="/policies">' + esc(t('insurance.seePolicies')) + '</button></p>'));
     }
 
     // ---------------------------------------------------------------- quote form
@@ -104,36 +104,36 @@
         var draw = function (g) {
             if (my !== token) return;
             if (!g.vehicles.length) {
-                setPage('Get a quote', wrap('<h1>Get a quote</h1><div class="notice">You need a vehicle registered to you before you can get a quote.</div>'));
+                setPage(t('insurance.getQuote'), wrap('<h1>' + esc(t('insurance.getQuote')) + '</h1><div class="notice">' + esc(t('insurance.needVehicle')) + '</div>'));
                 return;
             }
             if (!ans.plate || !g.vehicles.some(function (v) { return v.plateKey === ans.plate; })) ans.plate = g.vehicles[0].plateKey;
             var vehicles = g.vehicles.map(function (v) {
                 return '<label class="opt' + (v.plateKey === ans.plate ? ' on' : '') + '" data-pick="plate" data-id="' + esc(v.plateKey) + '"><input type="radio" name="plate"><div class="row between">' + plateHtml(v.plate) +
-                    (v.insuredUntil ? '<span class="tag good">Insured until ' + Site.date(v.insuredUntil) + '</span>' : '<span class="tag bad">Not insured</span>') + '</div><div class="d" style="margin-top:6px">' + esc(v.colour) + ' ' + esc(v.make) + ' ' + esc(v.model) + '</div></label>';
+                    (v.insuredUntil ? '<span class="tag good">' + esc(t('insurance.insuredUntil', Site.date(v.insuredUntil))) + '</span>' : '<span class="tag bad">' + esc(t('insurance.notInsured')) + '</span>') + '</div><div class="d" style="margin-top:6px">' + esc(v.colour) + ' ' + esc(v.make) + ' ' + esc(v.model) + '</div></label>';
             }).join('');
             var ncd = []; for (var i = 0; i <= home.ncd.maxYears; i++) ncd.push('<button type="button" data-ncd="' + i + '" class="' + (ans.ncd === i ? 'on' : '') + '">' + i + (i === home.ncd.maxYears ? '+' : '') + '</button>');
-            setPage('Get a quote', wrap(steps(1) + '<h1>Get a quote</h1>' +
+            setPage(t('insurance.getQuote'), wrap(steps(1) + '<h1>' + esc(t('insurance.getQuote')) + '</h1>' +
                 (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-                '<div class="field"><span class="lbl">Which vehicle?</span><div class="opts">' + vehicles + '</div></div>' +
-                '<div class="field"><span class="lbl">Level of cover</span>' + opts('cover', home.covers, ans.cover) + '</div>' +
-                '<div class="field"><span class="lbl">How do you use it?</span>' + opts('usage', home.usages, ans.usage) + '</div>' +
-                '<div class="field"><span class="lbl">Years without a claim</span><div class="seg">' + ncd.join('') + '</div></div>' +
-                '<div class="field"><span class="lbl">How long do you need cover for?</span><div class="seg">' + home.durations.map(function (d) {
+                '<div class="field"><span class="lbl">' + esc(t('insurance.q.vehicle')) + '</span><div class="opts">' + vehicles + '</div></div>' +
+                '<div class="field"><span class="lbl">' + esc(t('insurance.q.cover')) + '</span>' + opts('cover', home.covers, ans.cover) + '</div>' +
+                '<div class="field"><span class="lbl">' + esc(t('insurance.q.usage')) + '</span>' + opts('usage', home.usages, ans.usage) + '</div>' +
+                '<div class="field"><span class="lbl">' + esc(t('insurance.q.ncd')) + '</span><div class="seg">' + ncd.join('') + '</div></div>' +
+                '<div class="field"><span class="lbl">' + esc(t('insurance.q.duration')) + '</span><div class="seg">' + home.durations.map(function (d) {
                     return '<button type="button" data-days="' + d.days + '" class="' + (ans.days === d.days ? 'on' : '') + '">' + esc(d.label) + '</button>';
                 }).join('') + '</div></div>' +
-                '<div class="field"><span class="lbl">Extras</span><div class="opts">' + home.addons.map(function (a) {
+                '<div class="field"><span class="lbl">' + esc(t('insurance.q.extras')) + '</span><div class="opts">' + home.addons.map(function (a) {
                     var on = ans.addons.indexOf(a.id) !== -1;
-                    return '<label class="opt' + (on ? ' on' : '') + '" data-addon="' + esc(a.id) + '"><input type="checkbox"><div class="row between"><div class="t">' + esc(a.label) + '</div><div class="muted small">from ' + money(a.price) + '/week</div></div><div class="d">' + esc(a.description) + '</div></label>';
+                    return '<label class="opt' + (on ? ' on' : '') + '" data-addon="' + esc(a.id) + '"><input type="checkbox"><div class="row between"><div class="t">' + esc(a.label) + '</div><div class="muted small">' + esc(t('insurance.addonFrom', money(a.price))) + '</div></div><div class="d">' + esc(a.description) + '</div></label>';
                 }).join('') + '</div></div>' +
-                '<button class="btn block" id="go">Compare quotes</button>'));
+                '<button class="btn block" id="go">' + esc(t('insurance.compare')) + '</button>'));
             document.getElementById('go').onclick = function () { getQuotes(this); };
         };
         if (garage) draw(garage); else { loading(); loadGarage().then(draw).catch(function (e) { if (my === token) failure(e); }); }
     }
 
     function getQuotes(btn) {
-        btn.disabled = true; btn.textContent = 'Comparing…';
+        btn.disabled = true; btn.textContent = t('insurance.comparing');
         Site.call('quote', ans).then(function (q) { offers = q; Site.go('/results'); })
             .catch(function (e) { pForm(e.message); });
     }
@@ -143,15 +143,15 @@
     function pResults() {
         if (!offers) return Site.go('/quote');
         var q = offers, cover = byId(home.covers, ans.cover), dur = byId(home.durations.map(function (d) { return { id: d.days, label: d.label }; }), ans.days);
-        setPage('Your quotes', wrap(steps(2) + '<h1>Your quotes</h1><div class="card row between" style="margin-bottom:14px"><div>' + plateHtml(q.plate) +
-            '<div class="muted small" style="margin-top:4px">' + esc(cover ? cover.label : '') + ' · ' + esc(dur ? dur.label : '') + '</div></div><button class="btn ghost" data-go="/quote" style="min-height:36px;padding:0 14px">Edit</button></div>' +
+        setPage(t('insurance.yourQuotes'), wrap(steps(2) + '<h1>' + esc(t('insurance.yourQuotes')) + '</h1><div class="card row between" style="margin-bottom:14px"><div>' + plateHtml(q.plate) +
+            '<div class="muted small" style="margin-top:4px">' + esc(cover ? cover.label : '') + ' · ' + esc(dur ? dur.label : '') + '</div></div><button class="btn ghost" data-go="/quote" style="min-height:36px;padding:0 14px">' + esc(t('insurance.edit')) + '</button></div>' +
             '<div class="stack">' + q.offers.map(function (o, i) {
                 var feats = (o.features || []).map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('');
-                return '<div class="offer' + (i === 0 ? ' best' : '') + '">' + (i === 0 ? '<span class="badge">Cheapest</span>' : '') +
+                return '<div class="offer' + (i === 0 ? ' best' : '') + '">' + (i === 0 ? '<span class="badge">' + esc(t('insurance.cheapest')) + '</span>' : '') +
                     '<div class="prov"><div class="pic" style="background:' + esc(o.color) + '">' + esc(o.icon) + '</div><div class="grow"><b>' + esc(o.name) + '</b><div>' + stars(o.rating) + '</div></div>' +
-                    '<div style="text-align:right"><div class="price">' + money(o.price) + '</div><div class="muted small">' + money(o.perWeek) + ' / week</div></div></div>' +
-                    '<ul><li>Excess: ' + money(o.excess) + '</li>' + feats + '</ul>' +
-                    '<button class="btn block" data-buy="' + esc(o.id) + '">Buy now</button></div>';
+                    '<div style="text-align:right"><div class="price">' + money(o.price) + '</div><div class="muted small">' + esc(t('insurance.perWeek', money(o.perWeek))) + '</div></div></div>' +
+                    '<ul><li>' + esc(t('insurance.excessLine', money(o.excess))) + '</li>' + feats + '</ul>' +
+                    '<button class="btn block" data-buy="' + esc(o.id) + '">' + esc(t('insurance.buyNow')) + '</button></div>';
             }).join('') + '</div>'));
     }
 
@@ -163,18 +163,18 @@
         if (!o) return Site.go('/results');
         var cover = byId(home.covers, ans.cover), usage = byId(home.usages, ans.usage);
         var dur = null; home.durations.forEach(function (d) { if (d.days === ans.days) dur = d; });
-        var extras = ans.addons.map(function (a) { var x = byId(home.addons, a); return x ? x.label + (o.included.indexOf(a) !== -1 ? ' (included)' : '') : ''; }).join(', ') || 'None';
-        setPage('Confirm and pay', wrap(steps(3) + '<h1>Confirm and pay</h1>' +
+        var extras = ans.addons.map(function (a) { var x = byId(home.addons, a); return x ? (o.included.indexOf(a) !== -1 ? t('insurance.included', x.label) : x.label) : ''; }).join(', ') || t('insurance.none');
+        setPage(t('insurance.confirmPay'), wrap(steps(3) + '<h1>' + esc(t('insurance.confirmPay')) + '</h1>' +
             (err ? '<div class="notice bad" style="margin-bottom:12px">' + esc(err) + '</div>' : '') +
-            '<div class="card"><table class="kv"><tr><th>Insurer</th><td>' + esc(o.name) + '</td></tr><tr><th>Vehicle</th><td>' + plateHtml(offers.plate) + '</td></tr>' +
-            '<tr><th>Cover</th><td>' + esc(cover.label) + '</td></tr><tr><th>Use</th><td>' + esc(usage.label) + '</td></tr>' +
-            '<tr><th>Length</th><td>' + esc(dur.label) + '</td></tr><tr><th>Extras</th><td>' + esc(extras) + '</td></tr>' +
-            '<tr><th>Excess</th><td>' + money(o.excess) + '</td></tr><tr><th>Total</th><td><b style="font-size:20px">' + money(o.price) + '</b></td></tr></table></div>' +
-            '<p class="muted small" style="margin-top:12px">Paid from your bank account. A certificate is saved to your Files app and a confirmation is sent to your email.</p>' +
-            '<button class="btn block" id="pay">Pay ' + money(o.price) + '</button>' +
-            '<p style="margin-top:10px"><button class="btn ghost block" data-go="/results">Back to quotes</button></p>'));
+            '<div class="card"><table class="kv"><tr><th>' + esc(t('insurance.th.insurer')) + '</th><td>' + esc(o.name) + '</td></tr><tr><th>' + esc(t('insurance.th.vehicle')) + '</th><td>' + plateHtml(offers.plate) + '</td></tr>' +
+            '<tr><th>' + esc(t('insurance.th.cover')) + '</th><td>' + esc(cover.label) + '</td></tr><tr><th>' + esc(t('insurance.th.use')) + '</th><td>' + esc(usage.label) + '</td></tr>' +
+            '<tr><th>' + esc(t('insurance.th.length')) + '</th><td>' + esc(dur.label) + '</td></tr><tr><th>' + esc(t('insurance.th.extras')) + '</th><td>' + esc(extras) + '</td></tr>' +
+            '<tr><th>' + esc(t('insurance.th.excess')) + '</th><td>' + money(o.excess) + '</td></tr><tr><th>' + esc(t('insurance.th.total')) + '</th><td><b style="font-size:20px">' + money(o.price) + '</b></td></tr></table></div>' +
+            '<p class="muted small" style="margin-top:12px">' + esc(t('insurance.payNote')) + '</p>' +
+            '<button class="btn block" id="pay">' + esc(t('insurance.pay', money(o.price))) + '</button>' +
+            '<p style="margin-top:10px"><button class="btn ghost block" data-go="/results">' + esc(t('insurance.backToQuotes')) + '</button></p>'));
         document.getElementById('pay').onclick = function () {
-            var b = this; b.disabled = true; b.textContent = 'Processing…';
+            var b = this; b.disabled = true; b.textContent = t('insurance.processing');
             var body = {}; Object.keys(ans).forEach(function (k) { body[k] = ans[k]; }); body.provider = id;
             Site.call('buy', body).then(function (r) { done = r; garage = null; offers = null; Site.go('/done'); })
                 .catch(function (e) { garage = null; pConfirm(id, e.message); });
@@ -184,11 +184,11 @@
     function pDone() {
         if (!done) return Site.go('/policies');
         var r = done;
-        setPage('You are covered', wrap('<div class="done"><h1>You’re covered</h1><div>' + plateHtml(r.plate) + '</div><p style="margin:12px 0 4px">Policy reference</p><div class="ref">' + esc(r.ref) + '</div></div>' +
-            '<div class="card" style="margin-top:14px"><table class="kv"><tr><th>Insurer</th><td>' + esc(r.provider) + '</td></tr><tr><th>Cover</th><td>' + esc(r.cover) + '</td></tr>' +
-            '<tr><th>Starts</th><td>' + Site.datetime(r.startsAt) + '</td></tr><tr><th>Ends</th><td>' + Site.datetime(r.endsAt) + '</td></tr><tr><th>Paid</th><td>' + money(r.price) + '</td></tr></table></div>' +
-            '<p class="muted small" style="margin-top:12px">Your certificate is in Files and a confirmation is in your Mail.</p>' +
-            '<button class="btn block" data-go="/policies">View my policies</button>'));
+        setPage(t('insurance.coveredTitle'), wrap('<div class="done"><h1>' + esc(t('insurance.covered')) + '</h1><div>' + plateHtml(r.plate) + '</div><p style="margin:12px 0 4px">' + esc(t('insurance.policyRef')) + '</p><div class="ref">' + esc(r.ref) + '</div></div>' +
+            '<div class="card" style="margin-top:14px"><table class="kv"><tr><th>' + esc(t('insurance.th.insurer')) + '</th><td>' + esc(r.provider) + '</td></tr><tr><th>' + esc(t('insurance.th.cover')) + '</th><td>' + esc(r.cover) + '</td></tr>' +
+            '<tr><th>' + esc(t('insurance.th.starts')) + '</th><td>' + Site.datetime(r.startsAt) + '</td></tr><tr><th>' + esc(t('insurance.th.ends')) + '</th><td>' + Site.datetime(r.endsAt) + '</td></tr><tr><th>' + esc(t('insurance.th.paid')) + '</th><td>' + money(r.price) + '</td></tr></table></div>' +
+            '<p class="muted small" style="margin-top:12px">' + esc(t('insurance.doneNote')) + '</p>' +
+            '<button class="btn block" data-go="/policies">' + esc(t('insurance.viewPolicies')) + '</button>'));
     }
 
     // ---------------------------------------------------------------- policies
@@ -198,12 +198,12 @@
         Site.call('policies').then(function (r) {
             if (my !== token) return;
             var list = r.policies;
-            setPage('My policies', wrap('<h1>My policies</h1>' + (list.length ? '<div class="stack">' + list.map(function (p) {
-                var tag = p.active ? '<span class="tag good">Active</span>' : p.upcoming ? '<span class="tag warn">Starts ' + Site.date(p.startsAt) + '</span>' : '<span class="tag">Expired</span>';
+            setPage(t('insurance.myPolicies'), wrap('<h1>' + esc(t('insurance.myPolicies')) + '</h1>' + (list.length ? '<div class="stack">' + list.map(function (p) {
+                var tag = p.active ? '<span class="tag good">' + esc(t('insurance.active')) + '</span>' : p.upcoming ? '<span class="tag warn">' + esc(t('insurance.startsOn', Site.date(p.startsAt))) + '</span>' : '<span class="tag">' + esc(t('insurance.expired')) + '</span>';
                 return '<div class="card"><div class="row between">' + plateHtml(p.plate) + tag + '</div><div style="margin-top:8px"><b>' + esc(p.provider) + '</b> · ' + esc(p.cover) + '</div>' +
-                    '<div class="muted small">' + Site.date(p.startsAt) + ' to ' + Site.date(p.endsAt) + ' · ' + money(p.price) + ' · ' + esc(p.ref) + '</div></div>';
-            }).join('') + '</div>' : '<div class="card muted">You have no policies yet.</div>') +
-            '<p style="margin-top:16px"><button class="btn block" data-go="/quote">Get a quote</button></p>'));
+                    '<div class="muted small">' + esc(t('insurance.dateRange', Site.date(p.startsAt), Site.date(p.endsAt))) + ' · ' + money(p.price) + ' · ' + esc(p.ref) + '</div></div>';
+            }).join('') + '</div>' : '<div class="card muted">' + esc(t('insurance.noPolicies')) + '</div>') +
+            '<p style="margin-top:16px"><button class="btn block" data-go="/quote">' + esc(t('insurance.getQuote')) + '</button></p>'));
         }).catch(function (e) { if (my === token) failure(e); });
     }
 
@@ -224,16 +224,16 @@
     }
 
     document.addEventListener('click', function (e) {
-        var t = e.target;
-        while (t && t !== document.body) {
-            if (t.getAttribute) {
-                var g = t.getAttribute('data-go'); if (g) { e.preventDefault(); return Site.go(g); }
-                var b = t.getAttribute('data-buy'); if (b) { e.preventDefault(); return Site.go('/buy/' + b); }
-                var n = t.getAttribute('data-ncd'); if (n !== null) { ans.ncd = parseInt(n, 10); return redraw(); }
-                var d = t.getAttribute('data-days'); if (d !== null) { ans.days = parseInt(d, 10); return redraw(); }
-                var pick = t.getAttribute('data-pick');
-                if (pick) { e.preventDefault(); ans[pick] = t.getAttribute('data-id'); return redraw(); }
-                var ad = t.getAttribute('data-addon');
+        var el = e.target;
+        while (el && el !== document.body) {
+            if (el.getAttribute) {
+                var g = el.getAttribute('data-go'); if (g) { e.preventDefault(); return Site.go(g); }
+                var b = el.getAttribute('data-buy'); if (b) { e.preventDefault(); return Site.go('/buy/' + b); }
+                var n = el.getAttribute('data-ncd'); if (n !== null) { ans.ncd = parseInt(n, 10); return redraw(); }
+                var d = el.getAttribute('data-days'); if (d !== null) { ans.days = parseInt(d, 10); return redraw(); }
+                var pick = el.getAttribute('data-pick');
+                if (pick) { e.preventDefault(); ans[pick] = el.getAttribute('data-id'); return redraw(); }
+                var ad = el.getAttribute('data-addon');
                 if (ad) {
                     e.preventDefault();
                     var i = ans.addons.indexOf(ad);
@@ -241,7 +241,7 @@
                     return redraw();
                 }
             }
-            t = t.parentNode;
+            el = el.parentNode;
         }
     });
 

@@ -11,23 +11,28 @@
 </head>
 <body>
 <div class="wrap" id="app"></div>
+<!-- Static text: keep the English in the markup and add a data-i18n attribute holding the key. It is translated automatically once the language has loaded. -->
+<p class="wrap muted small" data-i18n="example.footer">Built with the as-browser site toolkit.</p>
 
 <script src="/sdk/site.js"></script>
 <script>
     // Pages are hash routes: Site.go('/about') changes the page, Site.onRoute runs on every change.
+    // Text: call t with a key name (plus values for any %s in it) for anything you draw from JS. Site.onRoute waits until the language has loaded,
+    // so t() is ready inside it. Code that runs at load time (outside onRoute) should wait for Site.onReady(fn).
+    // Add your keys to locales/en.lua under your own prefix (this page uses example.*).
     Site.onRoute(function (path) {
         var app = document.getElementById('app');
         if (path === '/about') {
-            Site.title('About');
-            app.innerHTML = '<h1>About</h1><p>This is the about page.</p><button class="btn ghost" id="back">Back</button>';
+            Site.title(t('example.about'));
+            app.innerHTML = '<h1>' + Site.esc(t('example.about')) + '</h1><p>' + Site.esc(t('example.aboutText')) + '</p><button class="btn ghost" id="back">' + Site.esc(t('example.back')) + '</button>';
             document.getElementById('back').onclick = function () { Site.go('/'); };
             return;
         }
-        Site.title('Example Site');
-        app.innerHTML = '<h1>Example Site</h1>' +
-            '<label class="field"><span class="lbl">Your name</span><input type="text" id="n"></label>' +
-            '<button class="btn block" id="hi">Say hello</button><p id="out" class="muted" style="margin-top:12px"></p>' +
-            '<p><a id="about">About</a></p>';
+        Site.title(t('example.title'));
+        app.innerHTML = '<h1>' + Site.esc(t('example.title')) + '</h1>' +
+            '<label class="field"><span class="lbl">' + Site.esc(t('example.yourName')) + '</span><input type="text" id="n"></label>' +
+            '<button class="btn block" id="hi">' + Site.esc(t('example.sayHello')) + '</button><p id="out" class="muted" style="margin-top:12px"></p>' +
+            '<p><a id="about">' + Site.esc(t('example.about')) + '</a></p>';
         document.getElementById('about').onclick = function () { Site.go('/about'); };
         document.getElementById('hi').onclick = function () {
             Site.call('hello', { name: document.getElementById('n').value })

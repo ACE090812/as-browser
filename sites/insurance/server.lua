@@ -6,14 +6,14 @@ local function now() return os.time() end
 
 Browser.defineSite('insurance', {
     title       = I.name,
-    description = 'Compare car and bike insurance quotes and buy cover in minutes.',
-    keywords    = { 'insurance', 'cover', 'quote', 'compare', 'car insurance', 'vehicle', 'premium', 'policy', 'third party', 'comprehensive', 'gocompare' },
-    category    = 'Insurance',
+    description = T('insurance.description'),
+    keywords    = Browser.words(T('insurance.keywords')),
+    category    = T('insurance.category'),
     icon        = '🛡️',
     color       = '#0b5cad',
     pages = {
-        { path = '/quote',    title = 'Get a quote',   description = 'Compare insurance quotes for your vehicle.', keywords = { 'quote', 'compare', 'price' } },
-        { path = '/policies', title = 'My policies',   description = 'See your insurance policies and certificates.', keywords = { 'policy', 'certificate', 'renew' } },
+        { path = '/quote',    title = T('insurance.page.quote.title'),    description = T('insurance.page.quote.description'),    keywords = Browser.words(T('insurance.page.quote.keywords')) },
+        { path = '/policies', title = T('insurance.page.policies.title'), description = T('insurance.page.policies.description'), keywords = Browser.words(T('insurance.page.policies.keywords')) },
     },
 })
 
@@ -102,13 +102,13 @@ end)
 --- Validates the answers and returns them as a table, or nil plus a message.
 local function readAnswers(data)
     local cover = byId(I.covers, tostring(data.cover or ''))
-    if not cover then return nil, 'Choose a level of cover.' end
+    if not cover then return nil, T('insurance.err.chooseCover') end
     local usage = byId(I.usages, tostring(data.usage or ''))
-    if not usage then return nil, 'Choose how you use the vehicle.' end
+    if not usage then return nil, T('insurance.err.chooseUsage') end
     local dur = byDays(data.days)
-    if not dur then return nil, 'Choose how long you want cover for.' end
+    if not dur then return nil, T('insurance.err.chooseDuration') end
     local ncd = math.floor(tonumber(data.ncd) or 0)
-    if ncd < 0 or ncd > I.ncd.maxYears then return nil, 'Check your no claims years.' end
+    if ncd < 0 or ncd > I.ncd.maxYears then return nil, T('insurance.err.checkNcd') end
 
     local addons = {}
     if type(data.addons) == 'table' then
@@ -173,17 +173,17 @@ end)
 --- Returns the described vehicle and the owner's identifier, or nil plus a message.
 local function ownedVehicle(src, plate)
     local cid = Bridge.getIdentifier(src)
-    if not cid then return nil, 'You are not signed in.' end
+    if not cid then return nil, T('shell.err.notSignedIn') end
     local key = Vehicles.normalizePlate(tostring(plate or ''))
-    if not key then return nil, 'Choose a vehicle.' end
+    if not key then return nil, T('insurance.err.chooseVehicle') end
     local v = Vehicles.find(key)
-    if not v or v.owner ~= cid then return nil, 'You can only insure a vehicle you own.' end
+    if not v or v.owner ~= cid then return nil, T('insurance.err.notOwner') end
     return Vehicles.describe(v), cid
 end
 
 Browser.handler('insurance', 'myVehicles', function(src)
     local cid = Bridge.getIdentifier(src)
-    if not cid then return nil, 'You are not signed in.' end
+    if not cid then return nil, T('shell.err.notSignedIn') end
     local out = {}
     local list = Vehicles.ownedBy(cid)
     for i = 1, math.min(#list, 50) do
@@ -223,23 +223,23 @@ end
 
 local function certificateText(p)
     local lines = {
-        (I.name .. ' - Certificate of motor insurance'),
+        T('insurance.cert.title', I.name),
         '',
-        'Policy reference: ' .. p.ref,
-        'Insurer: ' .. p.providerName,
-        'Policyholder: ' .. p.holder,
-        'Vehicle: ' .. p.vehicle,
-        'Registration: ' .. p.plate,
-        'Cover: ' .. p.coverLabel,
-        'Use: ' .. p.usageLabel,
-        'Start: ' .. os.date('%d %b %Y %H:%M', p.startsAt),
-        'End: ' .. os.date('%d %b %Y %H:%M', p.endsAt),
-        'Premium paid: ' .. Config.currency .. p.price,
-        'Excess: ' .. Config.currency .. p.excess,
+        T('insurance.cert.ref', p.ref),
+        T('insurance.cert.insurer', p.providerName),
+        T('insurance.cert.holder', p.holder),
+        T('insurance.cert.vehicle', p.vehicle),
+        T('insurance.cert.reg', p.plate),
+        T('insurance.cert.cover', p.coverLabel),
+        T('insurance.cert.use', p.usageLabel),
+        T('insurance.cert.start', Browser.datetime(p.startsAt)),
+        T('insurance.cert.end', Browser.datetime(p.endsAt)),
+        T('insurance.cert.premium', Config.currency .. p.price),
+        T('insurance.cert.excess', Config.currency .. p.excess),
     }
-    if #p.addonLabels > 0 then lines[#lines + 1] = 'Extras: ' .. table.concat(p.addonLabels, ', ') end
+    if #p.addonLabels > 0 then lines[#lines + 1] = T('insurance.cert.extras', table.concat(p.addonLabels, ', ')) end
     lines[#lines + 1] = ''
-    lines[#lines + 1] = 'Keep this certificate safe. Roleplay use only.'
+    lines[#lines + 1] = T('insurance.cert.keep')
     return table.concat(lines, '\n')
 end
 
@@ -249,18 +249,17 @@ local function buy(src, data)
     local a, msg = readAnswers(data)
     if not a then return nil, msg end
     local provider = byId(I.providers, tostring(data.provider or ''))
-    if not provider then return nil, 'Choose an insurer.' end
+    if not provider then return nil, T('insurance.err.chooseInsurer') end
 
     local t = now()
     local finish = lastEnd(desc.plateKey)
     if finish and finish - t > I.renewWindowDays * DAY then
-        return nil, ('This vehicle is already insured until %s. You can buy new cover in the last %d days.'):format(
-            os.date('%d %b %Y', finish), I.renewWindowDays)
+        return nil, T('insurance.err.alreadyInsured', Browser.date(finish), I.renewWindowDays)
     end
 
     local price = priceFor(desc, provider, a)
     if not Bridge.removeMoney(src, Config.account, price, 'vehicle-insurance') then
-        return nil, 'You do not have enough money in your bank account.'
+        return nil, T('shell.err.insufficientFunds')
     end
 
     local startsAt = math.max(t, finish or 0)
@@ -273,7 +272,7 @@ local function buy(src, data)
     end)
     if not ok or not id then
         Bridge.addMoney(src, Config.account, price, 'vehicle-insurance-refund')
-        return nil, 'We could not set up your policy. You have not been charged, please try again.'
+        return nil, T('insurance.err.setupFailed')
     end
 
     local addonLabels = {}
@@ -289,20 +288,20 @@ local function buy(src, data)
     -- Everything below is a nice-to-have. The policy already exists, so a failure here is ignored.
     pcall(function()
         exports['sd-phone']:addBankTransaction(cid, {
-            label = ('%s insurance %s'):format(provider.name, p.plate), amount = -price,
+            label = T('insurance.bankLabel', provider.name, p.plate), amount = -price,
             category = 'insurance', counterparty = I.name,
         })
     end)
     pcall(function()
         exports['sd-phone']:createDocument(src, {
-            name = ('Insurance certificate %s'):format(p.plate), kind = 'text',
+            name = T('insurance.docName', p.plate), kind = 'text',
             content = certificateText(p), folder = I.documentFolder, deletable = true,
         })
     end)
     Bridge.sendPhoneMail(src, cid, I.mailFrom,
-        ('Your %s policy %s'):format(provider.name, ref),
-        ('Hello %s,\n\nThanks for buying cover with %s.\n\nVehicle: %s (%s)\nCover: %s\nValid until: %s\nPaid: %s%d\nReference: %s\n\nYour certificate has been saved in your Files app.'):format(
-            p.holder, provider.name, p.vehicle, p.plate, p.coverLabel, os.date('%d %b %Y %H:%M', endsAt), Config.currency, price, ref))
+        T('insurance.mail.subject', provider.name, ref),
+        T('insurance.mail.body',
+            p.holder, provider.name, p.vehicle, p.plate, p.coverLabel, Browser.datetime(endsAt), Config.currency, price, ref))
 
     return {
         ref = ref, plate = p.plate, provider = provider.name, cover = a.cover.label, price = price,
@@ -311,7 +310,7 @@ local function buy(src, data)
 end
 
 Browser.handler('insurance', 'buy', function(src, data)
-    if busy[src] then return nil, 'Please wait, your last request is still being processed.' end
+    if busy[src] then return nil, T('shell.err.busy') end
     busy[src] = true
     local ok, res, err = pcall(buy, src, data)
     busy[src] = nil
@@ -321,7 +320,7 @@ end)
 
 Browser.handler('insurance', 'policies', function(src)
     local cid = Bridge.getIdentifier(src)
-    if not cid then return nil, 'You are not signed in.' end
+    if not cid then return nil, T('shell.err.notSignedIn') end
     local rows = MySQL.query.await(
         'SELECT ref, plate, provider, cover, starts_at, ends_at, price FROM browser_insurance_policies WHERE citizenid = ? ORDER BY id DESC LIMIT 30',
         { cid }) or {}

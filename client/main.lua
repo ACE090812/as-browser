@@ -42,18 +42,21 @@ local function ask(name, ...)
     return nil
 end
 
+-- The page asks for the language dictionary once at start (see locales/ and README "Languages").
+RegisterNUICallback('locale', function(_, cb) cb(LocaleDict()) end)
+
 RegisterNUICallback('sites', function(_, cb)
     cb(ask('as-browser:sites') or {})
 end)
 
 RegisterNUICallback('player', function(_, cb)
-    cb(ask('as-browser:player') or { name = 'Citizen' })
+    cb(ask('as-browser:player') or { name = T('shell.citizen') })
 end)
 
 RegisterNUICallback('siteCall', function(data, cb)
     data = data or {}
     cb(ask('as-browser:siteCall', data.domain, data.name, data.data)
-        or { ok = false, error = 'No response from the server.' })
+        or { ok = false, error = T('shell.noServerResponse') })
 end)
 
 RegisterNUICallback('bookmarks:list', function(_, cb) cb(ask('as-browser:bookmarks:list') or {}) end)
@@ -75,7 +78,7 @@ RegisterNUICallback('history:clear', function(_, cb) cb({ ok = ask('as-browser:h
 -- Saving a site login into the phone's Passwords app. Off by default: see the README.
 RegisterNUICallback('savePassword', function(d, cb)
     if not Config.passwords.enabled then
-        return cb({ ok = false, error = 'Saving logins is not switched on.' })
+        return cb({ ok = false, error = T('shell.saveLoginOff') })
     end
     d = d or {}
     local res = ask('sd-phone:server:accounts:savePassword', {
@@ -85,7 +88,7 @@ RegisterNUICallback('savePassword', function(d, cb)
         email    = d.email,
     })
     if type(res) == 'table' and res.success == true then return cb({ ok = true }) end
-    cb({ ok = false, error = (type(res) == 'table' and (res.message or res.error)) or 'Could not save the login.' })
+    cb({ ok = false, error = (type(res) == 'table' and (res.message or res.error)) or T('shell.saveLoginFailed') })
 end)
 
 -- A site was switched on or off, or another resource added one: tell the open browser.
