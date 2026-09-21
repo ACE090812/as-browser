@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LS Tickets</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root { --accent: #db2777; --accent-fg: #fff; }
+    :root[data-theme="dark"] { --accent: #f472b6; --accent-fg: #4a0a27; }
+    .top { background: var(--accent); color: var(--accent-fg); padding: 14px 16px 0; }
+    .top .brand { display: flex; align-items: baseline; gap: 10px; font-weight: 800; font-size: 21px; cursor: pointer; }
+    .top .brand small { font-weight: 400; font-size: 12.5px; opacity: .85; }
+    .nav { display: flex; gap: 4px; margin-top: 10px; overflow-x: auto; }
+    .nav button { padding: 9px 14px; border-radius: 10px 10px 0 0; font-weight: 600; color: var(--accent-fg); opacity: .8; white-space: nowrap; }
+    .nav button.on { background: var(--bg); color: var(--fg); opacity: 1; }
+    .page { padding: 16px; max-width: 700px; margin: 0 auto; }
+    h1 { font-size: 26px; font-weight: 800; margin: 4px 0 10px; }
+    h2 { font-size: 18px; font-weight: 800; margin: 20px 0 8px; }
+    .chips { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; }
+    .chip { padding: 7px 14px; border-radius: 999px; background: var(--surface); font-weight: 600; white-space: nowrap; }
+    .chip.on { background: var(--accent); color: var(--accent-fg); }
+    .ev { display: flex; gap: 14px; align-items: center; background: var(--surface); border-radius: 14px; padding: 14px; margin-bottom: 10px; cursor: pointer; text-align: left; width: 100%; }
+    .ev .ico { font-size: 34px; width: 46px; text-align: center; flex: none; }
+    .ev .when { color: var(--accent); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+    .ev .ttl { font-weight: 800; font-size: 17px; }
+    .ev .sub { color: var(--muted); font-size: 14px; }
+    .ev .price { margin-left: auto; text-align: right; flex: none; font-weight: 800; }
+    .ev .price small { display: block; font-weight: 500; color: var(--muted); }
+    .crumbs { font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
+    .crumbs a { cursor: pointer; }
+    .hero { text-align: center; padding: 18px 10px; }
+    .hero .big { font-size: 58px; }
+    .qty { display: flex; align-items: center; gap: 14px; margin: 14px 0; }
+    .qty button { width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); font-size: 22px; font-weight: 700; }
+    .qty b { font-size: 22px; min-width: 30px; text-align: center; }
+    .tkt { background: var(--surface); border-radius: 14px; margin-bottom: 12px; overflow: hidden; border-left: 8px solid var(--accent); }
+    .tkt .in { padding: 14px; display: flex; gap: 12px; align-items: center; }
+    .tkt .code { font-family: ui-monospace, Consolas, monospace; font-size: 22px; font-weight: 800; letter-spacing: .12em; }
+    .tkt.used { opacity: .55; border-left-color: var(--muted); }
+    .tkt .cut { border-top: 2px dashed var(--line); padding: 10px 14px; font-size: 13.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat { background: var(--surface); border-radius: 12px; padding: 10px; text-align: center; }
+    .stat b { display: block; font-size: 20px; }
+    .foot { margin-top: 30px; padding: 16px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 13px; }
+    .desc { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="top"><div class="brand" id="brand"><span id="siteName">LS Tickets</span><small id="siteTag"></small></div><div class="nav" id="nav"></div></div>
+<div class="page" id="app"><div class="spinner"></div></div>
+<div class="foot" id="foot"></div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc, app = document.getElementById('app');
+    var D = null, cat = '', qty = 1, busy = false, toast = '';
+
+    function money(n) { return n > 0 ? Site.money(n) : t('tickets.free'); }
+    function when(ts) { return Site.datetime(ts); }
+    function catOf(id) { return (D.categories.filter(function (c) { return c.id === id; })[0]) || null; }
+    function plural(n) { return t(n === 1 ? 'tickets.left.one' : 'tickets.left.other', n); }
+    function setPage(title, html) { Site.title(title); app.innerHTML = html; window.scrollTo(0, 0); }
+    function err(e) { return '<div class="notice bad">' + esc(e && e.message ? e.message : t('tickets.err.generic')) + '</div>'; }
+    function banner() {
+        var h = '';
+        if (D && D.refunded > 0) h += '<div class="notice good" style="margin-bottom:12px">' + esc(t('tickets.refunded', money(D.refunded))) + '</div>';
+        if (toast) h += '<div class="notice good" style="margin-bottom:12px">' + esc(toast) + '</div>';
+        D && (D.refunded = 0); toast = '';
+        return h;
+    }
+
+    function nav(active) {
+        var b = [['/', 'tickets.nav.events'], ['/tickets', 'tickets.nav.mine']];
+        if (D && D.me && D.me.canOrganise) b.push(['/organise', 'tickets.nav.organise']);
+        document.getElementById('nav').innerHTML = b.map(function (x) {
+            return '<button class="' + (active === x[0] ? 'on' : '') + '" data-go="' + x[0] + '">' + esc(t(x[1])) + '</button>';
+        }).join('');
+    }
+
+    function evCard(e) {
+        var ended = e.endsAt <= D.now, sold = e.left === 0;
+        return '<button class="ev" data-ev="' + e.id + '"><div class="ico">' + esc(e.icon) + '</div><div><div class="when">' + esc(when(e.startsAt)) + '</div><div class="ttl">' + esc(e.title) + '</div>' +
+            '<div class="sub">' + esc(e.venue) + (e.organiser ? ' · ' + esc(e.organiser) : '') + '</div></div>' +
+            '<div class="price">' + esc(money(e.price)) + '<small>' + esc(ended ? t('tickets.ended') : sold ? t('tickets.soldOut') : plural(e.left)) + '</small></div></button>';
+    }
+
+    // ------------------------------------------------------------------ pages
+    function home() {
+        nav('/');
+        var list = D.events.filter(function (e) { return !cat || e.category === cat; });
+        setPage(D.name, banner() + '<h1>' + esc(t('tickets.upcoming')) + '</h1>' +
+            '<div class="chips"><button class="chip ' + (cat ? '' : 'on') + '" data-cat="">' + esc(t('tickets.all')) + '</button>' +
+            D.categories.map(function (c) { return '<button class="chip ' + (cat === c.id ? 'on' : '') + '" data-cat="' + esc(c.id) + '">' + esc(c.icon + ' ' + c.label) + '</button>'; }).join('') + '</div>' +
+            (list.length ? list.map(evCard).join('') : '<div class="card center muted">' + esc(t('tickets.none')) + '</div>'));
+    }
+
+    function eventPage(id) {
+        nav('/');
+        Site.call('event', { id: id }).then(function (r) {
+            var e = r.event, c = catOf(e.category), max = D.limits.maxPerPerson;
+            var canBuy = e.status === 'open' && e.endsAt > r.now && e.left > 0;
+            qty = Math.max(1, Math.min(qty, Math.min(max - e.mine, e.left) || 1));
+            var buy = e.status !== 'open' ? '<div class="notice bad">' + esc(t('tickets.err.cancelled')) + '</div>' :
+                e.endsAt <= r.now ? '<div class="notice">' + esc(t('tickets.ended')) + '</div>' :
+                e.left === 0 ? '<div class="notice bad">' + esc(t('tickets.soldOut')) + '</div>' :
+                e.mine >= max ? '<div class="notice">' + esc(t('tickets.err.limit', max)) + '</div>' :
+                '<div class="card"><b>' + esc(t('tickets.howMany')) + '</b><div class="qty"><button data-q="-1">−</button><b id="qn">' + qty + '</b><button data-q="1">+</button>' +
+                '<span class="grow"></span><b id="qt">' + esc(money(e.price * qty)) + '</b></div><button class="btn block" id="buy" data-id="' + e.id + '">' + esc(t('tickets.buy')) + '</button></div>';
+            setPage(e.title, banner() + '<div class="crumbs"><a data-go="/">' + esc(t('tickets.nav.events')) + '</a>' + (c ? ' › ' + esc(c.label) : '') + '</div>' +
+                '<div class="hero"><div class="big">' + esc(e.icon) + '</div><h1>' + esc(e.title) + '</h1><div class="muted">' + esc(e.venue) + '</div></div>' +
+                '<table class="kv"><tr><th>' + esc(t('tickets.when')) + '</th><td>' + esc(when(e.startsAt)) + '</td></tr>' +
+                '<tr><th>' + esc(t('tickets.ends')) + '</th><td>' + esc(when(e.endsAt)) + '</td></tr>' +
+                '<tr><th>' + esc(t('tickets.price')) + '</th><td>' + esc(money(e.price)) + '</td></tr>' +
+                '<tr><th>' + esc(t('tickets.availability')) + '</th><td>' + esc(e.left === 0 ? t('tickets.soldOut') : plural(e.left)) + '</td></tr>' +
+                (e.organiser ? '<tr><th>' + esc(t('tickets.organiser')) + '</th><td>' + esc(e.organiser) + '</td></tr>' : '') +
+                (e.mine ? '<tr><th>' + esc(t('tickets.yourTickets')) + '</th><td>' + e.mine + '</td></tr>' : '') + '</table>' +
+                (e.description ? '<h2>' + esc(t('tickets.about')) + '</h2><p class="desc">' + esc(e.description) + '</p>' : '') + '<div id="buybox" style="margin-top:14px">' + buy + '</div>');
+            app._ev = e;
+        }).catch(function (e) { setPage(D.name, err(e)); });
+    }
+
+    function mine() {
+        nav('/tickets');
+        Site.call('mine').then(function (r) {
+            if (r.refunded) D.refunded = (D.refunded || 0) + r.refunded;
+            var upcoming = r.tickets.filter(function (x) { return x.endsAt > r.now && x.status === 'open'; });
+            var past = r.tickets.filter(function (x) { return !(x.endsAt > r.now && x.status === 'open'); });
+            function tk(x) {
+                return '<div class="tkt ' + (x.used ? 'used' : '') + '"><div class="in"><div style="font-size:30px">' + esc(x.icon) + '</div><div class="grow"><div style="font-weight:800">' + esc(x.title) + '</div>' +
+                    '<div class="muted small">' + esc(x.venue) + ' · ' + esc(when(x.startsAt)) + '</div></div></div>' +
+                    '<div class="cut"><span class="code">' + esc(x.code) + '</span><span>' + esc(x.used ? t('tickets.used') : t('tickets.valid')) + '</span></div></div>';
+            }
+            setPage(t('tickets.nav.mine'), banner() + '<h1>' + esc(t('tickets.nav.mine')) + '</h1>' +
+                (r.tickets.length ? '' : '<div class="card center muted">' + esc(t('tickets.noTickets')) + '</div>') +
+                (upcoming.length ? '<h2>' + esc(t('tickets.upcomingTickets')) + '</h2>' + upcoming.map(tk).join('') : '') +
+                (past.length ? '<h2>' + esc(t('tickets.pastTickets')) + '</h2>' + past.map(tk).join('') : '') +
+                '<p class="muted small">' + esc(t('tickets.showCode')) + '</p>');
+        }).catch(function (e) { setPage(D.name, err(e)); });
+    }
+
+    function organise() {
+        nav('/organise');
+        Site.call('organise').then(function (r) {
+            var cats = D.categories.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.icon + ' ' + c.label) + '</option>'; }).join('');
+            setPage(t('tickets.nav.organise'), banner() + '<h1>' + esc(t('tickets.nav.organise')) + '</h1><p class="muted">' + esc(r.job) + '</p>' +
+                '<div class="card"><b>' + esc(t('tickets.checkin')) + '</b><p class="muted small">' + esc(t('tickets.checkinHelp')) + '</p>' +
+                '<div class="row"><input type="text" id="cc" maxlength="12" placeholder="ABCD-2345" autocomplete="off" style="text-transform:uppercase"><button class="btn" id="cb">' + esc(t('tickets.checkinGo')) + '</button></div><div id="cr" style="margin-top:10px"></div></div>' +
+                '<h2>' + esc(t('tickets.yourEvents')) + '</h2>' +
+                (r.events.length ? r.events.map(function (e) {
+                    var open = e.status === 'open' && e.endsAt > r.now;
+                    return '<div class="card" style="margin-bottom:10px"><div class="row between"><b>' + esc(e.icon + ' ' + e.title) + '</b><span class="tag ' + (e.status === 'cancelled' ? 'bad' : open ? 'good' : '') + '">' + esc(e.status === 'cancelled' ? t('tickets.cancelled') : open ? t('tickets.open') : t('tickets.ended')) + '</span></div>' +
+                        '<div class="muted small">' + esc(e.venue) + ' · ' + esc(when(e.startsAt)) + '</div>' +
+                        '<div class="grid2" style="margin-top:10px"><div class="stat"><b>' + e.sold + ' / ' + e.capacity + '</b>' + esc(t('tickets.sold')) + '</div><div class="stat"><b>' + e.checkedIn + '</b>' + esc(t('tickets.checkedIn')) + '</div></div>' +
+                        (open ? '<button class="btn danger" style="margin-top:10px" data-cancel="' + e.id + '">' + esc(t('tickets.cancelEvent')) + '</button>' : '') + '</div>';
+                }).join('') : '<div class="card center muted">' + esc(t('tickets.noEvents')) + '</div>') +
+                '<h2>' + esc(t('tickets.newEvent')) + '</h2><div class="card" id="nf">' +
+                '<label class="field"><span class="lbl">' + esc(t('tickets.f.title')) + '</span><input type="text" id="f-title" maxlength="80"></label>' +
+                '<label class="field"><span class="lbl">' + esc(t('tickets.f.venue')) + '</span><input type="text" id="f-venue" maxlength="80"></label>' +
+                '<label class="field"><span class="lbl">' + esc(t('tickets.f.category')) + '</span><select id="f-cat">' + cats + '</select></label>' +
+                '<label class="field"><span class="lbl">' + esc(t('tickets.f.starts')) + '</span><input type="datetime-local" id="f-start"></label>' +
+                '<div class="grid2"><label class="field"><span class="lbl">' + esc(t('tickets.f.duration')) + '</span><input type="number" id="f-dur" value="120" min="15"></label>' +
+                '<label class="field"><span class="lbl">' + esc(t('tickets.f.capacity')) + '</span><input type="number" id="f-cap" value="50" min="1"></label></div>' +
+                '<label class="field"><span class="lbl">' + esc(t('tickets.f.price')) + '</span><input type="number" id="f-price" value="10" min="0"></label>' +
+                '<label class="field"><span class="lbl">' + esc(t('tickets.f.description')) + '</span><textarea id="f-desc" maxlength="1000"></textarea></label>' +
+                '<div id="f-err"></div><button class="btn block" id="f-go">' + esc(t('tickets.create')) + '</button></div>');
+        }).catch(function (e) { setPage(D.name, err(e)); });
+    }
+
+    function route(path) {
+        var m;
+        if ((m = /^\/e\/(\d+)$/.exec(path))) return eventPage(+m[1]);
+        if (path === '/tickets') return mine();
+        if (path === '/organise') return D.me.canOrganise ? organise() : home();
+        // the list is reloaded each time so seat counts are current
+        Site.call('init').then(function (d) { D = d; home(); }).catch(function (e) { setPage(D.name, err(e)); });
+    }
+
+    // ------------------------------------------------------------------ actions
+    document.addEventListener('click', function (e) {
+        var el;
+        if ((el = e.target.closest('[data-go]'))) { e.preventDefault(); return Site.go(el.dataset.go); }
+        if ((el = e.target.closest('[data-ev]'))) { qty = 1; return Site.go('/e/' + el.dataset.ev); }
+        if ((el = e.target.closest('[data-cat]'))) { cat = el.dataset.cat; return home(); }
+        if ((el = e.target.closest('[data-q]'))) {
+            var ev = app._ev, max = Math.min(D.limits.maxPerPerson - ev.mine, ev.left);
+            qty = Math.max(1, Math.min(max, qty + (+el.dataset.q)));
+            document.getElementById('qn').textContent = qty;
+            document.getElementById('qt').textContent = money(ev.price * qty);
+            return;
+        }
+        if ((el = e.target.closest('#buy'))) {
+            if (busy) return; busy = true; el.disabled = true;
+            Site.call('buy', { id: +el.dataset.id, qty: qty }).then(function (r) {
+                busy = false; toast = t('tickets.bought', r.codes.length, r.title); qty = 1;
+                Site.go('/tickets');
+            }).catch(function (er) {
+                busy = false; el.disabled = false;
+                var b = document.getElementById('buybox'); if (b) b.insertAdjacentHTML('afterbegin', err(er));
+            });
+            return;
+        }
+        if ((el = e.target.closest('#cb'))) {
+            var code = document.getElementById('cc').value, out = document.getElementById('cr');
+            Site.call('checkin', { code: code }).then(function (r) {
+                out.innerHTML = '<div class="notice good"><b>' + esc(t('tickets.checkedInOk')) + '</b> ' + esc(r.holder) + ' · ' + esc(r.title) + ' · ' + esc(t('tickets.inside', r.inside)) + '</div>';
+                document.getElementById('cc').value = '';
+            }).catch(function (er) { out.innerHTML = err(er); });
+            return;
+        }
+        if ((el = e.target.closest('[data-cancel]'))) {
+            if (el.dataset.sure !== '1') { el.dataset.sure = '1'; el.textContent = t('tickets.cancelSure'); return; }
+            el.disabled = true;
+            Site.call('cancel', { id: +el.dataset.cancel }).then(function (r) {
+                toast = t('tickets.cancelledOk', r.holders, money(r.refunded)); organise();
+            }).catch(function (er) { el.disabled = false; toast = ''; app.insertAdjacentHTML('afterbegin', err(er)); });
+            return;
+        }
+        if ((el = e.target.closest('#f-go'))) {
+            var g = function (id) { return document.getElementById(id).value; };
+            el.disabled = true;
+            Site.call('create', {
+                title: g('f-title'), venue: g('f-venue'), category: g('f-cat'), startsAt: g('f-start'), durationMinutes: +g('f-dur'),
+                capacity: +g('f-cap'), price: +g('f-price'), description: g('f-desc')
+            }).then(function (r) { toast = t('tickets.created'); return Site.call('init').then(function (d) { D = d; Site.go('/e/' + r.id); }); })
+              .catch(function (er) { el.disabled = false; document.getElementById('f-err').innerHTML = err(er); });
+        }
+    });
+
+    Site.onRoute(function (path) {
+        if (D) return route(path);
+        Site.call('init').then(function (r) {
+            D = r;
+            document.getElementById('siteName').textContent = r.name || t('tickets.name');
+            document.getElementById('siteTag').textContent = r.tagline || '';
+            document.getElementById('foot').innerHTML = (r.footer || []).map(esc).join(' &nbsp;·&nbsp; ');
+            route(Site.route());
+        }).catch(function (e) { app.innerHTML = err(e); });
+    });
+    document.getElementById('brand').onclick = function () { Site.go('/'); };
+})();
+</script>
+</body>
+</html>

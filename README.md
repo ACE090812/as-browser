@@ -141,16 +141,18 @@ A vehicle's class (motorcycle, compact, sports and so on) comes from its categor
 
 Tax lasts 7 days. A vehicle the system has not seen before starts taxed for `graceDays`, so nothing is untaxed on day one. A vehicle can be taxed again once it has `renewWindowDays` or fewer days left.
 
-### MOT (for your MOT script)
+### MOT (as-computer, or your own MOT script)
 
-MOT is not part of the driving school script or the government site. The MOT is off until your own MOT script is hooked in, and the "Book an MOT test" entry in the Driving category is only a placeholder (remove it from `sites/gov/config.lua` if you do not want it). To connect your script, call this after each test and set `Config.gov.mot.enabled = true` in `sites/gov/config.lua`:
+MOT results come from `as-computer`'s MOT Testing Service: with `pushMotResults` on (its default), every finished test is sent here and `Config.gov.mot.enabled = true` (the default in `sites/gov/config.lua`) makes the vehicle checker show MOT status and history. Booking is on `/book-mot` (see MOT booking above).
+
+Using a different MOT script instead? Call this after each test and keep `Config.gov.mot.enabled = true`:
 
 ```lua
 -- passed (bool), expiry (unix time, required when passed), details (optional text)
 exports['as-browser']:setMotResult(plate, true, os.time() + 30 * 86400, 'All clear')
 ```
 
-The vehicle checker then shows MOT status and history, and the MOT booking page can be pointed at your script.
+No MOT at all (a US server, say): set `Config.gov.mot.enabled = false` and `Config.gov.scripts.motbooking = false`, and remove the "Book an MOT test" service.
 
 ### For police, MDT and ANPR scripts
 
@@ -214,7 +216,7 @@ Settings are in `sites/gov/config.lua` under `council`. The homes are read from 
 
 ## Driving licence
 
-The government site has a live driving licence service (`/driving-licence`): the player's licence (status, categories, penalty points, test history), booking and paying for theory and practical tests, and ordering a replacement licence (delivered to a Postal Prime locker, like passports). The rules and fees live in the `as-drivingschool` resource (`Config.Fees`, `Config.Booking`); the site only passes requests through and adds the bank statement line and confirmation email (`sites/gov/server_licence.lua`). The resource name and email sender are in `sites/gov/config.lua` under `licence`. If the resource is stopped the pages say the service is not available. MOT results from that script show up in the vehicle checker through `setMotResult`; booking an MOT on the site is not part of this service (`mot.enabled` stays `false`).
+The government site has a live driving licence service (`/driving-licence`): the player's licence (status, categories, penalty points, test history), booking and paying for theory and practical tests, and ordering a replacement licence (delivered to a Postal Prime locker, like passports). The rules and fees live in the `as-drivingschool` resource (`Config.Fees`, `Config.Booking`); the site only passes requests through and adds the bank statement line and confirmation email (`sites/gov/server_licence.lua`). The resource name and email sender are in `sites/gov/config.lua` under `licence`. If the resource is stopped the pages say the service is not available. MOT is separate: results come from `as-computer` (see MOT above) and booking is `/book-mot`.
 
 ## Penalty points and fines
 
@@ -360,7 +362,6 @@ Add any similar table from your own scripts (impound tables that copy the car ou
 - **Not tested inside FiveM.** The Lua, the database code and the web pages were run against a mock FiveM and a SQLite copy of the tables (51 tests covering QBCore and ESX, plus a browser test of the pages). Please try each key path on a test server (buy, fit, remove, sell, buy from the market, with a key in the inventory and a key in a glovebox) before you open it to players. The keys are checked against the code of `acestudios_vehiclekeys`, not run with it.
 - **Keys changed only when the plate changes here.** If someone changes a plate with a different script, or an admin edits `player_vehicles`, the keys are not updated by LS Plates.
 - **Item keys are matched by exact text.** The offline update looks for `"plate":"AB12 CDE"` inside the saved inventory. It is exact, so if your key script stores a different format (no space, lower case), set `fields` or use `onChanged`.
-- **Two files are now empty.** `sites/gov/server_plates.lua` and `sites/gov/server_history.lua` are comment-only leftovers from when these services were part of the government site. Delete them any time.
 - **`qbx_vehicles` is edited.** It is a third-party resource; see the plate generator note above.
 
 ## Criminal record (DBS) checks
@@ -406,6 +407,52 @@ A trade parts shop for garages, on the desktop browser only (as-computer's Scout
 - Text is in `locales/en.lua` under `parts.*`.
 
 A site can be marked desktop-only in its `Browser.defineSite` call with `desktopOnly = true`.
+
+## Other scripts checklist
+
+One place that lists what every kind of script needs from you. Each row points at the section with the details. Nothing here changes anything until the matching feature is used.
+
+| Script type | What to do | Details |
+| --- | --- | --- |
+| **Vehicle keys** (item keys, e.g. `acestudios_vehiclekeys`) | Keep `keys.enabled = true` in `sites/plates/config.lua`; set `keys.item` and `keys.fields` to your key item. | [1. Vehicle key scripts](#1-vehicle-key-scripts) |
+| Vehicle keys in their **own table** | Add the table to `extraTables`. | same |
+| Keys with **no stored plate** | Set `keys.enabled = false`. | same |
+| Any script with its own plate update function | Use the `onChanged` hook in `sites/plates/config.lua`. | same |
+| **Dealerships** and plate generators | Refuse plates where `exports['as-browser']:isPlateReserved(plate)` is true, or take plates from `generatePlate()`. `qbx_vehicles` is already patched (the patch is lost when you update it). | [2. Dealerships](#2-dealerships-and-plate-generators) |
+| **Used-car lots** and anything that moves cars out of `player_vehicles` | Add their table to `holdingTables` (`occasion_vehicles` is there by default). | [3. Used-car lots](#3-used-car-lots-and-other-tables-that-hold-vehicles) |
+| **Garages** | Nothing if they read the plate from `player_vehicles`. Set `stateColumn` / `garagedValues` if your garage state is not `state = 1` (`stored = 1` on ESX). If a garage keeps its own copy of the plate, add that table to `extraTables`. | [Garages](#3-used-car-lots-and-other-tables-that-hold-vehicles) |
+| **Impound, police, MDT, ANPR** | `setVehicleFlag(plate, 'impounded' / 'stolen', true)`, `logVehicleEvent`, `getVehicleStatus`, `isRoadLegal`, `getVehicleHistory`, `getOriginalPlate`, `addCriminalRecord` (see below). Personalised plates are refused while a vehicle is impounded or stolen (garage state / stolen flag). | [Police](#for-police-mdt-and-anpr-scripts), [DBS](#criminal-record-dbs-checks), [LS Vehicle Check](#ls-vehicle-check-lsvehiclecheckcouk) |
+| **Housing** (council tax) | `housing = 'auto'` finds `qbx_properties`, `ps-housing` or `qb-houses`. Any other script: `housing = 'custom'` and fill in its table and column names. Each new home gets `graceDays` before the first bill. | [Council tax](#council-tax) |
+| **Banking / society accounts** | Only the parts shop needs one (Renewed-Banking, qb-banking, okokBanking, fd_banking, qb-management, esx_society, or `'custom'`). Everything else pays from the player's `bank` account and writes a phone bank line. | [Parts shop](#parts-shop-ls-parts-direct) |
+| **Inventory** (`ox_inventory` or `qb-inventory`) | Parts shop items must exist in ox_inventory. Certificate items (`birth_certificate`, `marriage_certificate`, `business_certificate`) come from each resource's `install/` folder. Item keys are edited through ox_inventory (live) or the inventory tables (offline). | [First-time setup checklist](#first-time-setup-checklist) |
+| **Postal Prime** | Patched `as-postalprime` needed for passports, licences, birth certificates and the parts shop (`createParcel`, `hidden` parcels, `getParcels`, `getDeliveryInfo`). Start it before as-browser. | [Start order](#start-order) |
+| **sd-phone** | Needs its exports `getMailAccounts`, `getMailAddresses`, `sendMail`, `addBankTransaction`, `notify` and `createDocument` for mail, bank lines, notifications and saved certificates. These calls are wrapped so a missing one never breaks a purchase: that bank line, notification or document is simply skipped (a mail that cannot be sent is printed in the console). | [Install](#install) |
+| **as-computer** (MOT terminal, Scout, bookings, mechanic app) | Start it after as-browser. It feeds MOT results and bookings, and follows plate changes by itself. Needs 0.5.1 or later. | [MOT](#mot-as-computer-or-your-own-mot-script) |
+| **Mileage** (`jg-vehiclemileage`) | Optional. `as-computer` reads it; the history check gets mileage from `as-computer`'s MOT records. | as-computer README |
+| **Discord / logging** | Webhooks go in the server-only `sites/*/config.lua` files (`jobs`, `benefits.webhook`) and `as-fines`. | [Jobs](#jobs-and-applications) |
+
+Two habits that save trouble:
+
+1. **Find every table that stores a plate.** Run this once on your database and go through the list; every table that is not `player_vehicles` and belongs to a script that holds plates for cars players own (keys, garages, tuning, mileage, trackers, tow, repo) needs `extraTables` or `onChanged`:
+
+   ```sql
+   SELECT table_name, column_name FROM information_schema.columns
+   WHERE table_schema = DATABASE() AND column_name LIKE '%plate%';
+   ```
+
+2. **After a plate change on a test server**, check that the car spawns, its key still opens it, it stores back in the garage, and the vehicle check and the MOT terminal both find it under the new plate. `plateconflicts` in the server console lists any duplicate.
+
+## Weather (lsweather.co.uk)
+
+Current conditions and an 8-step outlook for Los Santos, Blaine County and Mount Chiliad. `Config.weather.source` in `sites/weather/config.lua`: `'globalstate'` reads the live weather from a GlobalState key (`globalStateKeys`, default covers common weather scripts), `'function'` calls your own `Config.weather.current()`, `'simulated'` makes up believable weather, and `'auto'` (default) uses the live value when it finds one and simulates otherwise (the page then says "Estimated conditions"). Also `units` (`C`/`F`), `windUnit`, `stepMinutes`, `forecastSteps`, regional offsets and the per-weather-type table (label, icon, temperature, advice). `showForecast = false` hides the outlook. The outlook is always simulated, so it is an estimate and may not match what your weather script does next.
+
+## Server Wiki (lswiki.co.uk)
+
+Guides and rules, written in `sites/wiki/config.lua`: each page has an `id`, `title`, `category`, `summary`, `updated` and a `body` between `[=[ ... ]=]`. Body markup: `#`/`##` headings, `-` lists, `>` quotes, tables with `|`, `**bold**`, `*italic*`, `[[page-id|label]]` links to other pages and `[text](lsplates.co.uk/path)` links to another in-game site (only in-game domains are linked; everything else is shown as text). Search covers title, summary and body. Five example pages are included; replace them with your own.
+
+## Tickets and Events (lstickets.co.uk)
+
+Jobs in `Config.tickets.organiserJobs` (default `events`, from `organiserMinGrade`) can create events on the site (title, venue, date and time, price, capacity, category); anyone can buy tickets, paid from their bank. `staffJobs` can check tickets in at the door by code. Ticket codes are single use. Limits: `maxPerPerson`, `maxActivePerJob`, `maxCapacity`, price and time limits. Cancelling an event refunds every holder in full (online players immediately, offline players the next time they open the site). After an event ends the takings are paid to the organiser job's society account (uses the same bank detection as the parts shop; set `accountFor` to change the account). Fixed events can be seeded from `Config.tickets.events` (each needs a unique `key` and a future `startsAt`). Tables `browser_events`, `browser_tickets`, `browser_ticket_refunds` are created automatically. Not tested in game.
 
 ## Adding your own site
 

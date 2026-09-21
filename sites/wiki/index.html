@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Wiki</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root { --accent: #7c3aed; --accent-fg: #fff; }
+    :root[data-theme="dark"] { --accent: #a78bfa; --accent-fg: #1e1046; }
+    .top { background: var(--accent); color: var(--accent-fg); padding: 14px 16px; }
+    .top .brand { display: flex; align-items: baseline; gap: 10px; font-weight: 800; font-size: 21px; cursor: pointer; }
+    .top .brand small { font-weight: 400; font-size: 12.5px; opacity: .85; }
+    .search { display: flex; gap: 8px; margin-top: 10px; }
+    .search input { flex: 1; }
+    .page { padding: 16px; max-width: 700px; margin: 0 auto; }
+    h1 { font-size: 27px; font-weight: 800; }
+    h2 { font-size: 19px; font-weight: 800; margin: 22px 0 8px; }
+    .cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .cat { background: var(--surface); border-radius: 14px; padding: 14px; text-align: left; }
+    .cat .i { font-size: 26px; }
+    .cat b { display: block; margin-top: 4px; }
+    .list > a { display: block; padding: 12px 0; border-bottom: 1px solid var(--line); color: inherit; cursor: pointer; }
+    .list > a b { color: var(--accent); }
+    .list .s { color: var(--muted); font-size: 14px; margin-top: 2px; }
+    .crumbs { font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
+    .crumbs a { cursor: pointer; }
+    .doc h2 { border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+    .doc h3 { margin: 16px 0 6px; }
+    .doc ul, .doc ol { margin: 0 0 12px 22px; padding: 0; }
+    .doc blockquote { margin: 0 0 12px; padding: 10px 14px; border-left: 4px solid var(--accent); background: var(--surface); border-radius: 0 10px 10px 0; }
+    .doc code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-size: .92em; }
+    .doc table { border-collapse: collapse; width: 100%; margin: 0 0 14px; }
+    .doc th, .doc td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+    .doc th { background: var(--surface); }
+    .doc hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+    .doc a { text-decoration: underline; }
+    .foot { margin-top: 30px; padding: 16px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="top"><div class="brand" id="brand"><span id="siteName">Server Wiki</span><small id="siteTag"></small></div>
+<form class="search" id="sf"><input type="search" id="q" autocomplete="off"><button class="btn" id="qb" type="submit"></button></form></div>
+<div class="page" id="app"><div class="spinner"></div></div>
+<div class="foot" id="foot"></div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc, app = document.getElementById('app');
+    var idx = null, titles = {};
+
+    // ------------------------------------------------------------------ markup: escape first, then add tags
+    var DOMAIN = /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(\/[A-Za-z0-9._~\/#?=%-]*)?$/i;
+    function inline(raw) {
+        var s = esc(raw);
+        s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+        s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+        s = s.replace(/\*([^*\s][^*]*)\*/g, '<i>$1</i>');
+        s = s.replace(/\[\[([A-Za-z0-9_-]+)(?:\|([^\]]+))?\]\]/g, function (m, id, label) {
+            return '<a data-wiki="' + id + '">' + (label || esc(titles[id] || id)) + '</a>';
+        });
+        s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (m, text, url) {
+            return DOMAIN.test(url) ? '<a data-site="' + url + '">' + text + '</a>' : m;
+        });
+        return s;
+    }
+    function render(body) {
+        var lines = String(body || '').replace(/\r/g, '').split('\n'), out = [], i = 0;
+        function isBlank(l) { return /^\s*$/.test(l); }
+        while (i < lines.length) {
+            var l = lines[i], m;
+            if (isBlank(l)) { i++; continue; }
+            if ((m = /^(#{1,3})\s+(.*)$/.exec(l))) { out.push(m[1].length >= 3 ? '<h3>' + inline(m[2]) + '</h3>' : '<h2>' + inline(m[2]) + '</h2>'); i++; continue; }
+            if (/^-{3,}\s*$/.test(l)) { out.push('<hr>'); i++; continue; }
+            if (/^\s*[-*]\s+/.test(l)) {
+                var ul = [];
+                while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { ul.push('<li>' + inline(lines[i].replace(/^\s*[-*]\s+/, '')) + '</li>'); i++; }
+                out.push('<ul>' + ul.join('') + '</ul>'); continue;
+            }
+            if (/^\s*\d+[.)]\s+/.test(l)) {
+                var ol = [];
+                while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) { ol.push('<li>' + inline(lines[i].replace(/^\s*\d+[.)]\s+/, '')) + '</li>'); i++; }
+                out.push('<ol>' + ol.join('') + '</ol>'); continue;
+            }
+            if (/^>\s?/.test(l)) {
+                var q = [];
+                while (i < lines.length && /^>\s?/.test(lines[i])) { q.push(inline(lines[i].replace(/^>\s?/, ''))); i++; }
+                out.push('<blockquote>' + q.join('<br>') + '</blockquote>'); continue;
+            }
+            if (/^\s*\|.*\|\s*$/.test(l)) {
+                var rows = [];
+                while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { rows.push(lines[i].trim().replace(/^\||\|$/g, '').split('|')); i++; }
+                var head = rows.length > 1 && rows[1].every(function (c) { return /^\s*:?-{2,}:?\s*$/.test(c); });
+                var html = '<table>';
+                rows.forEach(function (r, n) {
+                    if (head && n === 1) return;
+                    var tag = head && n === 0 ? 'th' : 'td';
+                    html += '<tr>' + r.map(function (c) { return '<' + tag + '>' + inline(c.trim()) + '</' + tag + '>'; }).join('') + '</tr>';
+                });
+                out.push(html + '</table>'); continue;
+            }
+            var p = [];
+            while (i < lines.length && !isBlank(lines[i]) && !/^(#{1,3}\s|-{3,}\s*$|\s*[-*]\s+|\s*\d+[.)]\s+|>|\s*\|.*\|\s*$)/.test(lines[i])) { p.push(inline(lines[i])); i++; }
+            if (!p.length) { p.push(inline(lines[i])); i++; }
+            out.push('<p>' + p.join('<br>') + '</p>');
+        }
+        return out.join('');
+    }
+    window.__wikiRender = render;   // used by the tests
+
+    // ------------------------------------------------------------------ pages
+    function plural(n) { return t(n === 1 ? 'wiki.pages.one' : 'wiki.pages.other', n); }
+    function updated(p) { return p.updated ? ' <span class="muted small">' + esc(t('wiki.updated', p.updated)) + '</span>' : ''; }
+    function items(list, withSnippet) {
+        return '<div class="list">' + list.map(function (p) {
+            return '<a data-wiki="' + esc(p.id) + '"><b>' + esc(p.title) + '</b>' + updated(p) + '<div class="s">' + esc(withSnippet && p.snippet ? p.snippet : p.summary) + '</div></a>';
+        }).join('') + '</div>';
+    }
+    function setPage(title, html) { Site.title(title); app.innerHTML = html; window.scrollTo(0, 0); }
+
+    function home() {
+        var cats = idx.categories;
+        setPage(idx.name, '<h1>' + esc(idx.name) + '</h1><p class="muted">' + esc(idx.intro) + '</p>' +
+            (idx.featured.length ? '<h2>' + esc(t('wiki.popular')) + '</h2>' + items(idx.featured) : '') +
+            '<h2>' + esc(t('wiki.categories')) + '</h2><div class="cats">' + cats.map(function (c) {
+                return '<button class="cat" data-cat="' + esc(c.id) + '"><span class="i">' + esc(c.icon) + '</span><b>' + esc(c.label) + '</b><span class="muted small">' + esc(plural(c.count)) + '</span></button>';
+            }).join('') + '</div>' +
+            (idx.recent.length ? '<h2>' + esc(t('wiki.recent')) + '</h2>' + items(idx.recent) : ''));
+    }
+    function category(id) {
+        var c = idx.categories.filter(function (x) { return x.id === id; })[0];
+        if (!c) return home();
+        var list = idx.pages.filter(function (p) { return p.category === id; });
+        setPage(c.label, '<div class="crumbs"><a data-home="1">' + esc(t('wiki.home')) + '</a></div><h1>' + esc(c.icon + ' ' + c.label) + '</h1>' + items(list));
+    }
+    function pageView(id) {
+        Site.call('page', { id: id }).then(function (r) {
+            var p = r.page, c = r.categories.filter(function (x) { return x.id === p.category; })[0];
+            setPage(p.title, '<div class="crumbs"><a data-home="1">' + esc(t('wiki.home')) + '</a>' + (c ? ' › <a data-cat="' + esc(c.id) + '">' + esc(c.label) + '</a>' : '') + '</div>' +
+                '<h1>' + esc(p.title) + '</h1>' + (p.updated ? '<div class="muted small" style="margin-bottom:10px">' + esc(t('wiki.updated', p.updated)) + '</div>' : '') +
+                '<div class="doc">' + render(p.body) + '</div>' +
+                (r.related.length ? '<h2>' + esc(t('wiki.related')) + '</h2>' + items(r.related) : ''));
+        }).catch(function (e) { setPage(t('wiki.name'), '<div class="notice bad">' + esc(e.message) + '</div>'); });
+    }
+    function search(q) {
+        document.getElementById('q').value = q;
+        Site.call('search', { q: q }).then(function (r) {
+            setPage(t('wiki.results', q), '<div class="crumbs"><a data-home="1">' + esc(t('wiki.home')) + '</a></div><h1>' + esc(t('wiki.results', q)) + '</h1>' +
+                (r.results.length ? items(r.results, true) : '<p class="muted">' + esc(t('wiki.noResults')) + '</p>'));
+        }).catch(function (e) { setPage(t('wiki.name'), '<div class="notice bad">' + esc(e.message) + '</div>'); });
+    }
+
+    function route(path) {
+        var m;
+        if ((m = /^\/p\/([A-Za-z0-9_-]+)$/.exec(path))) return pageView(m[1]);
+        if ((m = /^\/c\/([A-Za-z0-9_-]+)$/.exec(path))) return category(m[1]);
+        if ((m = /^\/s\/(.+)$/.exec(path))) { var q; try { q = decodeURIComponent(m[1]); } catch (e) { q = m[1]; } return search(q); }
+        home();
+    }
+
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest('[data-wiki],[data-cat],[data-home],[data-site]');
+        if (!a) return;
+        e.preventDefault();
+        if (a.dataset.wiki) return Site.go('/p/' + a.dataset.wiki);
+        if (a.dataset.cat) return Site.go('/c/' + a.dataset.cat);
+        if (a.dataset.site) return Site.open(a.dataset.site);
+        Site.go('/');
+    });
+    document.getElementById('brand').onclick = function () { Site.go('/'); };
+    document.getElementById('sf').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var q = document.getElementById('q').value.trim();
+        if (q) Site.go('/s/' + encodeURIComponent(q)); else Site.go('/');
+    });
+
+    Site.onRoute(function (path) {
+        document.getElementById('q').placeholder = t('wiki.search');
+        document.getElementById('qb').textContent = t('wiki.searchGo');
+        if (idx) return route(path);
+        Site.call('index').then(function (r) {
+            idx = r;
+            r.pages.forEach(function (p) { titles[p.id] = p.title; });
+            document.getElementById('siteName').textContent = r.name || t('wiki.name');
+            document.getElementById('siteTag').textContent = r.tagline || '';
+            document.getElementById('foot').innerHTML = (r.footer || []).map(esc).join(' &nbsp;·&nbsp; ');
+            route(Site.route());
+        }).catch(function () { app.innerHTML = '<div class="notice bad">' + esc(t('wiki.err.load')) + '</div>'; });
+    });
+})();
+</script>
+</body>
+</html>

@@ -36,6 +36,9 @@ Config.Sites = {
     plates     = { enabled = true, domain = 'lsplates.co.uk' },        -- personalised number plates: buy, fit, sell to other players
     vehiclecheck = { enabled = true, domain = 'lsvehiclecheck.co.uk' }, -- vehicle history reports (owners, plate changes, MOT mileage, stolen / written off)
     parts      = { enabled = true, domain = 'lspartsdirect.co.uk' }, -- trade parts shop for garages (desktop browser only, paid from the job's society account)
+    weather    = { enabled = true, domain = 'lsweather.co.uk' },      -- current weather and an outlook, per region (reads your weather script)
+    wiki       = { enabled = true, domain = 'lswiki.co.uk' },         -- server wiki: guides and rules, edited in sites/wiki/config.lua
+    tickets    = { enabled = true, domain = 'lstickets.co.uk' },      -- events and tickets: players buy, organiser jobs run events and check people in
 }
 
 -- Symbol shown next to prices. Money is always whole numbers.

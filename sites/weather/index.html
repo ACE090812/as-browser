@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LS Weather</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root { --accent: #0284c7; --accent-fg: #fff; --sky1: #38bdf8; --sky2: #0369a1; }
+    :root[data-theme="dark"] { --accent: #38bdf8; --accent-fg: #06283d; --sky1: #0c4a6e; --sky2: #082f49; }
+    .top { background: var(--accent); color: var(--accent-fg); padding: 14px 16px 0; }
+    .top .brand { display: flex; align-items: baseline; gap: 10px; font-weight: 800; font-size: 21px; cursor: pointer; }
+    .top .brand small { font-weight: 400; font-size: 12.5px; opacity: .85; }
+    .tabs { display: flex; gap: 4px; margin-top: 10px; overflow-x: auto; }
+    .tabs button { padding: 9px 14px; border-radius: 10px 10px 0 0; font-weight: 600; color: var(--accent-fg); opacity: .8; white-space: nowrap; }
+    .tabs button.on { background: var(--bg); color: var(--fg); opacity: 1; }
+    .page { padding: 16px; max-width: 640px; margin: 0 auto; }
+    .now { border-radius: 18px; padding: 20px; color: #fff; background: linear-gradient(160deg, var(--sky1), var(--sky2)); position: relative; overflow: hidden; }
+    .now .big { display: flex; align-items: center; gap: 16px; }
+    .now .ico { font-size: 68px; line-height: 1; }
+    .now .deg { font-size: 56px; font-weight: 800; line-height: 1; }
+    .now .lab { font-size: 20px; font-weight: 700; margin-top: 4px; }
+    .now .meta { display: flex; gap: 22px; margin-top: 16px; font-size: 14px; opacity: .95; flex-wrap: wrap; }
+    .now .meta b { display: block; font-size: 17px; }
+    .now .src { position: absolute; top: 12px; right: 14px; font-size: 12px; background: rgba(0,0,0,.25); padding: 3px 10px; border-radius: 999px; }
+    .alert { margin: 14px 0 0; }
+    .advice { margin-top: 14px; }
+    h2 { font-size: 18px; font-weight: 800; margin: 22px 0 4px; }
+    .outlook { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; margin-top: 10px; }
+    .slot { background: var(--surface); border-radius: 14px; padding: 12px 8px; text-align: center; }
+    .slot .t { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .slot .i { font-size: 30px; margin: 4px 0; }
+    .slot .d { font-weight: 800; font-size: 18px; }
+    .slot .l { font-size: 12.5px; color: var(--muted); }
+    .slot.sev { outline: 2px solid var(--warn); }
+    .foot { margin-top: 30px; padding: 16px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="top"><div class="brand" id="brand"><span id="siteName">LS Weather</span><small id="siteTag"></small></div><div class="tabs" id="tabs"></div></div>
+<div class="page" id="app"><div class="spinner"></div></div>
+<div class="foot" id="foot"></div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc, app = document.getElementById('app');
+    var region = '', data = null, timer = null;
+
+    function hourLabel(ts) { return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    function deg(n) { return n + '°' + (data && data.units === 'F' ? 'F' : 'C'); }
+    function wind(n) { return n + ' ' + (data && data.windUnit === 'kmh' ? 'km/h' : 'mph'); }
+
+    function draw() {
+        var d = data, n = d.now;
+        document.getElementById('siteName').textContent = d.name || t('weather.name');
+        document.getElementById('siteTag').textContent = d.tagline || '';
+        Site.title(d.name || t('weather.name'));
+        document.getElementById('tabs').innerHTML = d.regions.map(function (r) {
+            return '<button class="' + (r.id === d.region ? 'on' : '') + '" data-r="' + esc(r.id) + '">' + esc(r.label) + '</button>';
+        }).join('');
+        document.getElementById('foot').innerHTML = (d.footer || []).map(function (x) { return '<span>' + esc(x) + '</span>'; }).join(' &nbsp;·&nbsp; ');
+        app.innerHTML =
+            (d.alert ? '<div class="notice bad alert"><b>' + esc(t('weather.alert')) + '.</b> ' + esc(d.alert) + '</div>' : '') +
+            '<div class="now"' + (d.alert ? ' style="margin-top:14px"' : '') + '><span class="src">' + esc(t(d.live ? 'weather.live' : 'weather.estimated')) + '</span>' +
+            '<div class="big"><div class="ico">' + esc(n.icon) + '</div><div><div class="deg">' + esc(deg(n.temp)) + '</div><div class="lab">' + esc(n.label) + '</div></div></div>' +
+            '<div class="meta"><div>' + esc(t('weather.wind')) + '<b>' + esc(wind(n.wind)) + '</b></div><div>' + esc(t('weather.humidityLabel')) + '<b>' + n.humidity + '%</b></div></div></div>' +
+            (n.advice ? '<div class="card advice"><b>' + esc(t('weather.advice')) + '</b><br>' + esc(n.advice) + '</div>' : '') +
+            (d.showForecast && d.outlook.length ? '<h2>' + esc(t('weather.outlook')) + '</h2><div class="muted small">' + esc(t('weather.outlookNote')) + '</div><div class="outlook">' +
+                d.outlook.map(function (o) {
+                    return '<div class="slot' + (o.severe ? ' sev' : '') + '"><div class="t">' + esc(hourLabel(o.at)) + '</div><div class="i">' + esc(o.icon) + '</div><div class="d">' + esc(deg(o.temp)) + '</div><div class="l">' + esc(o.label) + '</div></div>';
+                }).join('') + '</div>' : '');
+    }
+
+    function load() {
+        Site.call('forecast', { region: region }).then(function (r) {
+            data = r; region = r.region; draw();
+        }).catch(function () {
+            app.innerHTML = '<div class="notice bad">' + esc(t('weather.error')) + '</div><p><button class="btn" id="retry">' + esc(t('weather.retry')) + '</button></p>';
+            var b = document.getElementById('retry'); if (b) b.onclick = load;
+        });
+    }
+
+    document.getElementById('tabs').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-r]'); if (!b) return;
+        region = b.dataset.r; load();
+    });
+    document.getElementById('brand').onclick = function () { load(); };
+    Site.onRoute(function () { load(); if (timer) clearInterval(timer); timer = setInterval(load, 60000); });
+})();
+</script>
+</body>
+</html>
