@@ -41,7 +41,18 @@ MySQL.ready(function()
         UNIQUE KEY uq_ref (ref),
         KEY idx_job (job, id),
         KEY idx_buyer (citizenid, id)
-    )]])
+    ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci]])
+
+    -- Tables made by an earlier version used the database default (often not utf8mb4), and the part icons are
+    -- emoji, so saving an order failed with "Incorrect string value". Convert once when needed.
+    pcall(function()
+        local row = MySQL.single.await(
+            "SELECT TABLE_COLLATION AS c FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'browser_parts_orders'")
+        if row and row.c and not tostring(row.c):find('^utf8mb4') then
+            MySQL.query.await('ALTER TABLE browser_parts_orders CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')
+            log('converted browser_parts_orders to utf8mb4 (was %s)', tostring(row.c))
+        end
+    end)
 end)
 
 -- ---------------------------------------------------------------------------------------------
@@ -156,7 +167,8 @@ end
 --- This job's business drop-off from the config, or nil (no entry = no business delivery for the job).
 local function businessFor(jobName)
     local b = P.businesses and P.businesses[jobName]
-    if type(b) ~= 'table' or type(b.coords) ~= 'table' or type(b.stash) ~= 'table' or not b.stash.id then return nil end
+    -- coords may be a vec4 (a userdata in FiveM, so type() is not 'table') or a plain { x, y, z, w } table
+    if type(b) ~= 'table' or b.coords == nil or tonumber(b.coords.x) == nil or type(b.stash) ~= 'table' or not b.stash.id then return nil end
     return b
 end
 
@@ -278,11 +290,15 @@ Browser.handler('parts', 'order', function(src, data)
     local name = Bridge.getCharacterName(src)
     local stamp = now()
 
-    local rowId = MySQL.insert.await(
+    local insOk, rowId = pcall(MySQL.insert.await,
         'INSERT INTO browser_parts_orders (ref, citizenid, buyer_name, job, account, items, subtotal, fee, total, delivery, dest_label, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         { 'T' .. GetGameTimer() .. math.random(1000, 9999), cid, name:sub(1, 80), jg.name, account, json.encode(lines),
           subtotal, fee, total, method, destLabel:sub(1, 120), 'pending', stamp, stamp })
-    if not rowId then placing[cid] = nil; return nil, T('parts.err.generic') end
+    if not insOk or not rowId then
+        if not insOk then log('saving the order failed: %s', tostring(rowId)) end
+        placing[cid] = nil
+        return nil, T('parts.err.generic')
+    end
     local ref = (P.refPrefix or 'LSP-') .. (10000 + rowId)
     MySQL.update.await('UPDATE browser_parts_orders SET ref = ? WHERE id = ?', { ref, rowId })
 
