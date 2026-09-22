@@ -276,7 +276,7 @@ X.lock = lock
 
 --- Whether the vehicle is stored, when a garage state column is configured. true when fine or unknown.
 local function garaged(plateKey)
-    local col = cfg('stateColumn', nil)
+    local col = Vehicles.resolveStateColumn(cfg('stateColumn', nil))
     if not col then return true end
     local state, err = Vehicles.column(plateKey, col)
     if err then

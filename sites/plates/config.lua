@@ -39,8 +39,9 @@ Config.plates = {
     blocked      = { 'FUCK', 'CUNT', 'SHIT', 'NAZI', 'RAPE', 'KKK', 'PAEDO' },   -- plates containing any of these are refused
     reserved     = { 'POLICE', 'SAHP', 'LSPD', 'BCSO', 'EMS', 'ADMIN', 'STAFF' },   -- plates nobody can buy
     -- Only change a vehicle that is stored in a garage (so a spawned car is never changed under a player).
-    -- Set stateColumn to nil to turn the check off. qbx/qb keep `state` (0 out, 1 garaged, 2 impounded).
-    stateColumn   = 'state',
+    -- 'auto' resolves to qbx/qbcore's `state` column or esx's `stored` column. Set stateColumn to nil to
+    -- turn the check off, or to a specific column name if your garage script keeps its own.
+    stateColumn   = 'auto',
     garagedValues = { 1 },
     extraTables   = {
         -- { table = 'vehicle_keys', column = 'plate' },   -- any other table that stores the plate

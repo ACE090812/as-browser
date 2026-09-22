@@ -267,6 +267,15 @@ function Vehicles.page(offset, limit)
     return rows
 end
 
+--- Resolves a configured garage "state" column: 'auto' becomes qbx/qbcore's `state` or esx's `stored`;
+--- anything else (a specific column name, or nil to turn the garage check off) passes through unchanged.
+function Vehicles.resolveStateColumn(configured)
+    if configured == 'auto' then
+        return framework() == 'esx' and 'stored' or 'state'
+    end
+    return configured
+end
+
 --- Any other column of an owned vehicle (e.g. the garage `state`), or nil. The column name must be a plain identifier.
 --- Returns nil, 'error' when the column does not exist, so callers can tell "no value" from "cannot check".
 function Vehicles.column(plateKey, column)
