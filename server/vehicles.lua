@@ -20,8 +20,14 @@ end
 -- ---------------------------------------------------------------------------------------------
 
 local function tableCfg()
-    local c = Config.vehicleTable
-    if not c then
+    -- Lua tables are truthy even when empty, so `Config.vehicleTable = {}` (or one missing every key)
+    -- used to slip past `if not c then` and fall straight into the "custom table" branch below with
+    -- every field nil. next(c) == nil catches that case too, treating an empty/unset table the same
+    -- as leaving it nil.
+    local custom = Config.vehicleTable
+    local isCustom = type(custom) == 'table' and next(custom) ~= nil
+    local c = custom
+    if not isCustom then
         if framework() == 'esx' then
             c = { table = 'owned_vehicles', plate = 'plate', owner = 'owner', model = 'vehicle', mods = 'vehicle' }
         else
@@ -31,8 +37,11 @@ local function tableCfg()
     for _, k in ipairs({ 'table', 'plate', 'owner', 'model', 'mods' }) do
         local v = type(c[k]) == 'string' and c[k]:gsub('^%s+', ''):gsub('%s+$', '') or c[k]
         if type(v) ~= 'string' or v == '' or not v:match('^[%w_]+$') then
-            error(('Config.vehicleTable.%s must be a plain column/table name, got %s (from Config.vehicleTable = %s)')
-                :format(k, v == nil and 'nil' or ('"' .. tostring(v) .. '"'), Config.vehicleTable and 'a custom table' or 'nil, so this came from the framework default: check Bridge.framework ("' .. tostring(framework()) .. '")'))
+            local encOk, encoded = pcall(json.encode, Config.vehicleTable)
+            error(('Config.vehicleTable.%s must be a plain column/table name, got %s (from Config.vehicleTable = %s, type=%s, raw=%s)')
+                :format(k, v == nil and 'nil' or ('"' .. tostring(v) .. '"'),
+                    isCustom and 'a custom table' or 'nil/empty, so this came from the framework default: check Bridge.framework ("' .. tostring(framework()) .. '")',
+                    type(Config.vehicleTable), encOk and encoded or 'unencodable'))
         end
         c[k] = v
     end

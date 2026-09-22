@@ -24,7 +24,7 @@ Config.parts = {
     --   'esx_society'   esx_addonaccount
     --   'fd_banking'    fd_banking            'esx_society'  esx_addonaccount / esx_society
     --   'custom'        fill in the three functions below
-    bank = 'renewed',
+    bank = 'auto',
     -- Record purchases and refunds on the society's transaction list when the bank supports it.
     logTransactions = true,
     custom = {
