@@ -130,7 +130,8 @@
             function tk(x) {
                 return '<div class="tkt ' + (x.used ? 'used' : '') + '"><div class="in"><div style="font-size:30px">' + esc(x.icon) + '</div><div class="grow"><div style="font-weight:800">' + esc(x.title) + '</div>' +
                     '<div class="muted small">' + esc(x.venue) + ' · ' + esc(when(x.startsAt)) + '</div></div></div>' +
-                    '<div class="cut"><span class="code">' + esc(x.code) + '</span><span>' + esc(x.used ? t('tickets.used') : t('tickets.valid')) + '</span></div></div>';
+                    '<div class="cut"><span class="code">' + esc(x.code) + '</span><span>' + esc(x.used ? t('tickets.used') : t('tickets.valid')) + '</span></div>' +
+                    '<div style="padding:0 14px 12px"><button class="btn ghost small" data-print="ticketPrint" data-pd="' + esc(JSON.stringify({ code: x.code })) + '" data-ptitle="' + esc(x.title) + '">' + esc(t('print.button')) + '</button></div></div>';
             }
             setPage(t('tickets.nav.mine'), banner() + '<h1>' + esc(t('tickets.nav.mine')) + '</h1>' +
                 (r.tickets.length ? '' : '<div class="card center muted">' + esc(t('tickets.noTickets')) + '</div>') +

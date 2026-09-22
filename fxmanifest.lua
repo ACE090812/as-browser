@@ -22,6 +22,7 @@ server_scripts {
     'server/bridge.lua',
     'server/vehicles.lua',
     'server/main.lua',
+    'server/printing.lua',
     'sites/**/config.lua',
     'sites/**/server.lua',
     'sites/**/server_*.lua',   -- extra server files for a site, e.g. sites/gov/server_passport.lua

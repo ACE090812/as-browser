@@ -106,3 +106,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
     border: 3px solid var(--surface-2); border-top-color: var(--accent); animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* print dialog (Site.print) */
+.asb-print { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.45); }
+.asb-print-box { width: 100%; max-width: 420px; max-height: 92vh; overflow: auto; background: var(--surface, var(--bg)); color: inherit; border-radius: 16px; padding: 18px; box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+.asb-print-box h3 { margin: 0 0 12px; font-size: 18px; }
+.asb-print-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+.asb-print-foot:empty { display: none; }
+.asb-print .muted { text-align: center; }
+html:not(.can-print) [data-print] { display: none !important; }
+.btn.small, button.small { min-height: 34px; padding: 6px 12px; font-size: 13px; }

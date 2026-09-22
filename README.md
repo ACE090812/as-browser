@@ -13,6 +13,7 @@ Built-in sites (all fictional, all roleplay):
 | plates | `lsplates.co.uk` | LS Plates: buy, fit, move, take off and sell personalised number plates (see [LS Plates](#ls-plates-lsplatescouk)) |
 | vehiclecheck | `lsvehiclecheck.co.uk` | LS Vehicle Check: vehicle history reports in Basic / Standard / Full plans |
 | parts | LS Parts Direct | Parts shop for vehicles and mechanics |
+| bank | `lsbank.co.uk` | LS Bank: online banking that shares the phone's Wallet (see [LS Bank](#ls-bank-lsbankcouk)) |
 
 ## Install
 
@@ -453,6 +454,30 @@ Guides and rules, written in `sites/wiki/config.lua`: each page has an `id`, `ti
 ## Tickets and Events (lstickets.co.uk)
 
 Jobs in `Config.tickets.organiserJobs` (default `events`, from `organiserMinGrade`) can create events on the site (title, venue, date and time, price, capacity, category); anyone can buy tickets, paid from their bank. `staffJobs` can check tickets in at the door by code. Ticket codes are single use. Limits: `maxPerPerson`, `maxActivePerJob`, `maxCapacity`, price and time limits. Cancelling an event refunds every holder in full (online players immediately, offline players the next time they open the site). After an event ends the takings are paid to the organiser job's society account (uses the same bank detection as the parts shop; set `accountFor` to change the account). Fixed events can be seeded from `Config.tickets.events` (each needs a unique `key` and a future `startsAt`). Tables `browser_events`, `browser_tickets`, `browser_ticket_refunds` are created automatically. Not tested in game.
+
+## LS Bank (lsbank.co.uk)
+
+A full online-banking website for the same money the phone's Wallet app shows. It is a separate design (navy header, tabs, statements, a three-step payment with a review screen), not a copy of the phone app.
+
+- **Accounts:** balance, cash in hand, money in and out over 30 days, the player's card (colour taken from their phone's card style), recent transactions, and an account page with a made-up account number and the sort code (`sortCode` in `sites/bank/config.lua`).
+- **Statements:** every row in `phone_bank_transactions`, searchable, filtered in / out, grouped by day, paged.
+- **Pay and transfer:** to a phone number (online or offline) or a nearby player's server ID, optionally anonymous. Recent payees are one tap away.
+- **Standing orders:** create, edit, pause, resume and delete. The phone's own scheduler runs them, so they behave exactly like ones made in the phone.
+- **Invoices:** pay invoices sent to you (personal, and business invoices which go to the society account, with commission), send your own, cancel unpaid ones.
+
+**Shares the phone's data.** It reads and writes sd-phone's own tables (`phone_bank_transactions`, `phone_bank_standing_orders`, `phone_service_invoices`, `phone_settings`), so anything done here shows in the phone and the other way round. sd-phone must have started once so those tables exist; until then the site says it is not available. Money moves on the framework bank account (`Config.account`), like the other sites. Banking resources that keep balances in their own tables (wasabi, okok and similar) are not supported for personal accounts.
+
+**Limits are mirrored, not read.** One resource cannot read another's config, so `sites/bank/config.lua` repeats sd-phone's banking limits (standing-order maximum, invoice amounts and pending limit, business commission per company). If you change them in sd-phone's `configs/banking.lua`, change them there too. `walletLog = 'own'` makes the site write every statement row itself instead of tidying the phone's automatic one (use it if the phone does not log framework bank changes).
+
+Switch it off with `Config.Sites.bank.enabled = false`; text is in `locales/lsbank_en.lua`. Tested against a mock of sd-phone (`test/test_bank.py`, `test/run_ui_bank.py`); not yet tried in game.
+
+## Printing (needs `as-printer`)
+
+With the `as-printer` resource running, the sites show a **Print** button next to documents the player owns: MOT booking confirmations (`lsgov.co.uk`), tickets (`lstickets.co.uk`), invoices and the statement (`lsbank.co.uk`), vehicle history reports (`lsvehiclecheck.co.uk`), parts orders (`lspartsdirect.co.uk`) and number plate sales and purchases (`lsplates.co.uk`). Without `as-printer` the buttons stay hidden. To switch printing off anyway, add `Config.Printing = { enabled = false }` to `config.lua`.
+
+The player picks a printer within 50 metres, colour or black and white, and a letterhead. The page only sends which document it means. **The text is built on the server from the database** (`server/printing.lua` and the `*Print` requests in each site's server file), so a player cannot print a forged invoice or ticket. MOT booking confirmations and tickets cannot be copied on the printer. Supplies, zones and the tray are all set in `as-printer`.
+
+For your own site: add a request that builds the document and calls `Browser.printDoc(src, 'invoice', data, requestData)` (templates: `invoice`, `receipt`, `statement`, `ticket`, `vehicle_report`, `mot_booking`, `mot_certificate`), then put `<button data-print="yourRequest" data-pd='{"id":1}'>Print</button>` in the page. `Site.print(name, data)` opens the dialog from your own code.
 
 ## Adding your own site
 

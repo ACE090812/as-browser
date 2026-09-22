@@ -309,7 +309,8 @@
             }).join('');
             if (act.items.length) {
                 html += '<h2>' + esc(t('plates.mine.activity')) + '</h2><div class="card">' + act.items.map(function (a) {
-                    return '<div class="row" style="padding:6px 0"><span>' + plateHtml(a.plate, 'small') + ' <span class="fine">' + esc(t('plates.act.' + a.kind)) + '</span></span><span><b>' + Site.money(a.price) + '</b> <span class="fine">' + Site.date(a.at) + '</span></span></div>';
+                    return '<div class="row" style="padding:6px 0"><span>' + plateHtml(a.plate, 'small') + ' <span class="fine">' + esc(t('plates.act.' + a.kind)) + '</span></span><span><b>' + Site.money(a.price) + '</b> <span class="fine">' + Site.date(a.at) + '</span>' +
+                        (a.id ? ' <button class="btn ghost small" data-print="salePrint" data-pd="' + esc(JSON.stringify({ id: a.id })) + '" data-ptitle="' + esc(a.plate) + '">' + esc(t('print.button')) + '</button>' : '') + '</span></div>';
                 }).join('') + '</div>';
             }
             html += '<p class="fine">' + esc(t('plates.mine.rules', st.assignFee > 0 ? Site.money(st.assignFee) : t('plates.free'), st.cooldownHours)) + '</p>';

@@ -546,3 +546,33 @@ Browser.handler('vehiclecheck', 'report', function(src, data)
     rep.id = row.id
     return rep
 end)
+
+-- ---------------------------------------------------------------------------------------------
+-- printing (as-printer): one of the player's own saved reports. data = { id, printer, colour, design, letterhead }
+-- ---------------------------------------------------------------------------------------------
+Browser.handler('vehiclecheck', 'reportPrint', function(src, data)
+    local cid = Bridge.getIdentifier(src)
+    if not cid then return nil, T('shell.err.notSignedIn') end
+    local row = MySQL.single.await('SELECT id, data, created_at FROM browser_vehicle_reports WHERE id = ? AND cid = ?', { tonumber(data.id), cid })
+    if not row then return nil, T('gov.history.reportMissing') end
+    local ok, rep = pcall(json.decode, row.data)
+    if not ok or type(rep) ~= 'table' then return nil, T('gov.history.reportMissing') end
+    local byId, notes = {}, {}
+    for _, c in ipairs(rep.checks or {}) do
+        byId[c.id] = c
+        if c.id ~= 'mot' and c.id ~= 'mileage' and c.id ~= 'owners' and c.id ~= 'plates' then
+            notes[#notes + 1] = ('%s: %s%s'):format(c.label or c.id, c.detail or '', c.status == 'fail' and ' (!)' or '')
+        end
+    end
+    local function detail(id) return byId[id] and byId[id].detail or T('print.motNone') end
+    local v = rep.vehicle or {}
+    local stolen, wo = byId.flag_stolen, byId.flag_written_off
+    return Browser.printDoc(src, 'vehicle_report', {
+        plan = rep.plan and rep.plan.name or '', plate = rep.plate, model = ('%s %s'):format(v.make or '', v.model or ''):gsub('^%s+', ''):gsub('%s+$', ''),
+        colour = v.colour, owners = rep.owners, plateChanges = tostring(#(rep.previousPlates or {})),
+        mot = detail('mot'), mileage = detail('mileage'),
+        stolen = stolen and (stolen.status == 'pass' and T('print.stolenNo') or T('print.stolenYes')) or nil,
+        writtenOff = wo and (wo.status == 'pass' and T('print.stolenNo') or T('print.stolenYes')) or nil,
+        date = Browser.date(tonumber(row.created_at) or now()), notes = notes,
+    }, data)
+end)

@@ -258,10 +258,26 @@ Browser.handler('plates', 'activity', function(src)
     Plates.deliverPayouts(cid, src)
     local out = {}
     for _, s in ipairs(MySQL.query.await(
-        'SELECT display, seller, buyer, price, fee, sold_at FROM browser_plate_sales WHERE seller = ? OR buyer = ? ORDER BY id DESC LIMIT 30', { cid, cid }) or {}) do
+        'SELECT id, display, seller, buyer, price, fee, sold_at FROM browser_plate_sales WHERE seller = ? OR buyer = ? ORDER BY id DESC LIMIT 30', { cid, cid }) or {}) do
         local sold = s.seller == cid
-        out[#out + 1] = { plate = s.display, kind = sold and 'sold' or 'bought', price = tonumber(s.price), fee = sold and tonumber(s.fee) or 0, at = tonumber(s.sold_at) }
+        out[#out + 1] = { id = tonumber(s.id), plate = s.display, kind = sold and 'sold' or 'bought', price = tonumber(s.price), fee = sold and tonumber(s.fee) or 0, at = tonumber(s.sold_at) }
     end
     local owed = tonumber(MySQL.scalar.await('SELECT COALESCE(SUM(amount), 0) FROM browser_plate_payouts WHERE cid = ? AND settled = 0', { cid })) or 0
     return { items = out, owed = owed, now = now() }
+end)
+
+--- Print a receipt for a sale or purchase (as-printer). data = { id, printer, colour, design, letterhead }
+Browser.handler('plates', 'salePrint', function(src, data)
+    local cid = Bridge.getIdentifier(src)
+    if not cid then return nil, T('shell.err.notSignedIn') end
+    local s = MySQL.single.await('SELECT id, display, seller, buyer, price, fee, sold_at FROM browser_plate_sales WHERE id = ? AND (seller = ? OR buyer = ?)',
+        { tonumber(data.id), cid, cid })
+    if not s then return nil, T('print.err.notFound') end
+    local sold = s.seller == cid
+    local lines = { { desc = s.display, amount = Browser.printMoney(s.price) } }
+    if sold and (tonumber(s.fee) or 0) > 0 then lines[#lines + 1] = { desc = T('print.feeLine'), amount = '-' .. Browser.printMoney(s.fee) } end
+    return Browser.printDoc(src, 'receipt', {
+        title = T('print.doc.plateReceipt'), number = 'PL-' .. tostring(s.id), date = Browser.date(tonumber(s.sold_at) or os.time()), paidWith = T('print.paidWith'),
+        lines = lines, total = Browser.printMoney(sold and ((tonumber(s.price) or 0) - (tonumber(s.fee) or 0)) or s.price),
+    }, data)
 end)

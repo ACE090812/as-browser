@@ -1,0 +1,42 @@
+-- English text for printing from the websites (needs as-printer). The file name sorts after en.lua on purpose.
+Locales = Locales or {}
+Locales['en'] = Locales['en'] or {}
+
+local L = {
+    ['print.err.off'] = 'Printing is not available.',
+    ['print.err.generic'] = 'Printing failed. Try again.',
+    ['print.err.notFound'] = 'That document could not be found.',
+    ['print.button'] = 'Print',
+    ['print.title'] = 'Print',
+    ['print.looking'] = 'Looking for printers nearby…',
+    ['print.none'] = 'There is no printer within range. Move closer to one.',
+    ['print.off'] = 'Printing is not available.',
+    ['print.printer'] = 'Printer',
+    ['print.mode'] = 'Colour',
+    ['print.bw'] = 'Black and white',
+    ['print.colour'] = 'Colour',
+    ['print.letterhead'] = 'Letterhead',
+    ['print.noLetterhead'] = 'None',
+    ['print.restricted'] = 'restricted',
+    ['print.levels'] = 'paper %s, black %s, colour %s',
+    ['print.go'] = 'Print',
+    ['print.cancel'] = 'Cancel',
+    ['print.sent'] = 'Sent to %s. Collect it from the tray in about %s seconds.',
+    ['print.ok'] = 'OK',
+    ['print.doc.partsReceipt'] = 'Parts order receipt',
+    ['print.doc.plateReceipt'] = 'Number plate receipt',
+    ['print.paidWith'] = 'Bank account',
+    ['print.feeLine'] = 'Marketplace fee',
+    ['print.deliveryLine'] = 'Delivery',
+    ['print.statusPaid'] = 'Paid',
+    ['print.statusPending'] = 'Awaiting payment',
+    ['print.statusCancelled'] = 'Cancelled',
+    ['print.statusBooked'] = 'Booked',
+    ['print.statusCancelledBooking'] = 'Cancelled',
+    ['print.stolenYes'] = 'Yes',
+    ['print.stolenNo'] = 'No',
+    ['print.motNone'] = 'No record',
+    ['print.ticket.admit'] = 'ONE',
+    ['print.invoiceLine'] = 'Invoice',
+}
+for k, v in pairs(L) do Locales['en'][k] = v end

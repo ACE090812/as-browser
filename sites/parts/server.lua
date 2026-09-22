@@ -413,3 +413,26 @@ Browser.handler('parts', 'orders', function(src)
     end
     return { orders = out }
 end)
+
+-- ---------------------------------------------------------------------------------------------
+-- printing (as-printer): a receipt for an order of the player's job. data = { ref, printer, colour, design, letterhead }
+-- ---------------------------------------------------------------------------------------------
+Browser.handler('parts', 'orderPrint', function(src, data)
+    local cid, jg = actor(src)
+    if not cid then return nil, T('parts.err.notAllowed') end
+    local r = MySQL.single.await(
+        "SELECT ref, buyer_name, items, subtotal, fee, total, delivery, dest_label, created_at FROM browser_parts_orders WHERE ref = ? AND job = ? AND status <> 'pending'",
+        { tostring(data.ref or ''):sub(1, 24), jg.name })
+    if not r then return nil, T('print.err.notFound') end
+    local ok, items = pcall(json.decode, r.items)
+    local lines = {}
+    for _, it in ipairs(ok and type(items) == 'table' and items or {}) do
+        lines[#lines + 1] = { desc = ('%s × %d'):format(it.label or '?', tonumber(it.qty) or 1), amount = Browser.printMoney((tonumber(it.price) or 0) * (tonumber(it.qty) or 1)) }
+    end
+    local fee = tonumber(r.fee) or 0
+    if fee > 0 then lines[#lines + 1] = { desc = T('print.deliveryLine'), amount = Browser.printMoney(fee) } end
+    return Browser.printDoc(src, 'receipt', {
+        title = T('print.doc.partsReceipt'), number = r.ref, date = Browser.date(tonumber(r.created_at) or os.time()), paidWith = T('print.paidWith'),
+        lines = lines, total = Browser.printMoney(r.total), note = (r.dest_label and r.dest_label ~= '') and r.dest_label or nil,
+    }, data)
+end)

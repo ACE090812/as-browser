@@ -39,6 +39,7 @@ Config.Sites = {
     weather    = { enabled = true, domain = 'lsweather.co.uk' },      -- current weather and an outlook, per region (reads your weather script)
     wiki       = { enabled = true, domain = 'lswiki.co.uk' },         -- server wiki: guides and rules, edited in sites/wiki/config.lua
     tickets    = { enabled = true, domain = 'lstickets.co.uk' },      -- events and tickets: players buy, organiser jobs run events and check people in
+    bank       = { enabled = true, domain = 'lsbank.co.uk' },          -- online banking: balance, statements, send money, standing orders, invoices (shares sd-phone's Wallet data)
 }
 
 -- Symbol shown next to prices. Money is always whole numbers.

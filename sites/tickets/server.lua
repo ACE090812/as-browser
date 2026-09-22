@@ -445,3 +445,20 @@ Browser.handler('tickets', 'checkin', function(src, data)
     local inside = MySQL.scalar.await('SELECT COUNT(*) FROM browser_tickets WHERE event_id = ? AND used_at IS NOT NULL AND void = 0', { t.event_id }) or 0
     return { title = t.title, holder = t.buyer_name, inside = inside }
 end)
+
+-- ---------------------------------------------------------------------------------------------
+-- printing (as-printer): the player's own ticket, built here from the database. Cannot be copied.
+-- ---------------------------------------------------------------------------------------------
+Browser.handler('tickets', 'ticketPrint', function(src, data)
+    local r = role(src)
+    if not r then return nil, T('tickets.err.generic') end
+    local code = tostring(data.code or ''):sub(1, 40)
+    local t = MySQL.single.await([[SELECT t.code, t.price, t.buyer_name, t.void, e.title, e.venue, e.starts_at
+        FROM browser_tickets t JOIN browser_events e ON e.id = t.event_id WHERE t.code = ? AND t.cid = ? AND t.void = 0]], { code, r.cid })
+    if not t then return nil, T('print.err.notFound') end
+    local starts = tonumber(t.starts_at) or now()
+    return Browser.printDoc(src, 'ticket', {
+        event = t.title, venue = t.venue, date = Browser.date(starts), time = os.date('%H:%M', starts), holder = t.buyer_name,
+        price = Browser.printMoney(t.price), code = t.code, admit = T('print.ticket.admit'),
+    }, data)
+end)

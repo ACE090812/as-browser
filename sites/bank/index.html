@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LS Bank</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root {
+        --accent: #0f4c81; --accent-fg: #fff; --accent-2: #0e8f7e;
+        --navy: #0b2e4f; --navy-fg: #e8f0f8; --nav-bg: #fff; --nav-line: #d9e0e8;
+        --in: #0a7d3b; --out: #14171c; --card-shadow: 0 1px 2px rgba(11,46,79,.08), 0 6px 18px rgba(11,46,79,.06);
+    }
+    :root[data-theme="dark"] {
+        --accent: #6db0ff; --accent-fg: #06192e; --accent-2: #46d0bd; --navy: #0a1c30; --navy-fg: #dbe7f5;
+        --nav-bg: #161a21; --nav-line: #2b303a; --in: #4cd58a; --out: #f1f2f4; --card-shadow: none;
+    }
+    body { background: var(--surface); }
+    :root[data-theme="dark"] body { background: var(--bg); }
+    .hd { background: var(--navy); color: var(--navy-fg); }
+    .hd .in { max-width: 1040px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -.01em; cursor: pointer; color: #fff; }
+    .logo svg { width: 30px; height: 30px; flex: none; }
+    .logo small { display: block; font-weight: 400; font-size: 11.5px; opacity: .75; letter-spacing: 0; margin-top: -2px; }
+    .hd .who { margin-left: auto; text-align: right; font-size: 13px; line-height: 1.3; }
+    .hd .who b { display: block; font-size: 14px; color: #fff; }
+    .hd .secure { opacity: .8; font-size: 12px; }
+    .mn { background: var(--nav-bg); border-bottom: 1px solid var(--nav-line); position: sticky; top: 0; z-index: 5; }
+    .mn .in { max-width: 1040px; margin: 0 auto; display: flex; overflow-x: auto; padding: 0 8px; }
+    .mn button { padding: 14px 14px 12px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; display: flex; gap: 7px; align-items: center; }
+    .mn button.on { color: var(--accent); border-bottom-color: var(--accent); }
+    .mn .bdg { background: #d63a2f; color: #fff; border-radius: 999px; font-size: 11.5px; min-width: 19px; height: 19px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; }
+    .pg { max-width: 1040px; margin: 0 auto; padding: 18px 16px 8px; }
+    h1 { font-size: 24px; font-weight: 800; margin: 2px 0 2px; }
+    h2 { font-size: 16.5px; font-weight: 800; margin: 0 0 10px; }
+    .sub { color: var(--muted); margin-bottom: 16px; }
+    .panel { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--card-shadow); padding: 16px; }
+    .panel + .panel { margin-top: 14px; }
+    .cols { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+    @media (max-width: 720px) { .cols { grid-template-columns: 1fr; } .hd .secure { display: none; } }
+    .acct .type { color: var(--muted); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .acct .nums { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+    .acct .bal { font-size: 36px; font-weight: 800; letter-spacing: -.02em; margin: 10px 0 2px; font-variant-numeric: tabular-nums; }
+    .acct .bal.neg { color: var(--bad); }
+    .acct .lbl { color: var(--muted); font-size: 13px; }
+    .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .b { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 18px; border-radius: 8px; font-weight: 700; background: var(--accent); color: var(--accent-fg); }
+    .b:disabled { opacity: .5; cursor: default; }
+    .b.sec { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+    .b.red { background: var(--bad); color: #fff; }
+    .b.sm { min-height: 34px; padding: 0 12px; font-size: 13.5px; }
+    .b.block { display: flex; width: 100%; }
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .tile { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+    .tile .l { color: var(--muted); font-size: 12.5px; }
+    .tile .v { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .tile .v.in { color: var(--in); }
+    .card3d { border-radius: 16px; aspect-ratio: 1.586; padding: 16px 18px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,.22); display: flex; flex-direction: column; justify-content: space-between; max-width: 340px; margin: 0 auto; }
+    .card3d::after { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,.22), transparent 55%); pointer-events: none; }
+    .card3d .top { display: flex; justify-content: space-between; align-items: center; font-weight: 800; letter-spacing: .02em; }
+    .card3d .chip { width: 38px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #f4d98a, #c9a04a); }
+    .card3d .num { font-size: 18px; letter-spacing: .18em; font-variant-numeric: tabular-nums; }
+    .card3d .bot { display: flex; justify-content: space-between; font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; opacity: .92; }
+    .alert { display: flex; gap: 12px; align-items: center; background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-weight: 600; cursor: pointer; }
+    .alert.good { background: var(--good-bg); color: var(--good); cursor: default; }
+    .alert.bad { background: var(--bad-bg); color: var(--bad); cursor: default; }
+    .alert .g { flex: 1; }
+    .tx { display: flex; gap: 12px; align-items: center; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+    .tx:last-child { border-bottom: 0; }
+    .tx .ic { width: 38px; height: 38px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; flex: none; font-size: 17px; }
+    .tx .ds { flex: 1; min-width: 0; }
+    .tx .ds b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tx .ds small { color: var(--muted); font-size: 12.5px; }
+    .tx .am { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .tx .am.p { color: var(--in); }
+    .dayh { font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; padding: 14px 2px 4px; }
+    .seg { display: inline-flex; border: 1.5px solid var(--accent); border-radius: 8px; overflow: hidden; }
+    .seg button { padding: 8px 14px; font-weight: 700; color: var(--accent); font-size: 14px; }
+    .seg button.on { background: var(--accent); color: var(--accent-fg); }
+    .bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    .bar input[type=search] { flex: 1; min-width: 160px; }
+    .f { display: block; margin-bottom: 14px; }
+    .f > span.l { display: block; font-weight: 700; margin-bottom: 5px; font-size: 14px; }
+    .f > span.h { display: block; color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+    .amt { position: relative; }
+    .amt b { position: absolute; left: 12px; top: 10px; font-weight: 700; color: var(--muted); }
+    .amt input { padding-left: 28px !important; font-size: 18px; font-weight: 700; }
+    .chk { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; cursor: pointer; }
+    .chk input { width: 20px; height: 20px; margin-top: 2px; flex: none; }
+    .payees { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .payees button { border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-weight: 600; font-size: 13.5px; }
+    .steps { display: flex; gap: 6px; margin-bottom: 16px; }
+    .steps span { flex: 1; height: 5px; border-radius: 4px; background: var(--surface-2); }
+    .steps span.on { background: var(--accent); }
+    .sum { width: 100%; border-collapse: collapse; }
+    .sum td { padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .sum td:last-child { text-align: right; font-weight: 700; }
+    .sum tr:last-child td { border-bottom: 0; }
+    .done { text-align: center; padding: 10px 0 4px; }
+    .done .tick { width: 66px; height: 66px; border-radius: 50%; background: var(--good-bg); color: var(--good); font-size: 34px; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+    .li { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px; background: var(--bg); }
+    .li .r1 { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; }
+    .li .r1 b { font-size: 16px; }
+    .li .amt2 { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 17px; }
+    .li .meta { color: var(--muted); font-size: 13.5px; margin-top: 3px; }
+    .li .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .tg { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--surface-2); color: var(--muted); }
+    .tg.good { background: var(--good-bg); color: var(--good); } .tg.bad { background: var(--bad-bg); color: var(--bad); } .tg.warn { background: var(--warn-bg); color: var(--warn); }
+    .kv2 { width: 100%; border-collapse: collapse; }
+    .kv2 td { padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .kv2 td:first-child { color: var(--muted); width: 44%; } .kv2 td:last-child { font-weight: 600; text-align: right; }
+    .kv2 tr:last-child td { border-bottom: 0; }
+    .empty { text-align: center; color: var(--muted); padding: 26px 8px; }
+    .mask { position: fixed; inset: 0; background: rgba(6,16,28,.55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+    .dlg { background: var(--bg); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; max-height: 90vh; overflow: auto; }
+    .dlg h2 { font-size: 18px; } .dlg .btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .side a { display: block; padding: 9px 0; border-bottom: 1px solid var(--line); font-weight: 600; }
+    .side a:last-child { border-bottom: 0; }
+    .foot { max-width: 1040px; margin: 22px auto 26px; padding: 16px; color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--line); text-align: center; }
+    .err { color: var(--bad); font-weight: 600; margin: 4px 0 12px; }
+</style>
+</head>
+<body>
+<header class="hd"><div class="in">
+    <div class="logo" id="logo" data-go="/">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#fff"/><path d="M6 12.5 16 6l10 6.5v1.5H6z" fill="#0f4c81"/><rect x="8" y="15" width="3" height="8" fill="#0f4c81"/><rect x="14.5" y="15" width="3" height="8" fill="#0f4c81"/><rect x="21" y="15" width="3" height="8" fill="#0f4c81"/><rect x="6" y="24.5" width="20" height="2.5" fill="#0e8f7e"/></svg>
+        <div><span id="siteName">LS Bank</span><small id="siteTag"></small></div>
+    </div>
+    <div class="who"><b id="whoName"></b><span class="secure" id="secure"></span></div>
+</div></header>
+<nav class="mn"><div class="in" id="nav"></div></nav>
+<div class="pg" id="app"><div class="spinner"></div></div>
+<div class="foot" id="foot"></div>
+<div id="modal"></div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc, app = document.getElementById('app');
+    var D = null, path = '/', TX = { list: [], more: false, q: '', dir: '', busy: false };
+    var P = null, ST = null, IV = null, INV = { tab: 'in' };
+
+    // Text: the locale key, with the English wording as the fallback (the same wording is in locales/lsbank_en.lua).
+    function L(key, def) {
+        var s = (window.I18N && Object.prototype.hasOwnProperty.call(window.I18N, key)) ? window.I18N[key] : def;
+        var args = Array.prototype.slice.call(arguments, 2), i = 0;
+        return String(s).replace(/%[sd]/g, function () { return i < args.length ? args[i++] : ''; });
+    }
+    function money(n) { var v = Number(n) || 0; return (v < 0 ? '−' : '') + Site.money(Math.abs(v)); }
+    function fmtNum(d) {
+        d = String(d || '').replace(/\D/g, '');
+        if (d.length === 11) return d.slice(0, 5) + ' ' + d.slice(5);
+        if (d.length === 10) return d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6);
+        if (d.length === 7) return d.slice(0, 3) + ' ' + d.slice(3);
+        return d;
+    }
+    function greeting() {
+        var h = new Date().getHours();
+        return h < 12 ? L('bank.goodMorning', 'Good morning') : h < 18 ? L('bank.goodAfternoon', 'Good afternoon') : L('bank.goodEvening', 'Good evening');
+    }
+    function first(name) { return String(name || '').split(/\s+/)[0]; }
+    function err(e) { return '<div class="err">' + esc(e && e.message ? e.message : L('bank.errGeneric', 'Something went wrong.')) + '</div>'; }
+    function setPage(title, html) { Site.title(title); app.innerHTML = html; window.scrollTo(0, 0); }
+    function day(ts) { return Site.date(ts); }
+    var GLYPH = { transfer: '⇄', income: '↓', invoice: '🧾', government: '🏛', standing: '↻', purchase: '🛒', bill: '🧾' };
+    var EVERY = { daily: L('bank.daily', 'Every day'), weekly: L('bank.weekly', 'Every week'), monthly: L('bank.monthly', 'Every month') };
+    var CARD = {
+        emerald: ['#1c8a60', '#0a3f2d'], crimson: ['#c0392b', '#4a0f0f'], cobalt: ['#2276dc', '#0c2f62'], navy: ['#2b5089', '#0d1b33'],
+        bronze: ['#b07a3c', '#4d3013'], graphite: ['#4a4f58', '#16181c'], teal: ['#1aa39a', '#0a4a46'], violet: ['#7b4fd6', '#2c1667'],
+        slate: ['#5c6f86', '#22303f'], amber: ['#e0a02a', '#6b4408'], rose: ['#d8577e', '#5e1730'], midnight: ['#243b6b', '#070d1c'],
+        mint: ['#3cc79a', '#125a44'], burgundy: ['#9b2545', '#3a0a19']
+    };
+
+    // ------------------------------------------------------------------ shell
+    function nav(active) {
+        var items = [['/', L('bank.nav.accounts', 'Accounts')], ['/pay', L('bank.nav.pay', 'Pay & transfer')]];
+        if (D.features.standing) items.push(['/standing-orders', L('bank.nav.standing', 'Standing orders')]);
+        if (D.features.invoices || D.features.business) items.push(['/invoices', L('bank.nav.invoices', 'Invoices')]);
+        items.push(['/transactions', L('bank.nav.statements', 'Statements')], ['/account', L('bank.nav.account', 'Account details')]);
+        document.getElementById('nav').innerHTML = items.map(function (x) {
+            var badge = x[0] === '/invoices' && D.pendingInvoices > 0 ? '<span class="bdg">' + D.pendingInvoices + '</span>' : '';
+            return '<button class="' + (active === x[0] ? 'on' : '') + '" data-go="' + x[0] + '">' + esc(x[1]) + badge + '</button>';
+        }).join('');
+    }
+    function modal(html) { document.getElementById('modal').innerHTML = html ? '<div class="mask"><div class="dlg">' + html + '</div></div>' : ''; }
+    function refreshBalance() {
+        return Site.call('balance').then(function (r) { D.me.balance = r.balance; D.me.cash = r.cash; D.pendingInvoices = r.pendingInvoices; nav(path); }).catch(function () {});
+    }
+
+    function txRow(x) {
+        var pos = x.amount > 0;
+        return '<div class="tx"><div class="ic">' + (GLYPH[x.category] || '💳') + '</div><div class="ds"><b>' + esc(x.label) + '</b><small>' + esc(Site.datetime(x.at)) +
+            (x.peer ? ' · ' + esc(fmtNum(x.peer)) : '') + '</small></div><div class="am ' + (pos ? 'p' : '') + '">' + (pos ? '+' : '') + esc(money(x.amount)) + '</div></div>';
+    }
+    function cardHtml() {
+        var c = CARD[D.me.card] || CARD.emerald, last = String(D.me.account).slice(-4);
+        return '<div class="card3d" style="background:radial-gradient(125% 135% at 12% 8%,' + c[0] + ',' + c[1] + ')"><div class="top"><span>' + esc(D.name) + '</span><span class="chip"></span></div>' +
+            '<div class="num">•••• •••• •••• ' + esc(last) + '</div><div class="bot"><span>' + esc(D.me.name) + '</span><span>08/29</span></div></div>';
+    }
+
+    // ------------------------------------------------------------------ pages
+    function home() {
+        nav('/');
+        var m = D.me, inv = D.pendingInvoices;
+        setPage(D.name,
+            '<h1>' + esc(greeting() + ', ' + first(m.name)) + '</h1><div class="sub">' + esc(L('bank.yourAccounts', 'Your accounts')) + '</div>' +
+            (inv > 0 ? '<div class="alert" data-go="/invoices"><span>🧾</span><span class="g">' + esc(inv === 1 ? L('bank.invOne', 'You have 1 invoice waiting to be paid.') : L('bank.invMany', 'You have %s invoices waiting to be paid.', inv)) + '</span><span>›</span></div>' : '') +
+            '<div class="cols"><div><div class="panel acct"><div class="type">' + esc(L('bank.current', 'Current account')) + '</div><div class="nums">' + esc(D.me.sortCode) + ' · ' + esc(m.account) + '</div>' +
+            '<div class="bal ' + (m.balance < 0 ? 'neg' : '') + '">' + esc(money(m.balance)) + '</div><div class="lbl">' + esc(L('bank.available', 'Available balance')) + '</div>' +
+            '<div class="tiles"><div class="tile"><div class="l">' + esc(L('bank.in30', 'Money in, last 30 days')) + '</div><div class="v in">' + esc(money(D.month['in'])) + '</div></div>' +
+            '<div class="tile"><div class="l">' + esc(L('bank.out30', 'Money out, last 30 days')) + '</div><div class="v">' + esc(money(D.month.out)) + '</div></div></div>' +
+            '<div class="acts"><button class="b" data-go="/pay">' + esc(L('bank.payNow', 'Pay someone')) + '</button><button class="b sec" data-go="/transactions">' + esc(L('bank.viewStatement', 'View statement')) + '</button></div></div>' +
+            '<div class="panel"><h2>' + esc(L('bank.recent', 'Recent transactions')) + '</h2>' + (D.recent.length ? D.recent.slice(0, 8).map(txRow).join('') : '<div class="empty">' + esc(L('bank.noTx', 'No transactions yet.')) + '</div>') +
+            (D.recent.length ? '<div class="acts"><button class="b sec sm" data-go="/transactions">' + esc(L('bank.allTx', 'All transactions')) + '</button></div>' : '') + '</div></div>' +
+            '<div><div class="panel">' + cardHtml() + '<table class="kv2" style="margin-top:14px"><tr><td>' + esc(L('bank.cash', 'Cash in hand')) + '</td><td>' + esc(money(m.cash)) + '</td></tr>' +
+            '<tr><td>' + esc(L('bank.payByMobile', 'Pay-by mobile number')) + '</td><td>' + esc(fmtNum(m.number)) + '</td></tr></table></div>' +
+            '<div class="panel side"><h2>' + esc(L('bank.quick', 'Quick links')) + '</h2><a data-go="/pay">' + esc(L('bank.nav.pay', 'Pay & transfer')) + '</a>' +
+            (D.features.standing ? '<a data-go="/standing-orders">' + esc(L('bank.nav.standing', 'Standing orders')) + '</a>' : '') +
+            (D.features.invoices || D.features.business ? '<a data-go="/invoices">' + esc(L('bank.nav.invoices', 'Invoices')) + '</a>' : '') +
+            '<a data-go="/account">' + esc(L('bank.nav.account', 'Account details')) + '</a></div></div></div>');
+    }
+
+    // ---- statement
+    function loadTx(reset) {
+        if (TX.busy) return;
+        if (reset) { TX.list = []; TX.more = false; }
+        TX.busy = true;
+        Site.call('transactions', { q: TX.q, dir: TX.dir, offset: TX.list.length }).then(function (r) {
+            TX.list = TX.list.concat(r.transactions); TX.more = r.more; TX.busy = false; drawTx();
+        }).catch(function (e) { TX.busy = false; var b = document.getElementById('txbody'); if (b) b.innerHTML = err(e); });
+    }
+    function drawTx() {
+        var b = document.getElementById('txbody');
+        if (!b) return;
+        var html = '', last = '';
+        TX.list.forEach(function (x) {
+            var d = day(x.at);
+            if (d !== last) { html += '<div class="dayh">' + esc(d) + '</div>'; last = d; }
+            html += txRow(x);
+        });
+        if (!TX.list.length) html = '<div class="empty">' + esc(TX.q || TX.dir ? L('bank.noMatch', 'Nothing matches that search.') : L('bank.noTx', 'No transactions yet.')) + '</div>';
+        if (TX.more) html += '<div class="acts" style="justify-content:center"><button class="b sec" id="more">' + esc(L('bank.loadMore', 'Show more')) + '</button></div>';
+        b.innerHTML = html;
+        var sp = document.getElementById('stmt-print'); if (sp) sp.setAttribute('data-pd', JSON.stringify({ q: TX.q, dir: TX.dir }));
+        var c = document.getElementById('txcount'); if (c) c.textContent = TX.list.length ? L('bank.showing', 'Showing %s', TX.list.length) : '';
+    }
+    function transactions() {
+        nav('/transactions');
+        setPage(L('bank.nav.statements', 'Statements'),
+            '<h1>' + esc(L('bank.nav.statements', 'Statements')) + '</h1><div class="sub">' + esc(L('bank.stmtSub', 'Everything that has gone in and out of your account, the same list as the Wallet on your phone.')) + '</div>' +
+            '<div class="panel"><div class="bar"><input type="search" id="q" placeholder="' + esc(L('bank.search', 'Search transactions')) + '" value="' + esc(TX.q) + '" autocomplete="off">' +
+            '<div class="seg" id="dir"><button data-dir="" class="' + (TX.dir === '' ? 'on' : '') + '">' + esc(L('bank.all', 'All')) + '</button><button data-dir="in" class="' + (TX.dir === 'in' ? 'on' : '') + '">' + esc(L('bank.moneyIn', 'Money in')) +
+            '</button><button data-dir="out" class="' + (TX.dir === 'out' ? 'on' : '') + '">' + esc(L('bank.moneyOut', 'Money out')) + '</button></div></div>' +
+            '<div id="txbody"><div class="spinner"></div></div><div class="sub" style="margin:12px 0 0" id="txcount"></div>' +
+            '<div class="acts" style="margin-top:10px"><button class="b sm sec" id="stmt-print" data-print="statementPrint" data-pd="{}" data-ptitle="' + esc(L('bank.nav.statements', 'Statements')) + '">' + esc(L('print.button', 'Print')) + '</button></div></div>');
+        loadTx(true);
+    }
+
+    // ---- pay
+    function newPay() { return { step: 1, mode: 'number', to: '', amount: '', note: '', anon: false, review: null, result: null, err: '', busy: false, payees: null }; }
+    function pay() {
+        nav('/pay');
+        if (!P) P = newPay();
+        drawPay();
+        if (P.payees === null) { P.payees = []; Site.call('payees').then(function (r) { P.payees = r.payees; if (P && P.step === 1) drawPay(true); }).catch(function () {}); }
+    }
+    function drawPay(keep) {
+        var s = P.step, h = '<h1>' + esc(L('bank.nav.pay', 'Pay & transfer')) + '</h1><div class="sub">' + esc(L('bank.paySub', 'Send money from your current account. Payments arrive straight away.')) + '</div>' +
+            '<div class="cols"><div><div class="panel"><div class="steps"><span class="on"></span><span class="' + (s >= 2 ? 'on' : '') + '"></span><span class="' + (s >= 3 ? 'on' : '') + '"></span></div>';
+        if (s === 1) {
+            h += '<h2>' + esc(L('bank.payDetails', 'Payment details')) + '</h2>';
+            if (P.payees && P.payees.length) h += '<div class="payees">' + P.payees.map(function (p) { return '<button data-payee="' + esc(p.number) + '">' + esc(fmtNum(p.number)) + '</button>'; }).join('') + '</div>';
+            h += '<div class="f"><span class="l">' + esc(L('bank.payTo', 'Pay to')) + '</span><div class="seg" id="mode"><button data-mode="number" class="' + (P.mode === 'number' ? 'on' : '') + '">' + esc(L('bank.byMobile', 'Mobile number')) +
+                '</button><button data-mode="id" class="' + (P.mode === 'id' ? 'on' : '') + '">' + esc(L('bank.byId', 'Server ID')) + '</button></div></div>' +
+                '<label class="f"><span class="l">' + esc(P.mode === 'id' ? L('bank.serverId', 'Server ID') : L('bank.mobile', 'Mobile number')) + '</span><input type="text" id="p-to" inputmode="numeric" maxlength="16" autocomplete="off" value="' + esc(P.to) + '" placeholder="' + esc(P.mode === 'id' ? '12' : '07700 900123') + '">' +
+                '<span class="h">' + esc(P.mode === 'id' ? L('bank.idHint', 'The number shown above their head, for someone who is in the city with you.') : L('bank.mobileHint', 'The number of the phone they use in the city.')) + '</span></label>' +
+                '<label class="f"><span class="l">' + esc(L('bank.amount', 'Amount')) + '</span><div class="amt"><b>' + esc(Site.currency) + '</b><input type="number" id="p-amt" min="1" step="1" inputmode="numeric" value="' + esc(P.amount) + '"></div></label>' +
+                '<label class="f"><span class="l">' + esc(L('bank.reference', 'Reference (optional)')) + '</span><input type="text" id="p-note" maxlength="80" value="' + esc(P.note) + '" placeholder="' + esc(L('bank.refHint', 'For example: rent')) + '"></label>' +
+                (D.features.anonymous ? '<label class="chk"><input type="checkbox" id="p-anon" ' + (P.anon ? 'checked' : '') + '><span><b>' + esc(L('bank.anon', 'Send anonymously')) + '</b><br><span class="muted small">' + esc(L('bank.anonHint', 'They will see "Anonymous" instead of your number.')) + '</span></span></label>' : '') +
+                (P.err ? '<div class="err">' + esc(P.err) + '</div>' : '') +
+                '<button class="b block" id="p-next" ' + (P.busy ? 'disabled' : '') + '>' + esc(L('bank.continue', 'Continue')) + '</button>';
+        } else if (s === 2) {
+            var r = P.review;
+            h += '<h2>' + esc(L('bank.review', 'Check your payment')) + '</h2><table class="sum"><tr><td>' + esc(L('bank.from', 'From')) + '</td><td>' + esc(L('bank.current', 'Current account')) + '<br><span class="muted small">' + esc(D.me.sortCode + ' · ' + D.me.account) + '</span></td></tr>' +
+                '<tr><td>' + esc(L('bank.to', 'To')) + '</td><td>' + esc(fmtNum(r.number)) + '<br><span class="muted small">' + esc(r.online ? L('bank.inCity', 'In the city now') : L('bank.notInCity', 'Not in the city, paid into their account')) + '</span></td></tr>' +
+                '<tr><td>' + esc(L('bank.amount', 'Amount')) + '</td><td style="font-size:19px">' + esc(money(P.amount)) + '</td></tr>' +
+                (P.note ? '<tr><td>' + esc(L('bank.reference', 'Reference')) + '</td><td>' + esc(P.note) + '</td></tr>' : '') +
+                (P.anon ? '<tr><td>' + esc(L('bank.privacy', 'Privacy')) + '</td><td>' + esc(L('bank.anonShort', 'Sent anonymously')) + '</td></tr>' : '') + '</table>' +
+                (P.err ? '<div class="err" style="margin-top:12px">' + esc(P.err) + '</div>' : '') +
+                '<div class="acts"><button class="b" id="p-confirm" ' + (P.busy ? 'disabled' : '') + '>' + esc(L('bank.confirmPay', 'Confirm payment')) + '</button><button class="b sec" id="p-back">' + esc(L('bank.back', 'Back')) + '</button></div>';
+        } else {
+            var d = P.result;
+            h += '<div class="done"><div class="tick">✓</div><h2>' + esc(L('bank.paid', 'Payment sent')) + '</h2><div class="sub" style="margin-bottom:8px">' + esc(L('bank.paidTo', '%s to %s', money(d.amount), fmtNum(d.to))) + '</div>' +
+                '<table class="kv2"><tr><td>' + esc(L('bank.newBalance', 'New balance')) + '</td><td>' + esc(money(d.balance)) + '</td></tr><tr><td>' + esc(L('bank.when', 'When')) + '</td><td>' + esc(Site.datetime(d.at)) + '</td></tr></table>' +
+                '<div class="acts" style="justify-content:center"><button class="b" id="p-again">' + esc(L('bank.another', 'Make another payment')) + '</button><button class="b sec" data-go="/transactions">' + esc(L('bank.viewStatement', 'View statement')) + '</button></div></div>';
+        }
+        h += '</div></div><div><div class="panel"><div class="type muted small" style="font-weight:700;text-transform:uppercase;letter-spacing:.05em">' + esc(L('bank.payFrom', 'Paying from')) + '</div><div style="font-weight:800;margin-top:4px">' + esc(L('bank.current', 'Current account')) + '</div>' +
+            '<div style="font-size:26px;font-weight:800;margin:6px 0;font-variant-numeric:tabular-nums">' + esc(money(D.me.balance)) + '</div><div class="muted small">' + esc(L('bank.limits', 'You can send %s to %s in one payment.', money(D.limits.minSend), money(D.limits.maxSend))) + '</div></div></div></div>';
+        if (keep) { var el = document.activeElement, id = el && el.id, pos = el && el.selectionStart; app.innerHTML = h; if (id) { var n = document.getElementById(id); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } } }
+        else setPage(L('bank.nav.pay', 'Pay & transfer'), h);
+    }
+    function payData() { return P.mode === 'id' ? { serverId: P.to } : { number: P.to }; }
+    function payNext() {
+        P.err = '';
+        var amt = Math.floor(Number(P.amount));
+        if (!P.to.trim()) { P.err = P.mode === 'id' ? L('bank.needId', 'Enter a server ID.') : L('bank.needNumber', 'Enter a mobile number.'); return drawPay(true); }
+        if (!(amt >= D.limits.minSend)) { P.err = L('bank.needAmount', 'Enter an amount.'); return drawPay(true); }
+        if (amt > D.me.balance) { P.err = L('bank.noFunds', 'You do not have enough money in your account.'); return drawPay(true); }
+        P.busy = true; drawPay(true);
+        Site.call('check', payData()).then(function (r) {
+            P.busy = false;
+            if (!r.canPay) { P.err = L('bank.offlineNo', 'That person is not in the city and cannot be paid right now.'); return drawPay(true); }
+            P.review = r; P.amount = String(amt); P.step = 2; drawPay();
+        }).catch(function (e) { P.busy = false; P.err = e.message; drawPay(true); });
+    }
+    function payConfirm() {
+        P.err = ''; P.busy = true; drawPay(true);
+        var d = payData(); d.amount = P.amount; d.note = P.note; d.anonymous = P.anon;
+        Site.call('pay', d).then(function (r) {
+            P.busy = false; P.result = r; P.step = 3; D.me.balance = r.balance; nav('/pay'); drawPay(); D.recent = []; TX.list = [];
+        }).catch(function (e) { P.busy = false; P.err = e.message; drawPay(true); });
+    }
+
+    // ---- standing orders
+    function standing() {
+        nav('/standing-orders');
+        setPage(L('bank.nav.standing', 'Standing orders'), '<div class="spinner"></div>');
+        Site.call('standing').then(function (r) { ST = r; drawStanding(); }).catch(function (e) { setPage(D.name, err(e)); });
+    }
+    function drawStanding() {
+        var active = ST.orders.filter(function (o) { return o.active; }).length;
+        setPage(L('bank.nav.standing', 'Standing orders'),
+            '<div class="bar" style="justify-content:space-between"><div><h1>' + esc(L('bank.nav.standing', 'Standing orders')) + '</h1><div class="sub" style="margin:0">' + esc(L('bank.soSub', 'Regular payments to a mobile number. They are also shown in your phone, and are taken while you are in the city.')) + '</div></div>' +
+            '<button class="b" id="so-new">' + esc(L('bank.soNew', 'New standing order')) + '</button></div>' +
+            '<div class="sub">' + esc(L('bank.soCount', '%s of %s active', active, ST.max)) + '</div>' +
+            (ST.orders.length ? ST.orders.map(function (o) {
+                var st = !o.active ? '<span class="tg">' + esc(L('bank.paused', 'Paused')) + '</span>' : o.lastStatus === 'insufficient' ? '<span class="tg warn">' + esc(L('bank.soShort', 'Not enough money')) + '</span>' :
+                    o.lastStatus === 'failed' ? '<span class="tg bad">' + esc(L('bank.soFailed', 'Failed')) + '</span>' : '<span class="tg good">' + esc(L('bank.active', 'Active')) + '</span>';
+                return '<div class="li"><div class="r1"><b>' + esc(o.label) + '</b><span class="amt2">' + esc(money(o.amount)) + '</span></div>' +
+                    '<div class="meta">' + esc(L('bank.soTo', 'To %s', o.name ? o.name + ' (' + fmtNum(o.recipient) + ')' : fmtNum(o.recipient))) + ' · ' + esc(EVERY[o.every] || o.every) + '</div>' +
+                    '<div class="meta">' + st + ' ' + (o.active ? esc(L('bank.soNext', 'Next payment %s', Site.datetime(o.nextRun))) : '') + (o.lastRun ? ' · ' + esc(L('bank.soLast', 'Last run %s', Site.date(o.lastRun))) : '') + '</div>' +
+                    '<div class="btns"><button class="b sm sec" data-soedit="' + o.id + '">' + esc(L('bank.edit', 'Edit')) + '</button><button class="b sm sec" data-sotoggle="' + o.id + '">' + esc(o.active ? L('bank.pause', 'Pause') : L('bank.resume', 'Resume')) + '</button>' +
+                    '<button class="b sm red" data-sodel="' + o.id + '">' + esc(L('bank.delete', 'Delete')) + '</button></div></div>';
+            }).join('') : '<div class="panel empty">' + esc(L('bank.soNone', 'You have no standing orders.')) + '</div>'));
+    }
+    function soForm(o) {
+        var edit = !!o, when = '';
+        ST.form = { id: o ? o.id : 0 };
+        modal('<h2>' + esc(edit ? L('bank.soEdit', 'Edit standing order') : L('bank.soNew', 'New standing order')) + '</h2>' +
+            (edit ? '' : '<label class="f"><span class="l">' + esc(L('bank.mobile', 'Mobile number')) + '</span><input type="text" id="so-num" inputmode="numeric" maxlength="16" autocomplete="off"></label>' +
+                '<label class="f"><span class="l">' + esc(L('bank.soName', 'Payee name (optional)')) + '</span><input type="text" id="so-name" maxlength="80"></label>') +
+            '<label class="f"><span class="l">' + esc(L('bank.soLabel', 'Name this order')) + '</span><input type="text" id="so-label" maxlength="40" value="' + esc(o ? o.label : '') + '" placeholder="' + esc(L('bank.soLabelHint', 'For example: Rent')) + '"></label>' +
+            '<label class="f"><span class="l">' + esc(L('bank.amount', 'Amount')) + '</span><div class="amt"><b>' + esc(Site.currency) + '</b><input type="number" id="so-amt" min="1" step="1" value="' + esc(o ? o.amount : '') + '"></div></label>' +
+            '<label class="f"><span class="l">' + esc(L('bank.soEvery', 'How often')) + '</span><select id="so-every"><option value="daily">' + esc(EVERY.daily) + '</option><option value="weekly">' + esc(EVERY.weekly) + '</option><option value="monthly">' + esc(EVERY.monthly) + '</option></select></label>' +
+            (edit ? '' : '<label class="f"><span class="l">' + esc(L('bank.soFirst', 'First payment')) + '</span><input type="datetime-local" id="so-first"><span class="h">' + esc(L('bank.soFirstHint', 'Leave empty to start in an hour.')) + '</span></label>') +
+            '<div id="so-err"></div><div class="btns"><button class="b sec" id="so-cancel">' + esc(L('bank.cancel', 'Cancel')) + '</button><button class="b" id="so-save">' + esc(L('bank.save', 'Save')) + '</button></div>');
+        if (o) document.getElementById('so-every').value = o.every;
+    }
+    function soSave(extra) {
+        var f = ST.form || {}, o = { id: f.id || 0 }, box = document.getElementById('so-err');
+        function v(id) { var e = document.getElementById(id); return e ? e.value : ''; }
+        o.label = v('so-label'); o.amount = v('so-amt'); o.every = v('so-every');
+        if (extra) for (var k in extra) o[k] = extra[k];
+        if (!f.id) {
+            o.number = v('so-num'); o.name = v('so-name');
+            var fv = v('so-first'); if (fv) { var ms = new Date(fv).getTime(); if (!isNaN(ms)) o.firstRun = Math.floor(ms / 1000); }
+        }
+        return Site.call('standingSave', o).then(function (r) { ST.orders = r.orders; modal(''); drawStanding(); }).catch(function (e) { if (box) box.innerHTML = err(e); else { modal(''); alert_(e); } });
+    }
+    function alert_(e) { modal('<h2>' + esc(L('bank.sorry', 'Sorry')) + '</h2>' + err(e) + '<div class="btns"><button class="b" id="dlg-ok">' + esc(L('bank.ok', 'OK')) + '</button></div>'); }
+    function orderById(id) { return ST.orders.filter(function (o) { return String(o.id) === String(id); })[0]; }
+
+    // ---- invoices
+    function invoices() {
+        nav('/invoices');
+        setPage(L('bank.nav.invoices', 'Invoices'), '<div class="spinner"></div>');
+        Site.call('invoices').then(function (r) { IV = r; D.pendingInvoices = r.received.filter(function (i) { return i.status === 'pending'; }).length; nav('/invoices'); drawInvoices(); }).catch(function (e) { setPage(D.name, err(e)); });
+    }
+    function statusTag(s) {
+        return s === 'paid' ? '<span class="tg good">' + esc(L('bank.stPaid', 'Paid')) + '</span>' : s === 'cancelled' ? '<span class="tg">' + esc(L('bank.stCancelled', 'Cancelled')) + '</span>' : '<span class="tg warn">' + esc(L('bank.stPending', 'Waiting')) + '</span>';
+    }
+    function drawInvoices() {
+        var tabs = '<div class="seg" style="margin-bottom:14px"><button data-itab="in" class="' + (INV.tab === 'in' ? 'on' : '') + '">' + esc(L('bank.invToPay', 'To pay')) + (D.pendingInvoices ? ' (' + D.pendingInvoices + ')' : '') + '</button>' +
+            (IV.personal ? '<button data-itab="out" class="' + (INV.tab === 'out' ? 'on' : '') + '">' + esc(L('bank.invSent', 'Sent by you')) + '</button>' : '') + '</div>';
+        var body = IV.personal ? '<div class="acts" style="margin:0 0 12px"><button class="b" id="iv-new">' + esc(L('bank.invNew', 'Send an invoice')) + '</button></div>' : '';
+        if (INV.tab === 'in') {
+            body += IV.received.length ? IV.received.map(function (i) {
+                var who = i.personal ? L('bank.invFrom', 'From %s', fmtNum(i.from)) : (i.label + (i.from ? ' · ' + i.from : ''));
+                return '<div class="li"><div class="r1"><b>' + esc(who) + '</b><span class="amt2">' + esc(money(i.amount)) + '</span></div><div class="meta">' + esc(L('bank.invRef', 'Reference %s', i.code)) + ' · ' + esc(Site.date(i.at)) + '</div>' +
+                    (i.note ? '<div class="meta">' + esc(i.note) + '</div>' : '') + '<div class="meta">' + statusTag(i.status) + (i.paidAt ? ' ' + esc(Site.date(i.paidAt)) : '') + '</div>' +
+                    '<div class="btns">' + (i.status === 'pending' ? '<button class="b sm" data-ipay="' + esc(i.id) + '">' + esc(L('bank.payInvoice', 'Pay invoice')) + '</button>' : '') +
+                    '<button class="b sm sec" data-print="invoicePrint" data-pd="' + esc(JSON.stringify({ id: i.id })) + '" data-ptitle="' + esc(L('bank.invRef', 'Reference %s', i.code)) + '">' + esc(L('print.button', 'Print')) + '</button></div></div>';
+            }).join('') : '<div class="panel empty">' + esc(L('bank.invNone', 'No invoices.')) + '</div>';
+        } else {
+            body += (IV.sent.length ? IV.sent.map(function (i) {
+                    return '<div class="li"><div class="r1"><b>' + esc(L('bank.invTo', 'To %s', fmtNum(i.to))) + '</b><span class="amt2">' + esc(money(i.amount)) + '</span></div><div class="meta">' + esc(L('bank.invRef', 'Reference %s', i.code)) + ' · ' + esc(Site.date(i.at)) + '</div>' +
+                        (i.note ? '<div class="meta">' + esc(i.note) + '</div>' : '') + '<div class="meta">' + statusTag(i.status) + '</div>' +
+                        '<div class="btns">' + (i.status === 'pending' ? '<button class="b sm sec" data-icancel="' + esc(i.id) + '">' + esc(L('bank.invCancel', 'Cancel invoice')) + '</button>' : '') +
+                        '<button class="b sm sec" data-print="invoicePrint" data-pd="' + esc(JSON.stringify({ id: i.id })) + '" data-ptitle="' + esc(L('bank.invRef', 'Reference %s', i.code)) + '">' + esc(L('print.button', 'Print')) + '</button></div></div>';
+                }).join('') : '<div class="panel empty">' + esc(L('bank.invNoneSent', 'You have not sent any invoices.')) + '</div>');
+        }
+        setPage(L('bank.nav.invoices', 'Invoices'), '<h1>' + esc(L('bank.nav.invoices', 'Invoices')) + '</h1><div class="sub">' + esc(L('bank.invSub', 'Bills sent to you by people and businesses, and invoices you have sent. The same list as your phone.')) + '</div>' + tabs + body);
+    }
+    function ivForm() {
+        modal('<h2>' + esc(L('bank.invNew', 'Send an invoice')) + '</h2><div class="f"><div class="seg" id="iv-mode"><button data-imode="number" class="on">' + esc(L('bank.byMobile', 'Mobile number')) + '</button><button data-imode="id">' + esc(L('bank.byId', 'Server ID')) + '</button></div></div>' +
+            '<label class="f"><span class="l" id="iv-tol">' + esc(L('bank.mobile', 'Mobile number')) + '</span><input type="text" id="iv-to" inputmode="numeric" maxlength="16" autocomplete="off"></label>' +
+            '<label class="f"><span class="l">' + esc(L('bank.amount', 'Amount')) + '</span><div class="amt"><b>' + esc(Site.currency) + '</b><input type="number" id="iv-amt" min="1" step="1"></div></label>' +
+            '<label class="f"><span class="l">' + esc(L('bank.invNote', 'What is it for?')) + '</span><input type="text" id="iv-note" maxlength="140"></label>' +
+            '<div id="iv-err"></div><div class="btns"><button class="b sec" id="iv-cancel">' + esc(L('bank.cancel', 'Cancel')) + '</button><button class="b" id="iv-send">' + esc(L('bank.invSend', 'Send invoice')) + '</button></div>');
+        INV.mode = 'number';
+    }
+
+    // ---- account
+    function account() {
+        nav('/account');
+        var m = D.me;
+        setPage(L('bank.nav.account', 'Account details'),
+            '<h1>' + esc(L('bank.nav.account', 'Account details')) + '</h1><div class="sub">' + esc(L('bank.acctSub', 'Details of your current account.')) + '</div><div class="cols"><div class="panel"><table class="kv2">' +
+            [[L('bank.holder', 'Account holder'), m.name], [L('bank.acctType', 'Account type'), L('bank.current', 'Current account')], [L('bank.sortCode', 'Sort code'), m.sortCode], [L('bank.acctNo', 'Account number'), m.account],
+             [L('bank.payByMobile', 'Pay-by mobile number'), fmtNum(m.number)], [L('bank.available', 'Available balance'), money(m.balance)], [L('bank.cash', 'Cash in hand'), money(m.cash)]].map(function (r) {
+                return '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>';
+            }).join('') + '</table></div><div><div class="panel">' + cardHtml() + '<p class="muted small" style="margin:12px 0 0">' + esc(L('bank.cardNote', 'Your card design is changed in the Wallet app on your phone.')) + '</p></div></div></div>');
+    }
+
+    // ------------------------------------------------------------------ routing
+    function render(p) {
+        path = p || '/';
+        var base = '/' + (path.split('?')[0].split('/')[1] || '');
+        modal('');
+        if (base === '/pay') pay();
+        else if (base === '/transactions') transactions();
+        else if (base === '/standing-orders' && D.features.standing) standing();
+        else if (base === '/invoices' && (D.features.invoices || D.features.business)) invoices();
+        else if (base === '/account') account();
+        else { path = '/'; home(); }
+    }
+
+    // ------------------------------------------------------------------ events
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-go],[data-dir],[data-mode],[data-payee],[data-soedit],[data-sotoggle],[data-sodel],[data-itab],[data-ipay],[data-icancel],[data-imode],button[id],#more');
+        if (!t) return;
+        var d = t.dataset;
+        if (d.go !== undefined) { if (d.go === '/pay' && P && P.step === 3) P = null; Site.go(d.go); return; }
+        if (d.dir !== undefined) { TX.dir = d.dir; document.querySelectorAll('#dir button').forEach(function (b) { b.classList.toggle('on', b.dataset.dir === TX.dir); }); loadTx(true); return; }
+        if (d.mode !== undefined) { P.mode = d.mode; P.to = ''; P.err = ''; drawPay(); return; }
+        if (d.payee !== undefined) { P.mode = 'number'; P.to = d.payee; P.err = ''; drawPay(); var a = document.getElementById('p-amt'); if (a) a.focus(); return; }
+        if (d.soedit !== undefined) { soForm(orderById(d.soedit)); return; }
+        if (d.sotoggle !== undefined) {
+            var o = orderById(d.sotoggle);
+            Site.call('standingSave', { id: o.id, label: o.label, amount: o.amount, every: o.every, active: !o.active }).then(function (r) { ST.orders = r.orders; drawStanding(); }).catch(alert_);
+            return;
+        }
+        if (d.sodel !== undefined) {
+            var od = orderById(d.sodel);
+            modal('<h2>' + esc(L('bank.soDelTitle', 'Delete standing order')) + '</h2><p>' + esc(L('bank.soDelText', 'Delete "%s"? No more payments will be taken.', od.label)) + '</p><div class="btns"><button class="b sec" id="dlg-no">' + esc(L('bank.cancel', 'Cancel')) +
+                '</button><button class="b red" id="so-delgo" data-id="' + od.id + '">' + esc(L('bank.delete', 'Delete')) + '</button></div>');
+            return;
+        }
+        if (d.itab !== undefined) { INV.tab = d.itab; drawInvoices(); return; }
+        if (d.ipay !== undefined) {
+            var iv = IV.received.filter(function (i) { return i.id === d.ipay; })[0];
+            modal('<h2>' + esc(L('bank.payInvoice', 'Pay invoice')) + '</h2><table class="sum"><tr><td>' + esc(L('bank.invRef', 'Reference %s', iv.code)) + '</td><td>' + esc(money(iv.amount)) + '</td></tr><tr><td>' + esc(L('bank.from', 'From')) + '</td><td>' + esc(money(D.me.balance)) + '</td></tr></table><div id="ip-err"></div><div class="btns"><button class="b sec" id="dlg-no">' + esc(L('bank.cancel', 'Cancel')) + '</button><button class="b" id="ip-go" data-id="' + esc(iv.id) + '">' + esc(L('bank.confirmPay', 'Confirm payment')) + '</button></div>');
+            return;
+        }
+        if (d.icancel !== undefined) { Site.call('invoiceCancel', { id: d.icancel }).then(function (r) { IV = r; drawInvoices(); }).catch(alert_); return; }
+        if (d.imode !== undefined) {
+            INV.mode = d.imode;
+            document.querySelectorAll('#iv-mode button').forEach(function (b) { b.classList.toggle('on', b.dataset.imode === INV.mode); });
+            document.getElementById('iv-tol').textContent = INV.mode === 'id' ? L('bank.serverId', 'Server ID') : L('bank.mobile', 'Mobile number');
+            return;
+        }
+        switch (t.id) {
+            case 'more': loadTx(false); break;
+            case 'p-next': payNext(); break;
+            case 'p-back': P.step = 1; P.err = ''; drawPay(); break;
+            case 'p-confirm': payConfirm(); break;
+            case 'p-again': P = newPay(); drawPay(); break;
+            case 'so-new': soForm(null); break;
+            case 'so-cancel': case 'dlg-no': case 'iv-cancel': case 'dlg-ok': modal(''); break;
+            case 'so-save': soSave(); break;
+            case 'so-delgo':
+                Site.call('standingDelete', { id: t.dataset.id }).then(function (r) { ST.orders = r.orders; modal(''); drawStanding(); }).catch(alert_); break;
+            case 'iv-new': ivForm(); break;
+            case 'iv-send': {
+                var box = document.getElementById('iv-err'), o2 = { amount: document.getElementById('iv-amt').value, note: document.getElementById('iv-note').value };
+                o2[INV.mode === 'id' ? 'serverId' : 'number'] = document.getElementById('iv-to').value;
+                Site.call('invoiceCreate', o2).then(function (r) { IV = r; INV.tab = 'out'; modal(''); drawInvoices(); }).catch(function (er) { box.innerHTML = err(er); });
+                break;
+            }
+            case 'ip-go': {
+                var b2 = document.getElementById('ip-err');
+                Site.call('invoicePay', { id: t.dataset.id }).then(function (r) {
+                    IV = r; D.me.balance = r.balance; D.pendingInvoices = r.received.filter(function (i) { return i.status === 'pending'; }).length; nav('/invoices'); modal(''); drawInvoices();
+                }).catch(function (er) { b2.innerHTML = err(er); });
+                break;
+            }
+        }
+    });
+    document.addEventListener('input', function (e) {
+        var id = e.target.id;
+        if (id === 'p-to') P.to = e.target.value; else if (id === 'p-amt') P.amount = e.target.value; else if (id === 'p-note') P.note = e.target.value;
+        else if (id === 'q') { TX.q = e.target.value; clearTimeout(TX.t); TX.t = setTimeout(function () { loadTx(true); }, 350); }
+    });
+    document.addEventListener('change', function (e) { if (e.target.id === 'p-anon') P.anon = e.target.checked; });
+
+    // ------------------------------------------------------------------ start
+    Site.onRoute(function (p) {
+        if (D) return render(p);
+        Site.call('init').then(function (r) {
+            D = r; Site.currency = r.currency || Site.currency;
+            document.getElementById('siteName').textContent = r.name;
+            document.getElementById('siteTag').textContent = r.tagline || '';
+            document.getElementById('whoName').textContent = r.me.name;
+            document.getElementById('secure').textContent = '🔒 ' + L('bank.secure', 'Secure session');
+            document.getElementById('foot').innerHTML = (r.footer || []).map(function (x) { return '<div>' + esc(x) + '</div>'; }).join('');
+            render(p);
+        }).catch(function (e) { app.innerHTML = err(e); });
+    });
+})();
+</script>
+</body>
+</html>

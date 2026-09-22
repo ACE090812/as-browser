@@ -438,7 +438,7 @@ a { cursor: pointer; }
             }).join('') +
             '<div class="sum" style="margin-top:8px"><div class="r"><span>' + esc(t('parts.parts')) + '</span><span>' + money(o.subtotal) + '</span></div><div class="r"><span>' + esc(t('parts.delivery')) + '</span><span>' + (o.fee ? money(o.fee) : esc(t('parts.free'))) + '</span></div><div class="r tot"><span>' + esc(t('parts.total')) + '</span><span>' + money(o.total) + '</span></div></div>' +
             '<div class="mt" style="margin-top:8px;color:var(--muted);font-size:13px">' + esc(t('parts.placedBy', o.buyer, ago(o.createdAt))) + '</div></div>' +
-            '<div style="margin-top:16px;display:flex;gap:10px;justify-content:center"><button class="btn" data-go="/orders">' + esc(t('parts.orders')) + '</button><button class="btn ghost" data-go="/">' + esc(t('parts.keepShopping')) + '</button></div></div>';
+            '<div style="margin-top:16px;display:flex;gap:10px;justify-content:center"><button class="btn" data-print="orderPrint" data-pd="' + esc(JSON.stringify({ ref: o.ref })) + '" data-ptitle="' + esc(o.ref) + '">' + esc(t('print.button')) + '</button><button class="btn" data-go="/orders">' + esc(t('parts.orders')) + '</button><button class="btn ghost" data-go="/">' + esc(t('parts.keepShopping')) + '</button></div></div>';
     }
 
     // ------------------------------------------------------------------ render + routing

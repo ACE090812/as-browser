@@ -220,6 +220,7 @@ local function siteCall(desktop, src, domain, name, data)
     if site.desktopOnly and not desktop then return { ok = false, error = T('shell.err.desktopOnly') } end
     if type(name) ~= 'string' or #name > 48 then return { ok = false, error = T('shell.err.badRequest') } end
     local handler = Browser.handlers[key] and Browser.handlers[key][name]
+    if not handler and name == '_print.options' and Browser.printOptions then handler = Browser.printOptions end
     if not handler then return { ok = false, error = T('shell.err.unknownRequest') } end
     if not rateAllowed(src, key) then return { ok = false, error = T('shell.err.tooManyRequests') } end
 

@@ -221,3 +221,23 @@ CreateThread(function()
         Wait(60000)
     end
 end)
+
+--- Print a booking confirmation (as-printer). data = { id, printer, colour, design, letterhead }. Cannot be copied.
+Browser.handler('gov', 'motPrint', function(src, data)
+    if not running() then return nil, NOT_RUNNING() end
+    local cid = Bridge.getIdentifier(src)
+    if not cid then return nil, T('shell.err.notSignedIn') end
+    local mine = call('bookingMine', cid)
+    if type(mine) ~= 'table' then return nil, NOT_RUNNING() end
+    local want, found = tonumber(data.id), nil
+    for _, list in ipairs({ mine.upcoming or {}, mine.past or {} }) do
+        for _, b in ipairs(list) do if tonumber(b.id) == want then found = b end end
+    end
+    if not found then return nil, T('print.err.notFound') end
+    local money = Browser.printMoney(found.fee)
+    return Browser.printDoc(src, 'mot_booking', {
+        reference = 'MOT-' .. tostring(found.id), plate = trimPlate(found.plate), model = found.vehicle, station = found.garageName,
+        date = Browser.date(found.slotTs), time = found.time .. (found.endTime and (' – ' .. found.endTime) or ''), fee = money,
+        status = found.status == 'booked' and T('print.statusBooked') or T('print.statusCancelledBooking'),
+    }, data)
+end)

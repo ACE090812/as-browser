@@ -1225,6 +1225,7 @@
             '<div class="acts"><a class="gbtn grey" data-go="/book-mot/change/' + b.id + '">' + esc(t('gov.mot.change')) + '</a>' +
             '<a class="gbtn grey" data-go="/book-mot/cancel/' + b.id + '">' + esc(t('gov.mot.cancelBooking')) + '</a></div>' :
             '<span class="fine">' + esc(t('gov.mot.locked', cfg.cancelMinutes)) + '</span>';
+        acts += '<div class="acts"><button class="gbtn grey" data-print="motPrint" data-pd="' + esc(JSON.stringify({ id: b.id })) + '" data-ptitle="' + esc(t('gov.mot.title')) + '">' + esc(t('print.button')) + '</button></div>';
         return '<div class="veh"><div class="vrow">' + plateHtml(b.plate, true) + '<span class="tag good">' + esc(t('gov.mot.tag.booked')) + '</span></div>' +
             '<div class="meta"><b>' + esc(whenText(b)) + '</b><br>' + esc(b.garageName) + (b.address ? ', ' + esc(b.address) : '') + (b.vehicle ? '<br>' + esc(b.vehicle) : '') + '</div>' + acts + '</div>';
     }

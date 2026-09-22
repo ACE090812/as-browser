@@ -12,6 +12,8 @@
    Site.title(text)        set the tab / history title
    Site.notify({title, content})   phone notification
    Site.copy(text)         copy to the clipboard
+   Site.canPrint()  promise of true when printing is set up
+   Site.print(name, data, {title})   print dialog, then Site.call(name, data + { printer, colour, letterhead }); the site's handler prints with Browser.printDoc
    Site.saveLogin({username, password, email})   save to the Passwords app (needs the sd-phone edit)
    Site.onTheme(fn)        fn('light'|'dark'); the page also gets data-theme on <html>
    Site.esc / Site.money / Site.date / Site.datetime   small helpers
@@ -130,6 +132,73 @@
         return request('saveLogin', { username: login.username, password: login.password, email: login.email });
     };
     Site.copy = function (text) { return request('copy', { text: String(text) }); };
+
+    // ---------------------------------------------------------------- printing (needs the as-printer resource)
+    // Site.print(name, data)  opens the print dialog (printer within range, colour or black and white, letterhead) and then calls the
+    // site's own request `name` with data plus { printer, colour, design, letterhead }. Resolves { pages, seconds, printer }, or null
+    // if the player cancelled. The site's handler builds the document on the server (Browser.printDoc in server/printing.lua).
+    function tx(key, def) { return I18N[key] != null ? t(key) : def; }
+    Site.print = function (name, data, o) {
+        o = o || {};
+        return new Promise(function (resolve) {
+            var host = document.createElement('div');
+            host.className = 'asb-print';
+            document.body.appendChild(host);
+            var esc = Site.esc, closed = false;
+            function close(v) { if (closed) return; closed = true; host.remove(); resolve(v); }
+            function box(title, body, buttons) {
+                host.innerHTML = '<div class="asb-print-box" role="dialog"><h3>' + esc(title) + '</h3><div class="asb-print-body">' + body + '</div><div class="asb-print-foot"></div></div>';
+                var foot = host.querySelector('.asb-print-foot');
+                buttons.forEach(function (b) {
+                    var el = document.createElement('button');
+                    el.type = 'button'; el.className = b.primary ? 'btn' : 'btn ghost'; el.textContent = b.label;
+                    el.addEventListener('click', b.run);
+                    foot.appendChild(el);
+                });
+            }
+            function message(text, bad) {
+                box(tx('print.title', 'Print'), '<div class="' + (bad ? 'notice bad' : 'notice good') + '">' + esc(text) + '</div>', [{ label: tx('print.ok', 'OK'), primary: true, run: function () { close(null); } }]);
+            }
+            box(tx('print.title', 'Print'), '<div class="spinner"></div><div class="muted">' + esc(tx('print.looking', 'Looking for printers nearby…')) + '</div>', [{ label: tx('print.cancel', 'Cancel'), run: function () { close(null); } }]);
+            Site.call('_print.options').then(function (d) {
+                if (closed) return;
+                if (!d || !d.available) { message(tx('print.off', 'Printing is not available.'), true); return; }
+                if (!(d.printers || []).length) { message(tx('print.none', 'There is no printer within range. Move closer to one.'), true); return; }
+                var first = null;
+                var popts = d.printers.map(function (p) {
+                    var bad = !p.allowed || p.paper <= 0 || p.black <= 0;
+                    if (!bad && !first) first = p.key;
+                    return '<option value="' + esc(p.key) + '"' + (bad ? ' disabled' : '') + '>' + esc(p.label + ' · ' + Math.round(p.distance) + ' m · ' +
+                        (p.allowed ? t('print.levels', p.paper, p.black, p.colour) : tx('print.restricted', 'restricted'))) + '</option>';
+                }).join('');
+                var lopts = '<option value="">' + esc(tx('print.noLetterhead', 'None')) + '</option>' + (d.letterheads || []).map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.label) + '</option>'; }).join('');
+                var dopts = o.design === false ? '' : (d.designs || []).map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.label) + '</option>'; }).join('');
+                box((o.title ? tx('print.title', 'Print') + ' — ' + o.title : tx('print.title', 'Print')),
+                    '<div class="field"><label>' + esc(tx('print.printer', 'Printer')) + '</label><select id="asb-pr-printer">' + popts + '</select></div>' +
+                    '<div class="field"><label>' + esc(tx('print.mode', 'Colour')) + '</label><select id="asb-pr-colour"><option value="0">' + esc(tx('print.bw', 'Black and white')) + '</option><option value="1">' + esc(tx('print.colour', 'Colour')) + '</option></select></div>' +
+                    (o.letterhead === false ? '' : '<div class="field"><label>' + esc(tx('print.letterhead', 'Letterhead')) + '</label><select id="asb-pr-letter">' + lopts + '</select></div>'),
+                    [{ label: tx('print.go', 'Print'), primary: true, run: function () {
+                        var body = {};
+                        Object.keys(data || {}).forEach(function (k) { body[k] = data[k]; });
+                        body.printer = host.querySelector('#asb-pr-printer').value;
+                        body.colour = host.querySelector('#asb-pr-colour').value === '1';
+                        var l = host.querySelector('#asb-pr-letter'); body.letterhead = l ? l.value : '';
+                        box(tx('print.title', 'Print'), '<div class="spinner"></div>', []);
+                        Site.call(name, body).then(function (r) {
+                            r = r || {};
+                            message(t('print.sent', r.printer || tx('print.printer', 'Printer'), r.seconds || 0), false);
+                        }, function (e) { message(e.message, true); });
+                    } }, { label: tx('print.cancel', 'Cancel'), run: function () { close(null); } }]);
+                if (first) host.querySelector('#asb-pr-printer').value = first;
+            }, function (e) { message(e.message, true); });
+        });
+    };
+    // Site.canPrint().then(function (yes) { ... })  true when the as-printer resource is running; pages show their Print button only then
+    var canPrintP = null;
+    Site.canPrint = function () {
+        if (!canPrintP) canPrintP = Site.call('_print.options').then(function (d) { return !!(d && d.available); }, function () { return false; });
+        return canPrintP;
+    };
     Site.open = function (url) { post({ type: 'open', url: String(url) }); };
     Site.back = function () { post({ type: 'back' }); };
     Site.notify = function (n) { n = n || {}; post({ type: 'notify', title: n.title, content: n.content }); };
@@ -193,6 +262,20 @@
             setTheme(d.theme);
         }
     });
+
+    // ---------------------------------------------------------------- print buttons
+    // Any element with data-print="requestName" (and data-pd='{"id":1}' for its data, data-ptitle for the dialog title) becomes a
+    // print button: hidden until as-printer is running, and it opens Site.print when clicked. Nothing else to wire up in a page.
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-print]');
+        if (!b || b.disabled) return;
+        e.preventDefault();
+        var data = {};
+        try { data = JSON.parse(b.getAttribute('data-pd') || '{}') || {}; } catch (x) { data = {}; }
+        Site.print(b.getAttribute('data-print'), data, { title: b.getAttribute('data-ptitle') || '' });
+    });
+    function markPrint() { Site.canPrint().then(function (yes) { if (yes) document.documentElement.classList.add('can-print'); }); }
+    Site.onReady(markPrint);
 
     // ---------------------------------------------------------------- game keyboard capture
     // The phone turns game controls off while a text field has focus. The shell can't see inside

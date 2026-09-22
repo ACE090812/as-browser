@@ -195,6 +195,7 @@
             (r.plan ? '<tr><th>' + esc(t('vc.plan')) + '</th><td>' + esc(r.plan.name) + '</td></tr>' : '') + '<tr><th>' + esc(t('gov.th.type')) + '</th><td>' + esc(r.vehicle.class) + '</td></tr><tr><th>' + esc(t('gov.history.th.checkedOn')) + '</th><td>' + Site.datetime(r.at) + '</td></tr></table>' +
             '<div class="status ' + (r.verdict === 'fail' ? 'bad' : (r.verdict === 'warn' ? 'warn' : 'good')) + '"><span class="k">' + esc(t('gov.history.overall')) + '</span><h3>' +
             esc(r.issues === 0 ? t('gov.history.noIssues') : (r.issues === 1 ? t('gov.history.issues.one', r.issues) : t('gov.history.issues.other', r.issues))) + '</h3></div>';
+        if (r.id) html += '<p><button class="btn ghost small" data-print="reportPrint" data-pd="' + esc(JSON.stringify({ id: r.id })) + '" data-ptitle="' + esc(r.plate) + '">' + esc(t('print.button')) + '</button></p>';
         html += '<h2>' + esc(t('gov.history.checks')) + '</h2>' + r.checks.map(checkRow).join('');
         if (r.personalised) html += '<div class="status"><b>' + esc(t('vc.personalised.title')) + '</b><div class="desc">' + esc(t('vc.personalised.body', r.personalised.plate, r.personalised.original)) + '</div></div>';
         if (r.previousPlates.length) {
