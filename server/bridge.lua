@@ -2,16 +2,40 @@
 -- who the player is, their character name, and their bank account.
 Bridge = {}
 
+--- Checks the usual core resource names. Returns nil (not 'standalone') when none of them are started yet,
+--- so callers can tell "not detected" from "no framework in use" during that startup window.
+local FRAMEWORK_ALIASES = { es_extended = 'esx', ['esx_legacy'] = 'esx', qbcore = 'qb', ['qb-core'] = 'qb', qbx_core = 'qbx' }
 local function detectFramework()
-    if Config.framework ~= 'auto' then return Config.framework end
+    if Config.framework ~= 'auto' then return FRAMEWORK_ALIASES[Config.framework] or Config.framework end
     if GetResourceState('qbx_core') == 'started' then return 'qbx' end
     if GetResourceState('qb-core') == 'started' then return 'qb' end
     if GetResourceState('es_extended') == 'started' then return 'esx' end
-    return 'standalone'
+    if GetResourceState('qbx_core') == 'missing' and GetResourceState('qb-core') == 'missing' and GetResourceState('es_extended') == 'missing' then return 'standalone' end
+    return nil   -- one of them exists but has not started yet: keep checking rather than guessing 'standalone'
 end
 
-Bridge.framework = detectFramework()
+-- `ensure as-browser` can land before `ensure es_extended` / `qb-core` / `qbx_core` in server.cfg, and this
+-- resource's own scripts run the moment it starts, so a same-tick check can see the core as not started yet and
+-- lock in the wrong table names for the whole session (this bit a real ESX server: as-browser detected
+-- 'standalone', queried `player_vehicles`, and that table does not exist on ESX, which uses `owned_vehicles`).
+-- So detection retries for a few seconds after this resource starts, instead of deciding once at load time.
+Bridge.framework = detectFramework() or 'standalone'
 local framework = Bridge.framework
+CreateThread(function()
+    for _ = 1, 100 do
+        if Bridge.framework ~= 'standalone' then return end
+        Wait(100)
+        local d = detectFramework()
+        if d then
+            Bridge.framework = d
+            framework = d
+            if d ~= 'standalone' then
+                print(('^5[as-browser]^0 framework detected late: %s (a core resource started after as-browser; consider moving `ensure as-browser` below your framework and inventory in server.cfg)'):format(d))
+            end
+            return
+        end
+    end
+end)
 
 local QBCore, qbxExport, ESX
 

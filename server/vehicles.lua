@@ -1,7 +1,7 @@
 -- Vehicle lookups shared by the government portal (checker + tax) and the insurance site.
 Vehicles = {}
 
-local framework = Bridge.framework
+local function framework() return Bridge.framework end
 
 -- ---------------------------------------------------------------------------------------------
 -- Plates
@@ -22,16 +22,19 @@ end
 local function tableCfg()
     local c = Config.vehicleTable
     if not c then
-        if framework == 'esx' then
+        if framework() == 'esx' then
             c = { table = 'owned_vehicles', plate = 'plate', owner = 'owner', model = 'vehicle', mods = 'vehicle' }
         else
             c = { table = 'player_vehicles', plate = 'plate', owner = 'citizenid', model = 'vehicle', mods = 'mods' }
         end
     end
     for _, k in ipairs({ 'table', 'plate', 'owner', 'model', 'mods' }) do
-        if type(c[k]) ~= 'string' or not c[k]:match('^[%w_]+$') then
-            error(('Config.vehicleTable.%s must be a plain column/table name'):format(k))
+        local v = type(c[k]) == 'string' and c[k]:gsub('^%s+', ''):gsub('%s+$', '') or c[k]
+        if type(v) ~= 'string' or v == '' or not v:match('^[%w_]+$') then
+            error(('Config.vehicleTable.%s must be a plain column/table name, got %s (from Config.vehicleTable = %s)')
+                :format(k, v == nil and 'nil' or ('"' .. tostring(v) .. '"'), Config.vehicleTable and 'a custom table' or 'nil, so this came from the framework default: check Bridge.framework ("' .. tostring(framework()) .. '")'))
         end
+        c[k] = v
     end
     return c
 end
@@ -71,14 +74,14 @@ local function loadInfo()
     if infoByName then return end
     infoByName, spawnByHash = {}, {}
 
-    if framework == 'qbx' then
+    if framework() == 'qbx' then
         local ok, list = pcall(function() return exports.qbx_core:GetVehiclesByName() end)
         if ok and type(list) == 'table' then
             for spawn, v in pairs(list) do
                 infoByName[spawn:lower()] = { brand = v.brand, name = v.name, category = v.category, price = v.price }
             end
         end
-    elseif framework == 'qb' then
+    elseif framework() == 'qb' then
         local core = Bridge.getQBCore()
         local list = core and core.Shared and core.Shared.Vehicles
         if type(list) == 'table' then
@@ -86,7 +89,7 @@ local function loadInfo()
                 infoByName[tostring(spawn):lower()] = { brand = v.brand, name = v.name, category = v.category, price = v.price }
             end
         end
-    elseif framework == 'esx' then
+    elseif framework() == 'esx' then
         local ok, rows = pcall(function() return MySQL.query.await('SELECT name, model, price, category FROM vehicles') end)
         if ok and type(rows) == 'table' then
             for _, v in ipairs(rows) do
@@ -204,7 +207,7 @@ local function parseRow(row)
     end
 
     local model = row.model
-    if framework == 'esx' then
+    if framework() == 'esx' then
         local hash = tonumber(mods.model)
         model = hash and spawnByHash[hash & 0xFFFFFFFF] or nil
         if not model then loadInfo(); model = hash and spawnByHash[hash & 0xFFFFFFFF] or 'unknown' end

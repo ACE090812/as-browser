@@ -18,8 +18,10 @@ Config.parts = {
 
     -- Which society bank to use:
     --   'auto'          the first supported one that is started
-    --   'renewed'       Renewed-Banking       'qb-banking'   qb-banking
-    --   'qb-management' qb-management         'okokbanking'  okokBanking
+    --   'renewed'       Renewed-Banking       'qb-banking'     qb-banking
+    --   'qb-management' qb-management         'okokbanking'    okokBanking
+    --   'okokbankingv2' okokBankingv2         'fd_banking'     fd_banking
+    --   'esx_society'   esx_addonaccount
     --   'fd_banking'    fd_banking            'esx_society'  esx_addonaccount / esx_society
     --   'custom'        fill in the three functions below
     bank = 'renewed',
