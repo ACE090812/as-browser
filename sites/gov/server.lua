@@ -136,6 +136,10 @@ function Browser.api.getVehicleStatus(plate)
     }
 end
 
+-- FX export so other resources (MDT, ANPR, police scripts) can read the same tax/MOT/insurance
+-- state this site shows on lsgov.co.uk, instead of keeping their own separate copy of it.
+exports('getVehicleStatus', function(plate) return Browser.api.getVehicleStatus(plate) end)
+
 --- true/false, plus a list of reasons when false ('untaxed', 'no_mot').
 function Browser.api.isRoadLegal(plate)
     local s = Browser.api.getVehicleStatus(plate)
