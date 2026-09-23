@@ -113,7 +113,7 @@ local function insuranceInfo(plateKey)
     if not G.showInsurance or not Browser.isEnabled('insurance') or not Browser.hooks.insuranceStatus then return nil end
     local ok, res = pcall(Browser.hooks.insuranceStatus, plateKey)
     if not ok or type(res) ~= 'table' then return nil end
-    return { status = res.active and 'insured' or 'not_insured', endsAt = res.endsAt }
+    return { status = res.active and 'insured' or 'not_insured', endsAt = res.endsAt, provider = res.provider }
 end
 
 local function trimPlate(p) return (tostring(p):gsub('%s+$', '')) end
@@ -133,6 +133,8 @@ function Browser.api.getVehicleStatus(plate)
         class = d.class.label, exempt = d.exempt,
         tax = taxInfo(d, row), mot = motInfo(row),
         insured = ins and ins.status == 'insured' or nil,
+        insuranceEndsAt = ins and ins.endsAt or nil,
+        insuranceProvider = ins and ins.provider or nil,
     }
 end
 

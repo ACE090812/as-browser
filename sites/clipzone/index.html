@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClipZone</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+    :root {
+        --accent: #ff0000; --yt-bg: #fff; --yt-header: #fff; --yt-surface: #f2f2f2; --yt-surface-2: #e5e5e5;
+        --yt-fg: #0f0f0f; --yt-muted: #606060; --yt-line: #e5e5e5; --yt-chip: #f2f2f2; --yt-chip-fg: #0f0f0f;
+        --yt-pill: #f2f2f2;
+    }
+    :root[data-theme="dark"] {
+        --yt-bg: #0f0f0f; --yt-header: #212121; --yt-surface: #272727; --yt-surface-2: #3f3f3f;
+        --yt-fg: #f1f1f1; --yt-muted: #aaaaaa; --yt-line: #3f3f3f; --yt-chip: #272727; --yt-chip-fg: #f1f1f1;
+        --yt-pill: #121212;
+    }
+    body { background: var(--yt-bg); color: var(--yt-fg); font-family: "YouTube Sans", Roboto, Arial, sans-serif; }
+    .cz-top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 16px; height: 56px; padding: 0 16px; background: var(--yt-header); border-bottom: 1px solid var(--yt-line); }
+    .cz-logo { flex: none; font-weight: 700; font-size: 20px; letter-spacing: -.02em; color: var(--yt-fg); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .cz-logo .play { width: 28px; height: 20px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+    .cz-logo .play:after { content: ''; border-style: solid; border-width: 5px 0 5px 8px; border-color: transparent transparent transparent #fff; margin-left: 2px; }
+    .cz-search-wrap { flex: 1; display: flex; justify-content: center; }
+    .cz-search { display: flex; width: 100%; max-width: 560px; }
+    .cz-search input { min-height: 38px; border-radius: 20px 0 0 20px; border: 1px solid var(--yt-line); border-right: 0; background: var(--yt-bg); padding-left: 16px; }
+    .cz-search input:focus { border-color: #1c62b9; box-shadow: none; }
+    .cz-search-btn { flex: none; width: 64px; min-height: 38px; border: 1px solid var(--yt-line); border-radius: 0 20px 20px 0; background: var(--yt-surface); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .cz-navbtn { flex: none; min-height: 36px; padding: 0 14px; border-radius: 18px; font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+    .cz-navbtn.pill-upload { background: var(--yt-surface); color: var(--yt-fg); display: flex; align-items: center; gap: 6px; }
+    .cz-navbtn.pill-ghost { background: transparent; color: var(--yt-fg); }
+    .cz-ava-btn { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+    .cz-shell { display: flex; align-items: flex-start; }
+    .cz-rail { flex: none; width: 88px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto; }
+    .cz-rail button { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px 10px; border-radius: 10px; font-size: 10.5px; font-weight: 500; color: var(--yt-fg); }
+    .cz-rail button:hover { background: var(--yt-surface); }
+    .cz-rail button.on { background: var(--yt-surface); font-weight: 700; }
+    .cz-rail button .i { font-size: 21px; }
+    .cz-main { flex: 1; min-width: 0; }
+    .cz-wrap { padding: 20px 24px; max-width: 1500px; margin: 0 auto; }
+
+    .cz-chips { display: flex; gap: 12px; overflow-x: auto; padding: 4px 0 18px; }
+    .cz-chip { flex: none; padding: 7px 16px; border-radius: 8px; background: var(--yt-chip); font-size: 13.5px; font-weight: 500; color: var(--yt-chip-fg); }
+    .cz-chip.on { background: var(--yt-fg); color: var(--yt-bg); }
+    .cz-sec { font-size: 16px; font-weight: 700; margin: 8px 0 14px; display: flex; align-items: center; gap: 6px; }
+    .cz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px 16px; margin-bottom: 28px; }
+    .cz-card { display: block; text-align: left; }
+    .cz-thumb { width: 100%; aspect-ratio: 16/9; border-radius: 12px; background: var(--yt-surface) center/cover no-repeat; display: flex; align-items: center; justify-content: center; color: var(--yt-muted); font-size: 30px; overflow: hidden; }
+    .cz-cardbody { display: flex; gap: 10px; margin-top: 10px; }
+    .cz-ctitle { font-weight: 600; font-size: 14px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--yt-fg); }
+    .cz-cmeta { margin-top: 4px; font-size: 12.5px; color: var(--yt-muted); line-height: 1.4; }
+    .cz-empty { text-align: center; color: var(--yt-muted); padding: 40px 0; }
+
+    .cz-watch-layout { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+    .cz-watch-main { flex: 2 1 640px; min-width: 0; }
+    .cz-watch-side { flex: 1 1 320px; min-width: 280px; }
+    .cz-player { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; user-select: none; }
+    .cz-player.cz-fs { position: fixed; inset: 0; z-index: 999; width: 100vw; height: 100vh; aspect-ratio: auto; border-radius: 0; }
+    .cz-player.cz-fs video { object-fit: contain; }
+    .cz-player video { width: 100%; height: 100%; display: block; background: #000; }
+    .cz-player .cz-p-big {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,.15); border: 0; cursor: pointer;
+    }
+    .cz-player .cz-p-big .circ {
+        width: 74px; height: 74px; border-radius: 50%; background: rgba(0,0,0,.55);
+        display: flex; align-items: center; justify-content: center; transition: background .15s;
+    }
+    .cz-player .cz-p-big:hover .circ { background: rgba(0,0,0,.75); }
+    .cz-player .cz-p-big.playing { opacity: 0; pointer-events: none; }
+    .cz-player .cz-p-big svg { width: 30px; height: 30px; fill: #fff; margin-left: 4px; }
+    .cz-player .cz-p-big.playing-icon svg { margin-left: 0; }
+    .cz-p-bar {
+        position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 12px 8px;
+        background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.75));
+        opacity: 0; transition: opacity .15s;
+    }
+    .cz-player:hover .cz-p-bar, .cz-player.paused .cz-p-bar, .cz-p-bar:focus-within { opacity: 1; }
+    .cz-p-seek {
+        -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px;
+        background: rgba(255,255,255,.3); outline: 0; cursor: pointer; margin: 0 0 8px; display: block;
+    }
+    .cz-p-seek::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: transparent; }
+    .cz-p-seek::-webkit-slider-thumb {
+        -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--accent);
+        margin-top: -4.5px; box-shadow: 0 0 0 4px rgba(255,0,0,0);
+    }
+    .cz-p-seek { accent-color: var(--accent); }
+    .cz-p-row { display: flex; align-items: center; gap: 14px; }
+    .cz-p-row button { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #fff; flex: none; }
+    .cz-p-row button svg { width: 22px; height: 22px; fill: #fff; }
+    .cz-p-time { color: #fff; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    .cz-p-spacer { flex: 1; }
+    .cz-p-vol { -webkit-appearance: none; appearance: none; width: 60px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.35); accent-color: #fff; }
+    .cz-p-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: #fff; margin-top: -4px; }
+    .cz-vtitle { font-size: 18px; font-weight: 600; margin: 12px 0 6px; }
+    .cz-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+    .cz-actions .btn { border-radius: 18px; min-height: 36px; padding: 0 16px; background: var(--yt-surface); color: var(--yt-fg); font-size: 13.5px; font-weight: 500; }
+    .cz-actions .btn.on { background: var(--yt-surface-2); }
+    .cz-likegroup { display: flex; align-items: stretch; border-radius: 18px; overflow: hidden; background: var(--yt-surface); }
+    .cz-likegroup .btn { border-radius: 0; background: transparent; }
+    .cz-likegroup .seg { position: relative; }
+    .cz-likegroup .seg:first-child::after { content: ''; position: absolute; right: 0; top: 8px; bottom: 8px; width: 1px; background: var(--yt-line); }
+    .cz-subbtn { border-radius: 18px; min-height: 36px; padding: 0 16px; background: var(--yt-fg); color: var(--yt-bg); font-size: 13.5px; font-weight: 600; }
+    .cz-subbtn.on { background: var(--yt-surface); color: var(--yt-fg); }
+    .cz-chan-row { display: flex; align-items: center; gap: 12px; margin: 16px 0; padding: 12px 0; border-top: 1px solid var(--yt-line); border-bottom: 1px solid var(--yt-line); }
+    .cz-ava { width: 40px; height: 40px; border-radius: 50%; background: var(--yt-surface-2) center/cover no-repeat; flex: none; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+    .cz-ava.big { width: 80px; height: 80px; font-size: 30px; border: 3px solid var(--yt-bg); }
+    .cz-banner { width: 100%; aspect-ratio: 6/1; border-radius: 12px; background: var(--yt-surface-2) center/cover no-repeat; margin-bottom: -40px; }
+    .cz-desc { white-space: pre-wrap; font-size: 14px; background: var(--yt-surface); border-radius: 12px; }
+    .cz-comment { padding: 10px 0; }
+    .cz-comment b { font-size: 13px; }
+    .cz-comment .body { font-size: 14px; margin-top: 2px; white-space: pre-wrap; }
+    .cz-lb-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--yt-line); }
+    .cz-lb-row:last-child { border-bottom: 0; }
+    .cz-lb-rank { width: 22px; text-align: center; font-weight: 800; color: var(--yt-muted); }
+    .cz-payout { padding: 14px 16px; border-radius: 12px; background: var(--good-bg); color: var(--good); display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 14px 0; font-weight: 600; }
+    .cz-payout .btn { background: var(--good); color: #fff; }
+
+    .cz-side-card { display: flex; gap: 8px; text-align: left; margin-bottom: 10px; }
+    .cz-side-thumb { flex: none; width: 168px; aspect-ratio: 16/9; border-radius: 8px; background: var(--yt-surface) center/cover no-repeat; display: flex; align-items: center; justify-content: center; color: var(--yt-muted); font-size: 22px; overflow: hidden; }
+    .cz-side-title { font-size: 13.5px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .cz-side-meta { font-size: 12px; color: var(--yt-muted); margin-top: 4px; }
+
+    @media (max-width: 860px) { .cz-rail { display: none; } .cz-wrap { padding: 14px; } }
+</style>
+</head>
+<body>
+<div class="cz-top">
+    <div class="cz-logo" id="cz-home"><span class="play"></span>Clip<span style="color:var(--accent)">Zone</span></div>
+    <div class="cz-search-wrap">
+        <div class="cz-search"><input type="search" id="cz-q" placeholder="Search clips…" data-i18n-placeholder="clipzone.search"><button type="button" class="cz-search-btn" id="cz-qbtn">🔍</button></div>
+    </div>
+    <button type="button" class="cz-navbtn pill-upload" id="cz-upload"><span>⬆️</span><span data-i18n="clipzone.nav.upload">Upload</span></button>
+    <button type="button" class="cz-navbtn pill-ghost" id="cz-lb" data-i18n="clipzone.nav.leaderboard">Leaderboard</button>
+    <button type="button" class="cz-ava-btn" id="cz-me" title="My channel">👤</button>
+</div>
+<div class="cz-shell">
+    <div class="cz-rail">
+        <button type="button" id="cz-rail-home" class="on"><span class="i">🏠</span>Home</button>
+        <button type="button" id="cz-rail-trending"><span class="i">🔥</span>Trending</button>
+        <button type="button" id="cz-rail-lb"><span class="i">🏆</span>Leaders</button>
+        <button type="button" id="cz-rail-upload"><span class="i">⬆️</span>Upload</button>
+        <button type="button" id="cz-rail-me"><span class="i">👤</span>You</button>
+    </div>
+    <div class="cz-main"><div class="cz-wrap" id="app"></div></div>
+</div>
+
+<script src="/sdk/site.js"></script>
+<script>
+(function () {
+    var esc = Site.esc;
+    var app = document.getElementById('app');
+    var me = null;
+
+    Site.player().then(function (p) { me = p; }).catch(function () {});
+
+    document.getElementById('cz-home').onclick = function () { Site.go('/'); };
+    document.getElementById('cz-lb').onclick = function () { Site.go('/leaderboard'); };
+    document.getElementById('cz-upload').onclick = function () { Site.go('/upload'); };
+    document.getElementById('cz-me').onclick = function () { Site.go('/channel'); };
+    document.getElementById('cz-rail-home').onclick = function () { Site.go('/'); };
+    document.getElementById('cz-rail-trending').onclick = function () { Site.go('/'); };
+    document.getElementById('cz-rail-lb').onclick = function () { Site.go('/leaderboard'); };
+    document.getElementById('cz-rail-upload').onclick = function () { Site.go('/upload'); };
+    document.getElementById('cz-rail-me').onclick = function () { Site.go('/channel'); };
+    function syncRail(path) {
+        var map = { '/': 'cz-rail-home', '/leaderboard': 'cz-rail-lb', '/upload': 'cz-rail-upload', '/channel': 'cz-rail-me' };
+        document.querySelectorAll('.cz-rail button').forEach(function (b) { b.classList.remove('on'); });
+        var id = map[path];
+        if (id) { var el = document.getElementById(id); if (el) el.classList.add('on'); }
+    }
+    var qbox = document.getElementById('cz-q');
+    qbox.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && qbox.value.trim()) Site.go('/search/' + encodeURIComponent(qbox.value.trim()));
+    });
+
+    function fmtViews(n) { n = Number(n) || 0; return n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
+
+    function card(v) {
+        var thumb = v.thumb ? 'style="background-image:url(&quot;' + esc(v.thumb) + '&quot;)"' : '';
+        return '<button type="button" class="cz-card" data-watch="' + v.id + '">' +
+            '<div class="cz-thumb"' + thumb + '>' + (v.thumb ? '' : '🎬') + '</div>' +
+            '<div class="cz-cardbody">' +
+            '<div class="cz-ava" style="width:36px;height:36px;font-size:14px">👤</div>' +
+            '<div class="grow"><div class="cz-ctitle">' + esc(v.title) + '</div>' +
+            '<div class="cz-cmeta">' + esc(v.channelName || '') + '<br>' + fmtViews(v.views) + ' ' + esc(t('clipzone.views', '')) + ' · ' + esc(Site.date(toTs(v.createdAt))) + '</div></div>' +
+            '</div>' +
+            '</button>';
+    }
+    function sideCard(v) {
+        var thumb = v.thumb ? 'style="background-image:url(&quot;' + esc(v.thumb) + '&quot;)"' : '';
+        return '<button type="button" class="cz-side-card" data-watch="' + v.id + '">' +
+            '<div class="cz-side-thumb"' + thumb + '>' + (v.thumb ? '' : '🎬') + '</div>' +
+            '<div class="grow"><div class="cz-side-title">' + esc(v.title) + '</div>' +
+            '<div class="cz-side-meta">' + esc(v.channelName || '') + '<br>' + fmtViews(v.views) + ' ' + esc(t('clipzone.views', '')) + '</div></div>' +
+            '</button>';
+    }
+    function toTs(sqlDate) {
+        if (typeof sqlDate === 'number') return sqlDate;
+        if (!sqlDate) return 0;
+        var d = new Date(String(sqlDate).replace(' ', 'T') + 'Z');
+        return isNaN(d) ? 0 : Math.floor(d.getTime() / 1000);
+    }
+    function bindCards(root) {
+        root.querySelectorAll('[data-watch]').forEach(function (b) { b.onclick = function () { Site.go('/watch/' + b.dataset.watch); }; });
+        root.querySelectorAll('[data-chan]').forEach(function (b) { b.onclick = function () { Site.go('/channel/' + b.dataset.chan); }; });
+    }
+
+    // ---------------------------------------------------------------- Home
+    var homeCat = '';
+    function renderHome() {
+        Site.title(t('clipzone.title', 'ClipZone'));
+        app.innerHTML = '<div class="spinner"></div>';
+        Site.call('home', { category: homeCat }).then(function (r) {
+            var chips = '<div class="cz-chips"><button type="button" class="cz-chip' + (!homeCat ? ' on' : '') + '" data-cat="">' + esc(t('clipzone.allCategories', 'All')) + '</button>' +
+                (r.categories || []).map(function (c) { return '<button type="button" class="cz-chip' + (homeCat === c.id ? ' on' : '') + '" data-cat="' + esc(c.id) + '">' + esc(c.label) + '</button>'; }).join('') + '</div>';
+            var trending = '<div class="cz-sec">🔥 ' + esc(t('clipzone.trending', 'Trending')) + '</div>' +
+                (r.trending.length ? '<div class="cz-grid">' + r.trending.map(card).join('') + '</div>' : '<div class="cz-empty">' + esc(t('clipzone.emptyTrending', 'Nothing trending yet.')) + '</div>');
+            var latest = '<div class="cz-sec">' + esc(t('clipzone.latest', 'Latest uploads')) + '</div>' +
+                (r.latest.length ? '<div class="cz-grid">' + r.latest.map(card).join('') + '</div>' : '<div class="cz-empty">' + esc(t('clipzone.emptyLatest', 'No clips yet. Be the first to upload one!')) + '</div>');
+            app.innerHTML = chips + trending + latest;
+            app.querySelectorAll('[data-cat]').forEach(function (c) { c.onclick = function () { homeCat = c.dataset.cat; renderHome(); }; });
+            bindCards(app);
+        }, function (e) { app.innerHTML = '<div class="notice bad">' + esc(e.message) + '</div>'; });
+    }
+
+    // ---------------------------------------------------------------- Search
+    function renderSearch(q) {
+        Site.title(t('clipzone.search', 'Search') + ' - ' + q);
+        app.innerHTML = '<div class="spinner"></div>';
+        Site.call('search', { q: q }).then(function (r) {
+            app.innerHTML = '<div class="cz-sec">' + esc(t('clipzone.resultsFor', 'Results for')) + ' "' + esc(q) + '"</div>' +
+                (r.results.length ? '<div class="cz-grid">' + r.results.map(card).join('') + '</div>' : '<div class="cz-empty">' + esc(t('clipzone.noResults', 'No clips match that search.')) + '</div>');
+            bindCards(app);
+        }, function (e) { app.innerHTML = '<div class="notice bad">' + esc(e.message) + '</div>'; });
+    }
+
+    // ---------------------------------------------------------------- Watch
+    function renderWatch(id) {
+        app.innerHTML = '<div class="spinner"></div>';
+        Site.call('video', { id: id }).then(function (r) {
+            var v = r.video, c = r.channel;
+            Site.title(v.title);
+            var mainCol =
+                playerHtml(v) +
+                '<div class="cz-vtitle">' + esc(v.title) + '</div>' +
+                '<div class="cz-chan-row" style="border-top:0;justify-content:space-between">' +
+                '<div class="row" data-chan="' + esc(c.id) + '" style="cursor:pointer">' + ava(c) +
+                '<div class="grow"><b>' + esc(c.name) + '</b><div class="cz-cmeta">' + fmtViews(c.subs) + ' ' + esc(t('clipzone.subscribers', 'subscribers')) + '</div></div></div>' +
+                (c.isMine ? '' : '<button type="button" class="cz-subbtn' + (c.isSubscribed ? ' on' : '') + '" id="cz-sub">' + esc(c.isSubscribed ? t('clipzone.subscribed', 'Subscribed') : t('clipzone.subscribe', 'Subscribe')) + '</button>') +
+                '</div>' +
+                '<div class="cz-actions" style="margin:0">' +
+                '<div class="cz-likegroup"><button type="button" class="btn seg' + (v.liked ? ' on' : '') + '" id="cz-like">👍 <span id="cz-likecount">' + v.likes + '</span></button>' +
+                '<button type="button" class="btn seg" id="cz-dislike">👎</button></div>' +
+                '<button type="button" class="btn ghost" id="cz-share">↗ ' + esc(t('clipzone.share', 'Share')) + '</button>' +
+                '<button type="button" class="btn ghost" id="cz-report">' + esc(t('clipzone.report', 'Report')) + '</button>' +
+                '</div>' +
+                '<div class="cz-cmeta" style="margin:6px 0 4px">' + fmtViews(v.views) + ' ' + esc(t('clipzone.views', 'views')) + ' · ' + esc(Site.date(toTs(v.createdAt))) + '</div>' +
+                (r.payout ? '<div class="cz-payout"><span>' + esc(fmt2(t('clipzone.payoutReady', '%s views reached - claim %s'), fmtViews(r.payout.views), Site.money(r.payout.amount))) + '</span><button type="button" class="btn" id="cz-claim">' + esc(t('clipzone.claim', 'Claim')) + '</button></div>' : '') +
+                (v.description ? '<div class="card cz-desc">' + esc(v.description) + '</div>' : '') +
+                '<div class="cz-sec">' + esc(t('clipzone.comments', 'Comments')) + '</div>' +
+                '<div class="field"><textarea id="cz-cbody" maxlength="300" placeholder="' + esc(t('clipzone.addComment', 'Add a comment…')) + '"></textarea><button type="button" class="btn" id="cz-csend">' + esc(t('clipzone.post', 'Post')) + '</button></div>' +
+                '<div id="cz-clist">' + renderComments(r.comments) + '</div>';
+            var sideCol = r.related.length ? r.related.map(sideCard).join('') : '<div class="cz-empty">' + esc(t('clipzone.related', 'More like this')) + '</div>';
+            app.innerHTML = '<div class="cz-watch-layout"><div class="cz-watch-main">' + mainCol + '</div><div class="cz-watch-side">' + sideCol + '</div></div>';
+            bindCards(app);
+            initPlayer(app.querySelector('.cz-player'));
+            app.querySelector('[data-chan]').onclick = function () { Site.go('/channel/' + c.id); };
+
+            document.getElementById('cz-like').onclick = function () {
+                Site.call('like', { id: id }).then(function (res) {
+                    document.getElementById('cz-likecount').textContent = res.likes;
+                    document.getElementById('cz-like').classList.toggle('on', res.liked);
+                });
+            };
+            document.getElementById('cz-dislike').onclick = function () {
+                document.getElementById('cz-dislike').classList.toggle('on');
+            };
+            document.getElementById('cz-share').onclick = function () {
+                Site.copy(location.href);
+                Site.notify({ title: 'ClipZone', content: t('clipzone.linkCopied', 'Link copied.') });
+            };
+            document.getElementById('cz-report').onclick = function () {
+                var reason = prompt(t('clipzone.reportPrompt', "What's wrong with this clip?"));
+                if (!reason) return;
+                Site.call('report', { id: id, reason: reason }).then(function () { Site.notify({ title: 'ClipZone', content: t('clipzone.reportSent', 'Thanks, staff will take a look.') }); });
+            };
+            var subBtn = document.getElementById('cz-sub');
+            if (subBtn) subBtn.onclick = function () {
+                Site.call('subscribe', { id: c.id }).then(function (res) {
+                    subBtn.textContent = res.subscribed ? t('clipzone.subscribed', 'Subscribed') : t('clipzone.subscribe', 'Subscribe');
+                    subBtn.classList.toggle('on', res.subscribed);
+                });
+            };
+            var claimBtn = document.getElementById('cz-claim');
+            if (claimBtn) claimBtn.onclick = function () {
+                claimBtn.disabled = true;
+                Site.call('claimPayout', { id: id }).then(function (res) {
+                    Site.notify({ title: 'ClipZone', content: fmt2(t('clipzone.paid', 'You were paid %s!'), Site.money(res.amount)) });
+                    renderWatch(id);
+                }, function (e) { claimBtn.disabled = false; alert(e.message); });
+            };
+            document.getElementById('cz-csend').onclick = function () {
+                var ta = document.getElementById('cz-cbody'), body = ta.value.trim();
+                if (!body) return;
+                Site.call('comment', { id: id, body: body }).then(function (res) {
+                    ta.value = '';
+                    document.getElementById('cz-clist').innerHTML = renderComments([res.comment]) + document.getElementById('cz-clist').innerHTML;
+                }, function (e) { alert(e.message); });
+            };
+        }, function (e) { app.innerHTML = '<div class="notice bad">' + esc(e.message) + '</div>'; });
+    }
+    function fmt2(s, a, b) { return String(s).replace('%s', a).replace('%s', b); }
+    function renderComments(list) {
+        if (!list.length) return '<div class="cz-empty">' + esc(t('clipzone.noComments', 'No comments yet.')) + '</div>';
+        return list.map(function (c) {
+            return '<div class="cz-comment"><b>' + esc(c.authorName) + '</b><div class="body">' + esc(c.body) + '</div></div>';
+        }).join('');
+    }
+    function ava(c) {
+        var st = c.avatar ? ' style="background-image:url(&quot;' + esc(c.avatar) + '&quot;)"' : '';
+        return '<div class="cz-ava' + (c._big ? ' big' : '') + '"' + st + '>' + (c.avatar ? '' : '👤') + '</div>';
+    }
+
+    // ---------------------------------------------------------------- Custom player
+    var ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    var ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+    var ICON_VOL = '<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2A4.5 4.5 0 0 0 14 7.97v8.05A4.5 4.5 0 0 0 16.5 12z"/></svg>';
+    var ICON_MUTE = '<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3zm13.59 2 2.7-2.71-1.41-1.41L15.17 12l-2.7-2.71-1.41 1.41L13.76 13l-2.7 2.71 1.41 1.41L15.17 14l2.7 2.71 1.41-1.41z"/></svg>';
+    var ICON_FS = '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7zM5 10h2V7h3V5H5zm12 9h3v-5h-2v3h-3zM14 5v2h3v3h2V5z"/></svg>';
+    var ICON_FS_EXIT = '<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z"/></svg>';
+
+    function playerHtml(v) {
+        return '<div class="cz-player paused">' +
+            '<video src="' + esc(v.videoUrl) + '" playsinline' + (v.thumb ? ' poster="' + esc(v.thumb) + '"' : '') + '></video>' +
+            '<button type="button" class="cz-p-big" data-role="toggle"><span class="circ">' + ICON_PLAY + '</span></button>' +
+            '<div class="cz-p-bar">' +
+            '<input type="range" class="cz-p-seek" data-role="seek" min="0" max="100" step="0.1" value="0">' +
+            '<div class="cz-p-row">' +
+            '<button type="button" data-role="toggle2">' + ICON_PLAY + '</button>' +
+            '<input type="range" class="cz-p-vol" data-role="vol" min="0" max="100" step="1" value="100">' +
+            '<div class="cz-p-time"><span data-role="cur">0:00</span> / <span data-role="dur">0:00</span></div>' +
+            '<div class="cz-p-spacer"></div>' +
+            '<button type="button" data-role="fs">' + ICON_FS + '</button>' +
+            '</div></div></div>';
+    }
+    function fmtTime(s) {
+        s = Math.max(0, Math.floor(s || 0));
+        var m = Math.floor(s / 60), sec = s % 60;
+        return m + ':' + (sec < 10 ? '0' : '') + sec;
+    }
+    function initPlayer(root) {
+        if (!root) return;
+        var video = root.querySelector('video');
+        var big = root.querySelector('[data-role="toggle"]');
+        var toggle2 = root.querySelector('[data-role="toggle2"]');
+        var seek = root.querySelector('[data-role="seek"]');
+        var vol = root.querySelector('[data-role="vol"]');
+        var cur = root.querySelector('[data-role="cur"]');
+        var dur = root.querySelector('[data-role="dur"]');
+        var fs = root.querySelector('[data-role="fs"]');
+        var seeking = false;
+
+        function setPlaying(on) {
+            root.classList.toggle('paused', !on);
+            big.innerHTML = '<span class="circ">' + (on ? ICON_PAUSE : ICON_PLAY) + '</span>';
+            big.classList.toggle('playing', on);
+            toggle2.innerHTML = on ? ICON_PAUSE : ICON_PLAY;
+        }
+        function toggle() { if (video.paused) video.play().catch(function () {}); else video.pause(); }
+
+        big.onclick = toggle;
+        toggle2.onclick = toggle;
+        video.addEventListener('play', function () { setPlaying(true); });
+        video.addEventListener('pause', function () { setPlaying(false); });
+        video.addEventListener('loadedmetadata', function () { dur.textContent = fmtTime(video.duration); });
+        video.addEventListener('timeupdate', function () {
+            cur.textContent = fmtTime(video.currentTime);
+            if (!seeking && video.duration) seek.value = String((video.currentTime / video.duration) * 100);
+        });
+        seek.addEventListener('input', function () {
+            seeking = true;
+            if (video.duration) cur.textContent = fmtTime((seek.value / 100) * video.duration);
+        });
+        seek.addEventListener('change', function () {
+            if (video.duration) video.currentTime = (seek.value / 100) * video.duration;
+            seeking = false;
+        });
+        vol.addEventListener('input', function () { video.volume = vol.value / 100; video.muted = video.volume === 0; });
+
+        function setFs(on) {
+            root.classList.toggle('cz-fs', on);
+            fs.innerHTML = on ? ICON_FS_EXIT : ICON_FS;
+        }
+        fs.onclick = function () { setFs(!root.classList.contains('cz-fs')); };
+        document.addEventListener('keydown', function onEsc(e) {
+            if (e.key === 'Escape' && root.classList.contains('cz-fs')) setFs(false);
+            if (!document.body.contains(root)) document.removeEventListener('keydown', onEsc);
+        });
+        video.play().catch(function () {});
+    }
+
+    // ---------------------------------------------------------------- Channel
+    function renderChannel(id) {
+        app.innerHTML = '<div class="spinner"></div>';
+        Site.call('channel', { id: id || '' }).then(function (r) {
+            var c = r.channel;
+            Site.title(c.name);
+            c._big = true;
+            app.innerHTML =
+                (c.banner ? '<div class="cz-banner" style="background-image:url(&quot;' + esc(c.banner) + '&quot;)"></div>' : '') +
+                '<div class="cz-chan-row" style="margin-top:' + (c.banner ? '44px' : '14px') + '">' + ava(c) +
+                '<div class="grow"><h2 style="margin:0">' + esc(c.name) + '</h2><div class="cz-cmeta">' + fmtViews(c.subs) + ' ' + esc(t('clipzone.subscribers', 'subscribers')) + ' · ' + fmtViews(c.totalViews) + ' ' + esc(t('clipzone.totalViews', 'total views')) + '</div></div>' +
+                (c.isMine ? '<button type="button" class="btn ghost" id="cz-editchan">' + esc(t('clipzone.editChannel', 'Edit channel')) + '</button>' :
+                    '<button type="button" class="btn ' + (c.isSubscribed ? 'ghost' : '') + '" id="cz-sub">' + esc(c.isSubscribed ? t('clipzone.subscribed', 'Subscribed') : t('clipzone.subscribe', 'Subscribe')) + '</button>') +
+                '</div>' +
+                (c.bio ? '<p class="cz-desc">' + esc(c.bio) + '</p>' : '') +
+                (c.isMine ? '<div id="cz-editform"></div>' : '') +
+                '<div class="cz-sec">' + esc(t('clipzone.videos', 'Videos')) + '</div>' +
+                (r.videos.length ? '<div class="cz-grid">' + r.videos.map(card).join('') + '</div>' : '<div class="cz-empty">' + esc(t('clipzone.noVideos', 'No videos yet.')) + '</div>');
+            bindCards(app);
+            var subBtn = document.getElementById('cz-sub');
+            if (subBtn) subBtn.onclick = function () {
+                Site.call('subscribe', { id: c.id }).then(function (res) {
+                    subBtn.textContent = res.subscribed ? t('clipzone.subscribed', 'Subscribed') : t('clipzone.subscribe', 'Subscribe');
+                    subBtn.classList.toggle('ghost', res.subscribed);
+                });
+            };
+            var editBtn = document.getElementById('cz-editchan');
+            if (editBtn) editBtn.onclick = function () { toggleEditForm(c); };
+        }, function (e) { app.innerHTML = '<div class="notice bad">' + esc(e.message) + '</div>'; });
+    }
+    function toggleEditForm(c) {
+        var host = document.getElementById('cz-editform');
+        if (!host) return;
+        if (host.innerHTML) { host.innerHTML = ''; return; }
+        host.innerHTML = '<div class="card stack" style="margin:14px 0">' +
+            '<label class="field"><span class="lbl">' + esc(t('clipzone.channelName', 'Channel name')) + '</span><input type="text" id="cz-e-name" maxlength="60" value="' + esc(c.name) + '"></label>' +
+            '<label class="field"><span class="lbl">' + esc(t('clipzone.channelBio', 'About')) + '</span><textarea id="cz-e-bio" maxlength="300">' + esc(c.bio) + '</textarea></label>' +
+            '<label class="field"><span class="lbl">' + esc(t('clipzone.channelAvatar', 'Avatar link (https://…)')) + '</span><input type="text" id="cz-e-avatar" value="' + esc(c.avatar) + '"></label>' +
+            '<label class="field"><span class="lbl">' + esc(t('clipzone.channelBanner', 'Banner link (https://…)')) + '</span><input type="text" id="cz-e-banner" value="' + esc(c.banner) + '"></label>' +
+            '<div id="cz-e-err"></div>' +
+            '<button type="button" class="btn block" id="cz-e-save">' + esc(t('clipzone.save', 'Save')) + '</button></div>';
+        document.getElementById('cz-e-save').onclick = function () {
+            var data = { name: document.getElementById('cz-e-name').value, bio: document.getElementById('cz-e-bio').value,
+                avatar: document.getElementById('cz-e-avatar').value.trim(), banner: document.getElementById('cz-e-banner').value.trim() };
+            Site.call('channelUpdate', data).then(function () { renderChannel(c.id); }, function (e) {
+                document.getElementById('cz-e-err').innerHTML = '<div class="notice bad">' + esc(e.message) + '</div>';
+            });
+        };
+    }
+
+    // ---------------------------------------------------------------- Upload
+    function renderUpload() {
+        Site.title(t('clipzone.nav.upload', 'Upload a clip'));
+        Site.call('home', {}).then(function (r) {
+            var cats = (r.categories || []).map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.label) + '</option>'; }).join('');
+            app.innerHTML = '<div class="wrap" style="padding:0"><h1>' + esc(t('clipzone.uploadTitle', 'Upload a clip')) + '</h1>' +
+                '<p class="muted small">' + esc(t('clipzone.uploadHint', "Host your clip somewhere first (Discord, Streamable, etc.) and paste the link below.")) + '</p>' +
+                '<label class="field"><span class="lbl">' + esc(t('clipzone.videoLink', 'Video link (https://…)')) + '</span><input type="text" id="cz-u-video" placeholder="https://cdn.discordapp.com/…"></label>' +
+                '<label class="field"><span class="lbl">' + esc(t('clipzone.thumbLink', 'Thumbnail link (optional)')) + '</span><input type="text" id="cz-u-thumb"></label>' +
+                '<label class="field"><span class="lbl">' + esc(t('clipzone.videoTitle', 'Title')) + '</span><input type="text" id="cz-u-title" maxlength="100"></label>' +
+                '<label class="field"><span class="lbl">' + esc(t('clipzone.videoDesc', 'Description')) + '</span><textarea id="cz-u-desc" maxlength="600"></textarea></label>' +
+                '<label class="field"><span class="lbl">' + esc(t('clipzone.category', 'Category')) + '</span><select id="cz-u-cat">' + cats + '</select></label>' +
+                '<div id="cz-u-err"></div>' +
+                '<button type="button" class="btn block" id="cz-u-send">' + esc(t('clipzone.uploadBtn', 'Upload')) + '</button></div>';
+            document.getElementById('cz-u-send').onclick = function () {
+                var btn = document.getElementById('cz-u-send'); btn.disabled = true;
+                Site.call('upload', {
+                    videoUrl: document.getElementById('cz-u-video').value.trim(),
+                    thumbUrl: document.getElementById('cz-u-thumb').value.trim(),
+                    title: document.getElementById('cz-u-title').value.trim(),
+                    description: document.getElementById('cz-u-desc').value.trim(),
+                    category: document.getElementById('cz-u-cat').value,
+                }).then(function (res) { Site.go('/watch/' + res.id); }, function (e) {
+                    btn.disabled = false;
+                    document.getElementById('cz-u-err').innerHTML = '<div class="notice bad">' + esc(e.message) + '</div>';
+                });
+            };
+        });
+    }
+
+    // ---------------------------------------------------------------- Leaderboard
+    function renderLeaderboard() {
+        Site.title(t('clipzone.nav.leaderboard', 'Leaderboard'));
+        app.innerHTML = '<div class="spinner"></div>';
+        Site.call('leaderboard').then(function (r) {
+            var chans = r.channels.map(function (c, i) {
+                return '<div class="cz-lb-row" data-chan="' + esc(c.id) + '"><div class="cz-lb-rank">' + (i + 1) + '</div>' +
+                    '<div class="grow"><b>' + esc(c.name) + '</b><div class="cz-cmeta">' + fmtViews(c.subs) + ' ' + esc(t('clipzone.subscribers', 'subscribers')) + '</div></div>' +
+                    '<div class="tag good">' + fmtViews(c.totalViews) + ' ' + esc(t('clipzone.views', 'views')) + '</div></div>';
+            }).join('') || '<div class="cz-empty">' + esc(t('clipzone.noChannels', 'No channels yet.')) + '</div>';
+            app.innerHTML = '<h1>' + esc(t('clipzone.topChannels', 'Top channels')) + '</h1><div class="card">' + chans + '</div>' +
+                '<div class="cz-sec">' + esc(t('clipzone.topVideos', 'Top videos')) + '</div>' +
+                (r.videos.length ? '<div class="cz-grid">' + r.videos.map(card).join('') + '</div>' : '');
+            bindCards(app);
+            app.querySelectorAll('[data-chan]').forEach(function (b) { b.onclick = function () { Site.go('/channel/' + b.dataset.chan); }; });
+        }, function (e) { app.innerHTML = '<div class="notice bad">' + esc(e.message) + '</div>'; });
+    }
+
+    // ---------------------------------------------------------------- Router
+    Site.onRoute(function (path) {
+        var m;
+        syncRail(path);
+        if (path === '/' ) return renderHome();
+        if (path === '/upload') return renderUpload();
+        if (path === '/leaderboard') return renderLeaderboard();
+        if (path === '/channel') return renderChannel('');
+        if ((m = path.match(/^\/channel\/(.+)$/))) return renderChannel(decodeURIComponent(m[1]));
+        if ((m = path.match(/^\/watch\/(\d+)$/))) return renderWatch(m[1]);
+        if ((m = path.match(/^\/search\/(.+)$/))) return renderSearch(decodeURIComponent(m[1]));
+        Site.go('/');
+    });
+})();
+</script>
+</body>
+</html>

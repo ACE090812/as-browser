@@ -217,6 +217,14 @@
     }
     Site.onTheme = function (cb) { themeCbs.push(cb); };
 
+    // ---------------------------------------------------------------- text size
+    // The shell's Settings > Text size choice is broadcast here as a CSS scale (0.88 / 1 / 1.18) and applied
+    // as --ts on <html>. sdk/site.css multiplies its own font-sizes by it, so every page gets it for free.
+    function setTextScale(n) {
+        n = Number(n) || 1;
+        document.documentElement.style.setProperty('--ts', n);
+    }
+
     // ---------------------------------------------------------------- helpers
 
     Site.esc = function (s) {
@@ -255,11 +263,14 @@
             Site.domain = d.domain || '';
             Site.currency = d.currency || Site.currency;
             setTheme(d.theme);
+            setTextScale(d.textScale);
             if (d.path) setRoute(d.path, false);
         } else if (d.type === 'route') {
             setRoute(d.path, false);
         } else if (d.type === 'theme') {
             setTheme(d.theme);
+        } else if (d.type === 'textsize') {
+            setTextScale(d.scale);
         }
     });
 

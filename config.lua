@@ -40,6 +40,7 @@ Config.Sites = {
     wiki       = { enabled = true, domain = 'lswiki.co.uk' },         -- server wiki: guides and rules, edited in sites/wiki/config.lua
     tickets    = { enabled = true, domain = 'lstickets.co.uk' },      -- events and tickets: players buy, organiser jobs run events and check people in
     bank       = { enabled = true, domain = 'lsbank.co.uk' },          -- online banking: balance, statements, send money, standing orders, invoices (shares sd-phone's Wallet data)
+    clipzone   = { enabled = true, domain = 'clipzone.co.uk' },       -- lore-friendly video site: upload, watch, subscribe, view-based payouts (sites/clipzone/config.lua)
 }
 
 -- Symbol shown next to prices. Money is always whole numbers.

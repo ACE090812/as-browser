@@ -84,7 +84,13 @@ end
 function Browser.hooks.insuranceStatus(plateKey)
     local row = policyRow(plateKey)
     if not row then return { active = false } end
-    return { active = true, endsAt = row.ends_at }
+    -- row.provider is the provider's id (e.g. "aegis"), not something to show a player directly -
+    -- resolve it against the configured provider list for its display name, same lookup byId()
+    -- already does everywhere else in this file.
+    local providerName = row.provider
+    local p = byId(I.providers, row.provider)
+    if p and p.name then providerName = p.name end
+    return { active = true, endsAt = row.ends_at, provider = providerName }
 end
 
 exports('isInsured', function(plate)

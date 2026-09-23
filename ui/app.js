@@ -34,9 +34,13 @@
         tabs: [], activeId: null,
         bookmarks: [],
         theme: 'light',
+        phoneTheme: 'light',                        // last theme pushed by sd-phone
+        themeOverride: null,                        // 'light' | 'dark' | null (null = match phone)
+        textSize: 'normal',                         // 'small' | 'normal' | 'large'
         currency: '£',
         locale: {},                                 // the dictionary, also handed to website pages
     };
+    var TEXT_SCALES = { small: 0.88, normal: 1, large: 1.18 };
     var nextTabId = 1;
 
     // ------------------------------------------------------------------ helpers
@@ -234,7 +238,7 @@
         destroyFrame(tab);
         tab.el.innerHTML = '';
         tab.el.style.overflowY = 'hidden';
-        var f = h('iframe', { class: 'siteframe', src: frameUrl(p.site, p.path), title: p.site.title });
+        var f = h('iframe', { class: 'siteframe', src: frameUrl(p.site, p.path), title: p.site.title, allow: 'fullscreen', allowfullscreen: true });
         tab.el.appendChild(f);
         tab.frame = f;
         tab.frameDomain = p.host;
@@ -511,9 +515,60 @@
             case 'search': return pageSearch(tab, p.q.q || '');
             case 'bookmarks': return pageBookmarks(tab);
             case 'history': return pageHistory(tab);
+            case 'settings': return pageSettings(tab);
             case 'error': return pageError(tab, p.q);
             default: return pageNewTab(tab);
         }
+    }
+
+    // ------------------------------------------------------------------ settings
+
+    function segRow(options, current, onPick) {
+        return h('div', { class: 'segrow' }, options.map(function (o) {
+            return h('button', {
+                class: 'seg' + (o.value === current ? ' on' : ''),
+                text: o.label,
+                onclick: function () { onPick(o.value); },
+            });
+        }));
+    }
+
+    function pageSettings(tab) {
+        var page = h('div', { class: 'page' });
+        page.appendChild(h('h1', { text: t('shell.settings') }));
+
+        var body = h('div');
+        page.appendChild(body);
+
+        function render() {
+            body.innerHTML = '';
+            body.appendChild(h('h2', { text: t('shell.appearance') }));
+            body.appendChild(segRow([
+                { value: null, label: t('shell.matchPhone') },
+                { value: 'light', label: t('shell.light') },
+                { value: 'dark', label: t('shell.dark') },
+            ], state.themeOverride, function (v) { setThemeOverride(v); render(); }));
+
+            body.appendChild(h('h2', { text: t('shell.textSize') }));
+            body.appendChild(segRow([
+                { value: 'small', label: t('shell.small') },
+                { value: 'normal', label: t('shell.normal') },
+                { value: 'large', label: t('shell.large') },
+            ], state.textSize, function (v) { applyTextSize(v); render(); }));
+
+            body.appendChild(h('h2', { text: t('shell.privacy') }));
+            body.appendChild(h('div', { class: 'rows' }, [
+                h('button', { class: 'row', onclick: function () {
+                    api('history:clear').then(function () { toast(t('shell.historyCleared')); });
+                } }, [h('div', { class: 'txt' }, [h('div', { class: 't', text: t('shell.clearHistory') })])]),
+                h('button', { class: 'row', onclick: function () {
+                    state.bookmarks.slice().forEach(function (b) { removeBookmark(b.url); });
+                    toast(t('shell.bookmarksCleared'));
+                } }, [h('div', { class: 'txt' }, [h('div', { class: 't', text: t('shell.clearBookmarks') })])]),
+            ]));
+        }
+        render();
+        return { el: page, title: t('shell.settings') };
     }
 
     // ------------------------------------------------------------------ bookmarks
@@ -600,6 +655,7 @@
         item(t('shell.bookmarks'), function () { go(tab, 'about:bookmarks'); });
         item(t('shell.history'), function () { go(tab, 'about:history'); });
         item(t('shell.startPage'), function () { go(tab, 'about:newtab'); });
+        item(t('shell.settings'), function () { go(tab, 'about:settings'); });
         item(t('shell.closeThisTab'), function () { closeTab(tab); }, 'danger');
         $('scrim').classList.add('on');
         sheet.classList.add('on');
@@ -644,7 +700,7 @@
             case 'hello':
                 setLoading(tab, false);
                 toFrame(tab, {
-                    type: 'init', theme: state.theme, domain: domain, currency: state.currency,
+                    type: 'init', theme: state.theme, textScale: TEXT_SCALES[state.textSize] || 1, domain: domain, currency: state.currency,
                     path: parse(currentUrl(tab)).path, title: tab.title,
                 });
                 break;
@@ -716,10 +772,43 @@
 
     // ------------------------------------------------------------------ theme + persistence
 
-    function applyTheme(theme) {
-        state.theme = theme === 'dark' ? 'dark' : 'light';
+    function applyEffectiveTheme() {
+        state.theme = (state.themeOverride || state.phoneTheme) === 'dark' ? 'dark' : 'light';
         document.body.setAttribute('data-theme', state.theme);
         state.tabs.forEach(function (tab) { toFrame(tab, { type: 'theme', theme: state.theme }); });
+    }
+    function applyPhoneTheme(theme) {
+        state.phoneTheme = theme === 'dark' ? 'dark' : 'light';
+        applyEffectiveTheme();
+    }
+    function setThemeOverride(override) {
+        state.themeOverride = (override === 'dark' || override === 'light') ? override : null;
+        applyEffectiveTheme();
+        persistPrefs();
+    }
+
+    function applyTextSize(size) {
+        state.textSize = TEXT_SCALES[size] ? size : 'normal';
+        var scale = TEXT_SCALES[state.textSize];
+        document.documentElement.style.setProperty('--ts', scale);
+        state.tabs.forEach(function (tab) { toFrame(tab, { type: 'textsize', scale: scale }); });
+        persistPrefs();
+    }
+
+    function persistPrefs() {
+        if (typeof window.SetStorage !== 'function') return;
+        try { window.SetStorage('prefs', { themeOverride: state.themeOverride, textSize: state.textSize }); } catch (e) { /* storage unavailable */ }
+    }
+    function restorePrefs() {
+        var get = typeof window.GetStorage === 'function' ? window.GetStorage('prefs', null) : Promise.resolve(null);
+        return Promise.resolve(get).catch(function () { return null; }).then(function (saved) {
+            if (saved && typeof saved === 'object') {
+                if (saved.themeOverride === 'dark' || saved.themeOverride === 'light') state.themeOverride = saved.themeOverride;
+                if (TEXT_SCALES[saved.textSize]) state.textSize = saved.textSize;
+            }
+            applyEffectiveTheme();
+            document.documentElement.style.setProperty('--ts', TEXT_SCALES[state.textSize]);
+        });
     }
 
     function persist() {
@@ -798,7 +887,7 @@
             var d = ev.data;
             if (d && typeof d === 'object' && d.__asb === 1) return onFrameMessage(ev);
             if (d && d.action === 'sitesChanged') refreshSites();
-            if (d && d.action === 'sd-phone:theme' && d.theme) applyTheme(d.theme);
+            if (d && d.action === 'sd-phone:theme' && d.theme) applyPhoneTheme(d.theme);
         });
     }
 
@@ -810,16 +899,17 @@
         var settings = typeof window.GetSettings === 'function' ? Promise.resolve(window.GetSettings()).catch(function () { return null; }) : Promise.resolve(null);
         settings.then(function (s) {
             var theme = s && (s.theme || (s.display && s.display.theme));
-            if (theme) applyTheme(theme);
+            if (theme) applyPhoneTheme(theme);
         });
         if (typeof window.OnSettingsChange === 'function') {
             window.OnSettingsChange(function (s) {
                 var theme = s && (s.theme || (s.display && s.display.theme));
-                if (theme) applyTheme(theme);
+                if (theme) applyPhoneTheme(theme);
             });
         }
         if (typeof window.useNuiEvent === 'function') window.useNuiEvent('sitesChanged', refreshSites);
 
+        restorePrefs();
         Promise.all([loadLocale(), loadSites(), loadBookmarks()]).then(restoreSession);
     }
 
