@@ -41,6 +41,7 @@ Config.Sites = {
     tickets    = { enabled = true, domain = 'lstickets.co.uk' },      -- events and tickets: players buy, organiser jobs run events and check people in
     bank       = { enabled = true, domain = 'lsbank.co.uk' },          -- online banking: balance, statements, send money, standing orders, invoices (shares sd-phone's Wallet data)
     clipzone   = { enabled = true, domain = 'clipzone.co.uk' },       -- lore-friendly video site: upload, watch, subscribe, view-based payouts (sites/clipzone/config.lua)
+    presento   = { enabled = true, domain = 'presento.co.uk' },       -- slide decks, Google Slides style (desktop browser only, sites/presento/config.lua)
 }
 
 -- Symbol shown next to prices. Money is always whole numbers.

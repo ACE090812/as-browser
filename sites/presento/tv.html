@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Presento TV</title>
+<!-- In-game TV screen. as-computer draws this page (as a DUI) onto a placed TV and sends it JSON messages:
+       { type = 'deck', title, slides = [...], slide = 1, step = 0 }   a new presentation (slide is 1-based)
+       { type = 'go', slide, step }                                    move to a slide / click step
+       { type = 'idle' }                                               nothing is being shown
+     Videos are always muted: DUI sound is not positional, everyone in the area would hear it at full volume. -->
+<style>
+html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+#stage { position: absolute; inset: 0; overflow: hidden; }
+.tv-slide { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; }
+.idle { position: absolute; inset: 0; display: grid; place-items: center; color: #3a3f47; font: 600 64px "Segoe UI", Arial, sans-serif; letter-spacing: -1px; }
+.idle b { color: #ff7a1a; }
+/* slide renderer (shared with the editor) */
+.slide { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; overflow: hidden; background: #fff; }
+.slide .el { position: absolute; box-sizing: border-box; }
+.slide .txt { display: flex; flex-direction: column; overflow: visible; white-space: pre-wrap; word-wrap: break-word; line-height: 1.2; padding: 6px 10px; }
+.slide .txt.v-middle { justify-content: center; } .slide .txt.v-bottom { justify-content: flex-end; }
+.slide .txt .ph { opacity: .45; }
+.slide .txt [contenteditable] { outline: none; cursor: text; min-height: 1.2em; }
+.slide img.el { object-fit: cover; }
+.slide svg.el { overflow: visible; }
+.slide .vid { background: #111 center / cover no-repeat; display: grid; place-items: center; overflow: hidden; }
+.slide .vid .play { width: 120px; height: 120px; border-radius: 50%; background: rgba(0,0,0,.6); position: relative; }
+.slide .vid .play::after { content: ""; position: absolute; left: 46px; top: 32px; border-style: solid; border-width: 28px 0 28px 44px; border-color: transparent transparent transparent #fff; }
+.slide .vid .vbadge { position: absolute; left: 16px; bottom: 14px; padding: 6px 14px; border-radius: 8px; background: rgba(0,0,0,.7); color: #fff; font: 600 22px "Segoe UI", Arial, sans-serif; }
+.slide iframe.el, .slide video.el { border: 0; background: #000; }
+.slide table.el { border-collapse: collapse; table-layout: fixed; }
+.slide table.el td { border: 1px solid #9aa0a6; padding: 6px 10px; overflow: hidden; word-wrap: break-word; vertical-align: middle; }
+.slide table.el td[contenteditable] { outline: none; cursor: text; }
+.slide table.el td[contenteditable]:focus { box-shadow: inset 0 0 0 2px #1a73e8; }
+
+.tr-fade { animation: prFade .6s ease both; }
+.tr-slide { animation: prSlide .6s cubic-bezier(.2,.7,.2,1) both; }
+.tr-slide.back { animation-name: prSlideBack; }
+.tr-zoom { animation: prZoom .6s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes prFade { from { opacity: 0; } }
+@keyframes prSlide { from { transform: translate(100%, 0); opacity: 0; } }
+@keyframes prSlideBack { from { transform: translate(-100%, 0); opacity: 0; } }
+@keyframes prZoom { from { transform: scale(.82); opacity: 0; } }
+
+</style>
+</head>
+<body>
+<div id="stage"><div class="idle"><span><b>Presento</b></span></div></div>
+<script src="render.js"></script>
+<script>
+(function () {
+    var R = window.PresentoRender, stage = document.getElementById('stage');
+    var S = { slides: null, i: -1, step: 0, cur: null, steps: [] };
+    var SCALE = 1920 / 1280;
+    var FLY = { fade: [0, 0, 1], left: [-420, 0, 1], right: [420, 0, 1], up: [0, 300, 1], zoom: [0, 0, 0.3] };
+
+    function animSteps(slide) {
+        var seen = {};
+        ((slide && slide.els) || []).forEach(function (e) { if (e.anim) seen[e.step || 1] = true; });
+        return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+    }
+    function idle() {
+        stage.innerHTML = '<div class="idle"><span><b>Presento</b></span></div>';
+        S.slides = null; S.i = -1; S.step = 0; S.cur = null;
+    }
+    function setVisible(stepCount, animateLast) {
+        var data = S.slides[S.i];
+        (data.els || []).forEach(function (e) {
+            if (!e.anim) return;
+            var idx = S.steps.indexOf(e.step || 1), n = S.cur.querySelector('[data-id="' + e.id + '"]');
+            if (!n) return;
+            var show = idx < stepCount;
+            n.style.visibility = show ? '' : 'hidden';
+            if (show && animateLast && idx === stepCount - 1 && n.animate) {
+                var f = FLY[e.anim] || FLY.fade, base = n.style.transform || '';
+                n.animate([
+                    { opacity: 0, transform: 'translate(' + f[0] + 'px,' + f[1] + 'px) scale(' + f[2] + ') ' + base },
+                    { opacity: 1, transform: 'translate(0,0) scale(1) ' + base },
+                ], { duration: 550, easing: 'cubic-bezier(.2,.7,.2,1)' });
+            }
+        });
+        S.step = stepCount;
+    }
+    function show(i, step, dir) {
+        if (!S.slides || !S.slides[i]) return;
+        var data = S.slides[i], wrap = document.createElement('div');
+        wrap.className = 'tv-slide';
+        R.renderSlide(data, wrap, { scale: SCALE, live: true, muted: true });
+        var old = S.cur;
+        stage.appendChild(wrap);
+        var idleEl = stage.querySelector('.idle');
+        if (idleEl) idleEl.remove();
+        if (dir && data.trans) {
+            wrap.classList.add('tr-' + data.trans);
+            if (dir < 0) wrap.classList.add('back');
+            setTimeout(function () { if (old && old.parentNode) old.remove(); }, 650);
+        } else if (old) old.remove();
+        S.cur = wrap; S.i = i; S.steps = animSteps(data);
+        setVisible(Math.min(step || 0, S.steps.length), false);
+    }
+    function go(slide, step) {
+        if (!S.slides) return;
+        var i = Math.max(0, Math.min((slide || 1) - 1, S.slides.length - 1));
+        step = Math.max(0, step || 0);
+        if (i === S.i) return setVisible(Math.min(step, S.steps.length), step === S.step + 1);
+        show(i, step, i > S.i ? 1 : -1);
+    }
+    function apply(m) {
+        if (!m || !m.type) return;
+        if (m.type === 'deck') {
+            S.slides = Array.isArray(m.slides) ? m.slides : [];
+            S.i = -1;
+            if (!S.slides.length) return idle();
+            show(Math.max(0, (m.slide || 1) - 1), m.step || 0, 0);
+        } else if (m.type === 'go') go(m.slide, m.step);
+        else if (m.type === 'idle') idle();
+    }
+    window.addEventListener('message', function (ev) {
+        var d = ev.data;
+        if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) { return; } }
+        apply(d);
+    });
+})();
+</script>
+</body>
+</html>

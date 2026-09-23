@@ -23,6 +23,7 @@ server_scripts {
     'server/vehicles.lua',
     'server/main.lua',
     'server/printing.lua',
+    'server/http.lua',         -- web address routes (Presento's imported slide backgrounds)
     'sites/**/config.lua',
     'sites/**/server.lua',
     'sites/**/server_*.lua',   -- extra server files for a site, e.g. sites/gov/server_passport.lua
@@ -41,6 +42,7 @@ files {
     'ui/**/*',
     'sdk/*',
     'sites/**/*.html',
+    'sites/**/*.js',           -- Presento's shared slide renderer (sites/presento/render.js)
     -- Sites that ship their own images or scripts: add 'sites/**/*.css', 'sites/**/*.js', 'sites/**/*.png' etc.
     -- Never add .lua here, site configs can hold webhooks.
 }

@@ -1,0 +1,2336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Presento</title>
+<link rel="stylesheet" href="/sdk/site.css">
+<style>
+:root {
+    --accent: #ff7a1a; --accent-fg: #ffffff; --accent-soft: #fff1e6;
+    --page: #ffffff; --band: #f1f3f4; --card: #ffffff; --ink: #1f2328; --muted: #5f6368; --line: #dadce0; --hover: #f1f3f4;
+    --menu: #ffffff; --shadow: 0 2px 6px rgba(60,64,67,.15), 0 1px 2px rgba(60,64,67,.3);
+}
+:root[data-theme="dark"] {
+    --accent: #ff8a33; --accent-fg: #1a0c00; --accent-soft: #3a2413;
+    --page: #16181c; --band: #1f2227; --card: #1f2227; --ink: #eceef1; --muted: #a3a9b3; --line: #33373f; --hover: #2a2e35;
+    --menu: #272b32; --shadow: 0 4px 14px rgba(0,0,0,.5);
+}
+html, body { background: var(--page); color: var(--ink); }
+body { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.inner { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* top bar */
+.top { position: sticky; top: 0; z-index: 20; background: var(--page); border-bottom: 1px solid var(--line); }
+.top .inner { display: flex; align-items: center; gap: 18px; height: 64px; }
+.logo { display: flex; align-items: center; gap: 10px; font-size: calc(21px * var(--ts, 1)); font-weight: 600; color: var(--ink); white-space: nowrap; }
+.mark { width: 34px; height: 40px; border-radius: 5px; background: var(--accent); position: relative; flex: none; }
+.mark::after { content: ""; position: absolute; left: 7px; right: 7px; top: 13px; height: 14px; border: 2.5px solid #fff; border-radius: 2px; }
+.search { flex: 1; max-width: 720px; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px; border-radius: 10px; background: var(--band); }
+.search:focus-within { background: var(--card); box-shadow: var(--shadow); }
+.search svg { width: 20px; height: 20px; color: var(--muted); flex: none; }
+.search input { flex: 1; min-width: 0; min-height: 0; height: 100%; border: 0; padding: 0; background: none; box-shadow: none !important; font-size: calc(16px * var(--ts, 1)); }
+.search .x { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
+.search .x:hover { background: var(--hover); }
+.avatar { margin-left: auto; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; font-weight: 700; flex: none; }
+
+/* start band */
+.band { background: var(--band); padding: 18px 0 22px; }
+.band h3 { font-size: calc(15px * var(--ts, 1)); font-weight: 500; margin: 0 0 12px; }
+.starts { display: flex; gap: 18px; }
+.start { width: 170px; text-align: left; }
+.start .pv { height: 96px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); display: grid; place-items: center; transition: border-color .15s; }
+.start:hover .pv { border-color: var(--accent); }
+.start .plus { width: 48px; height: 48px; position: relative; }
+.start .plus::before, .start .plus::after { content: ""; position: absolute; background: var(--accent); border-radius: 2px; }
+.start .plus::before { left: 21px; top: 0; width: 6px; height: 48px; }
+.start .plus::after { top: 21px; left: 0; height: 6px; width: 48px; }
+.start span { display: block; margin-top: 8px; font-size: calc(14px * var(--ts, 1)); font-weight: 500; }
+
+/* list */
+.bar { display: flex; align-items: center; gap: 6px; margin: 20px 0 12px; }
+.tab { padding: 8px 14px; border-radius: 18px; font-size: calc(14px * var(--ts, 1)); font-weight: 500; color: var(--muted); }
+.tab:hover { background: var(--hover); }
+.tab.on { background: var(--accent-soft); color: var(--accent); }
+.bar .sp { flex: 1; }
+.pbtn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 18px; font-size: calc(14px * var(--ts, 1)); font-weight: 500; }
+.pbtn:hover { background: var(--hover); }
+.crumbs { display: flex; align-items: center; gap: 6px; font-size: calc(18px * var(--ts, 1)); margin: 6px 0 14px; }
+.crumbs a { color: var(--muted); }
+.crumbs a:hover { color: var(--ink); }
+.crumbs b { font-weight: 500; }
+.sec { font-size: calc(13.5px * var(--ts, 1)); font-weight: 500; color: var(--muted); margin: 18px 0 10px; }
+
+.folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.folder { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 6px 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); text-align: left; }
+.folder:hover { background: var(--hover); }
+.folder .fi { font-size: 20px; }
+.folder .fn { flex: 1; min-width: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folder .fc { font-size: calc(12px * var(--ts, 1)); color: var(--muted); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; padding-bottom: 30px; }
+.deck { border: 1px solid var(--line); border-radius: 8px; background: var(--card); overflow: hidden; cursor: pointer; transition: border-color .15s; display: flex; flex-direction: column; }
+.deck:hover { border-color: var(--accent); }
+.deck .pv { aspect-ratio: 16 / 9; border-bottom: 1px solid var(--line); background: var(--band); position: relative; overflow: hidden; display: grid; place-items: center; }
+.deck .pv .noth { font-size: 34px; opacity: .6; }
+.deck .info { padding: 10px 6px 10px 12px; display: flex; align-items: flex-start; gap: 6px; }
+.deck .tt { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deck .meta { display: flex; align-items: center; gap: 6px; font-size: calc(12.5px * var(--ts, 1)); color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; }
+.deck .mk { width: 16px; height: 18px; border-radius: 2px; background: var(--accent); flex: none; }
+.kebab { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); flex: none; }
+.kebab:hover { background: var(--hover); color: var(--ink); }
+.kebab svg { width: 18px; height: 18px; }
+.empty { text-align: center; color: var(--muted); padding: 50px 0; }
+.empty .big { font-size: 46px; margin-bottom: 8px; }
+
+/* slide renderer (shared with the editor) */
+.slide { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; overflow: hidden; background: #fff; }
+.slide .el { position: absolute; box-sizing: border-box; }
+.slide .txt { display: flex; flex-direction: column; overflow: visible; white-space: pre-wrap; word-wrap: break-word; line-height: 1.2; padding: 6px 10px; }
+.slide .txt.v-middle { justify-content: center; } .slide .txt.v-bottom { justify-content: flex-end; }
+.slide .txt .ph { opacity: .45; }
+.slide .txt [contenteditable] { outline: none; cursor: text; min-height: 1.2em; }
+.slide img.el { object-fit: cover; }
+.slide svg.el { overflow: visible; }
+.slide .vid { background: #111 center / cover no-repeat; display: grid; place-items: center; overflow: hidden; }
+.slide .vid .play { width: 120px; height: 120px; border-radius: 50%; background: rgba(0,0,0,.6); position: relative; }
+.slide .vid .play::after { content: ""; position: absolute; left: 46px; top: 32px; border-style: solid; border-width: 28px 0 28px 44px; border-color: transparent transparent transparent #fff; }
+.slide .vid .vbadge { position: absolute; left: 16px; bottom: 14px; padding: 6px 14px; border-radius: 8px; background: rgba(0,0,0,.7); color: #fff; font: 600 22px "Segoe UI", Arial, sans-serif; }
+.slide iframe.el, .slide video.el { border: 0; background: #000; }
+.slide table.el { border-collapse: collapse; table-layout: fixed; }
+.slide table.el td { border: 1px solid #9aa0a6; padding: 6px 10px; overflow: hidden; word-wrap: break-word; vertical-align: middle; }
+.slide table.el td[contenteditable] { outline: none; cursor: text; }
+.slide table.el td[contenteditable]:focus { box-shadow: inset 0 0 0 2px #1a73e8; }
+
+/* editor */
+.ed { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--band); }
+.ed-top { flex: none; display: flex; align-items: center; gap: 10px; height: 58px; padding: 0 14px; background: var(--band); }
+.ed-top .back { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.ed-top .back:hover { background: var(--hover); }
+.ed-top .mark { width: 28px; height: 34px; }
+.ed-top .mark::after { left: 6px; right: 6px; top: 11px; height: 11px; border-width: 2px; }
+.ed-title { font-size: calc(18px * var(--ts, 1)) !important; min-height: 0 !important; height: 30px; width: 420px; max-width: 46vw; padding: 2px 6px !important; border: 1px solid transparent !important; border-radius: 4px !important; background: none !important; box-shadow: none !important; }
+.ed-title:hover { border-color: var(--line) !important; }
+.ed-title:focus { border-color: var(--accent) !important; background: var(--page) !important; }
+.ed-title[readonly] { border-color: transparent !important; }
+.ed-status { font-size: calc(12.5px * var(--ts, 1)); color: var(--muted); padding-left: 7px; white-space: nowrap; }
+.ed-status.err { color: var(--bad); }
+.ed-top .grow { min-width: 0; }
+.ed-top .ro { margin-left: auto; font-size: calc(13px * var(--ts, 1)); font-weight: 600; padding: 6px 12px; border-radius: 14px; background: var(--page); color: var(--muted); }
+.ed-tools { flex: none; display: flex; align-items: center; gap: 2px; height: 42px; margin: 0 10px 8px; padding: 0 8px; background: var(--page); border-radius: 21px; overflow-x: auto; overflow-y: hidden; }
+.ed-tools::-webkit-scrollbar { height: 0; }
+.tb { position: relative; height: 32px; min-width: 32px; padding: 0 6px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; color: var(--ink); font-size: calc(13.5px * var(--ts, 1)); flex: none; white-space: nowrap; }
+.tb:hover:not(:disabled) { background: var(--hover); }
+.tb.on { background: var(--accent-soft); color: var(--accent); }
+.tb:disabled { opacity: .35; cursor: default; }
+.tb svg { width: 18px; height: 18px; flex: none; }
+.tb.clr { flex-direction: column; gap: 1px; }
+.tb.clr svg { width: 16px; height: 16px; }
+.tb .bar { display: block; width: 18px; height: 4px; border-radius: 1px; box-shadow: 0 0 0 1px rgba(128,128,128,.35); }
+.tb.clr span:not(.bar) { display: none; }
+.tb b, .tb i, .tb u { font-size: calc(15px * var(--ts, 1)); font-family: Georgia, serif; }
+.tsep { width: 1px; height: 22px; background: var(--line); margin: 0 6px; flex: none; }
+.tsel { height: 30px !important; min-height: 0 !important; padding: 0 6px !important; width: auto !important; border-radius: 6px !important; font-size: calc(13.5px * var(--ts, 1)) !important; background: var(--page) !important; flex: none; }
+.tnum { width: 58px !important; }
+.ed-body { flex: 1; min-height: 0; display: flex; }
+.ed-strip { width: 196px; flex: none; overflow-y: auto; padding: 0 8px 24px 4px; }
+.ed-strip::-webkit-scrollbar { width: 6px; } .ed-strip::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.st-add { display: flex; margin: 0 0 6px 24px; }
+.st-add button { height: 32px; border-radius: 16px 0 0 16px; padding: 0 12px; background: var(--page); font-size: calc(13px * var(--ts, 1)); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.st-add button + button { border-radius: 0 16px 16px 0; padding: 0 8px; border-left: 1px solid var(--line); }
+.st-add button:hover { background: var(--hover); }
+.st-add svg { width: 14px; height: 14px; }
+.st { display: flex; gap: 6px; padding: 5px 4px; border-radius: 8px; cursor: pointer; }
+.st .n { width: 18px; text-align: right; font-size: calc(12px * var(--ts, 1)); color: var(--muted); padding-top: 2px; flex: none; }
+.st .pv { flex: 1; aspect-ratio: 16 / 9; position: relative; overflow: hidden; border: 2px solid var(--line); border-radius: 6px; background: #fff; }
+.st:hover .pv { border-color: var(--muted); }
+.st.on .pv { border-color: var(--accent); }
+.st.on .n { color: var(--accent); font-weight: 700; }
+.st.dropB { box-shadow: inset 0 3px 0 var(--accent); }
+.st.dropA { box-shadow: inset 0 -3px 0 var(--accent); }
+.ed-stage { flex: 1; min-width: 0; position: relative; display: grid; place-items: center; overflow: hidden; }
+.ed-canvas { position: relative; box-shadow: 0 1px 3px rgba(0,0,0,.2), 0 4px 18px rgba(0,0,0,.12); }
+.ed .slide .el { cursor: default; }
+.ed.can .slide .el { cursor: move; }
+.ov { position: absolute; inset: 0; pointer-events: none; }
+.selbox { position: absolute; border: calc(1.5px * var(--inv, 1)) solid #1a73e8; }
+.selbox.editing { border-style: dashed; }
+.hd { position: absolute; width: calc(11px * var(--inv, 1)); height: calc(11px * var(--inv, 1)); background: #fff; border: calc(1.5px * var(--inv, 1)) solid #1a73e8; border-radius: 2px; pointer-events: auto; transform: translate(-50%, -50%); }
+.hd[data-h=nw] { left: 0; top: 0; cursor: nwse-resize; } .hd[data-h=n] { left: 50%; top: 0; cursor: ns-resize; }
+.hd[data-h=ne] { left: 100%; top: 0; cursor: nesw-resize; } .hd[data-h=e] { left: 100%; top: 50%; cursor: ew-resize; }
+.hd[data-h=se] { left: 100%; top: 100%; cursor: nwse-resize; } .hd[data-h=s] { left: 50%; top: 100%; cursor: ns-resize; }
+.hd[data-h=sw] { left: 0; top: 100%; cursor: nesw-resize; } .hd[data-h=w] { left: 0; top: 50%; cursor: ew-resize; }
+.hd[data-h=rot] { left: 50%; top: calc(-26px * var(--inv, 1)); border-radius: 50%; cursor: grab; }
+.guide { position: absolute; background: #e8467c; display: none; }
+.guide.v { top: 0; bottom: 0; width: calc(1px * var(--inv, 1)); }
+.guide.h { left: 0; right: 0; height: calc(1px * var(--inv, 1)); }
+
+/* popups: palette */
+.menu.pal { padding: 10px; width: 244px; min-width: 0; }
+.menu.pal button { display: block; width: auto; padding: 0; }
+.pal .sws { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
+.pal .sw { width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }
+.pal .sw.on { outline: 2px solid var(--accent); outline-offset: 2px; }
+.menu.pal .none { display: block; width: 100%; margin-bottom: 8px; padding: 6px 8px; border-radius: 6px; text-align: left; font-size: calc(13px * var(--ts, 1)); }
+.pal .none:hover { background: var(--hover); }
+.pal .hex { display: flex; gap: 6px; margin-top: 10px; }
+.pal .hex input { min-height: 0; height: 32px; padding: 0 8px; font-size: 13px; background: var(--page); }
+.menu.pal .hex button { padding: 0 12px; border-radius: 6px; background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.start.tpl .pv { position: relative; overflow: hidden; display: block; }
+.start .pv.gs { background: #fff8e6; }
+.start .gsl { width: 44px; height: 56px; border-radius: 4px; background: #f4b400; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.start .gsl::after { content: ""; position: absolute; left: 9px; right: 9px; top: 20px; height: 14px; border: 3px solid #fff; border-radius: 2px; }
+.starts { overflow-x: auto; padding-bottom: 4px; }
+.starts .start { flex: none; }
+.prs { display: flex; flex: none; }
+.prs button { height: 36px; display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-fg); font-weight: 600; padding: 0 16px; border-radius: 18px 0 0 18px; font-size: calc(14px * var(--ts, 1)); }
+.prs button + button { padding: 0 10px; border-radius: 0 18px 18px 0; margin-left: 1px; }
+.prs button:hover { filter: brightness(1.06); }
+.prs svg { width: 14px; height: 14px; }
+.stepchip { position: absolute; left: 0; top: 0; transform: translate(-120%, -120%); min-width: calc(22px * var(--inv, 1)); height: calc(22px * var(--inv, 1)); padding: 0 calc(5px * var(--inv, 1)); border-radius: calc(11px * var(--inv, 1)); background: #1a73e8; color: #fff; font: 700 calc(13px * var(--inv, 1)) / calc(22px * var(--inv, 1)) "Segoe UI", Arial, sans-serif; text-align: center; }
+.menu.thp { display: grid; grid-template-columns: repeat(4, 116px); gap: 10px; padding: 12px; }
+.menu.thp button { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 0; width: auto; font-size: calc(12.5px * var(--ts, 1)); text-align: center; }
+.menu.thp button:hover { background: none; }
+.thc .sw { position: relative; height: 66px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(128,128,128,.35); display: grid; place-items: center; }
+.thc .sw b { font-size: 24px; }
+.thc .sw i { position: absolute; left: 10px; bottom: 10px; width: 28px; height: 5px; border-radius: 2px; }
+.thc:hover .sw { box-shadow: inset 0 0 0 2px var(--muted); }
+.thc.on .sw { box-shadow: inset 0 0 0 3px var(--accent); }
+
+/* present mode */
+.pr { position: fixed; inset: 0; z-index: 90; background: #000; cursor: none; user-select: none; }
+.pr.ui { cursor: default; }
+.pr-stage { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; }
+.pr-slide { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); overflow: hidden; }
+.pr-slide .slide .el { cursor: inherit; }
+.pr-end { color: #9aa0a6; font-size: 20px; }
+.tr-fade { animation: prFade .6s ease both; }
+.tr-slide { animation: prSlide .6s cubic-bezier(.2,.7,.2,1) both; }
+.tr-slide.back { animation-name: prSlideBack; }
+.tr-zoom { animation: prZoom .6s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes prFade { from { opacity: 0; } }
+@keyframes prSlide { from { transform: translate(50%, -50%); opacity: 0; } }
+@keyframes prSlideBack { from { transform: translate(-150%, -50%); opacity: 0; } }
+@keyframes prZoom { from { transform: translate(-50%, -50%) scale(.82); opacity: 0; } }
+.pr-bar { position: absolute; left: 20px; bottom: 20px; display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 10px; background: rgba(32,33,36,.92); color: #fff; font-size: 14px; opacity: 0; transition: opacity .25s; }
+.pr.ui .pr-bar { opacity: 1; }
+.pr-bar button { min-width: 34px; height: 32px; padding: 0 8px; border-radius: 6px; color: #fff; font-size: 18px; }
+.pr-bar button[data-p=exit] { font-size: 13.5px; }
+.pr-bar button:hover { background: rgba(255,255,255,.14); }
+.pr-bar button.on { background: rgba(255,138,51,.35); }
+.pr-bar span { padding: 0 8px; font-variant-numeric: tabular-nums; }
+.pr-bar .pr-sep { width: 1px; height: 20px; padding: 0; background: rgba(255,255,255,.25); }
+.dlg.wide { max-width: 760px; }
+.ed-ic { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.ed-ic:hover { background: var(--hover); }
+.ed-ic svg, .ed-share svg { width: 18px; height: 18px; }
+.ed-share { height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 0 16px; border-radius: 18px; background: var(--page); border: 1px solid var(--line); font-weight: 600; font-size: calc(14px * var(--ts, 1)); flex: none; }
+.ed-share:hover { background: var(--hover); }
+.sh-add input { min-height: 0; height: 42px; background: var(--page); }
+.sh-res { margin-top: 6px; }
+.sh-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-radius: 8px; }
+.sh-row:hover { background: var(--hover); }
+.sh-row .grow b { display: block; font-weight: 600; }
+.sh-row .grow small { color: var(--muted); font-size: calc(12.5px * var(--ts, 1)); }
+.sh-row .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); flex: none; }
+.sh-row .dot.on { background: #34a853; }
+.sh-row .av { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; flex: none; }
+.sh-own { color: var(--muted); font-size: calc(13px * var(--ts, 1)); padding-right: 8px; }
+.sh-btn { height: 32px; padding: 0 14px; border-radius: 16px; background: var(--accent); color: var(--accent-fg); font-weight: 600; font-size: calc(13px * var(--ts, 1)); flex: none; }
+.sh-btn.plain { background: none; color: var(--accent); padding: 0 8px; }
+.sh-btn:disabled { opacity: .5; }
+.sh-x { width: 30px; height: 30px; border-radius: 50%; color: var(--muted); flex: none; }
+.sh-x:hover { background: var(--hover); color: var(--bad); }
+.sh-h { font-size: calc(13px * var(--ts, 1)); font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
+.sh-none, .sh-hint { color: var(--muted); font-size: calc(13.5px * var(--ts, 1)); padding: 6px 4px; }
+.sh-link { display: flex; flex-direction: column; gap: 10px; }
+.sh-url { display: flex; align-items: center; gap: 10px; }
+.sh-url code { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px; background: var(--band); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw-tog { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: calc(14px * var(--ts, 1)); }
+.sw-tog input { display: none; }
+.sw-tog span { width: 38px; height: 22px; border-radius: 11px; background: var(--line); position: relative; transition: .2s; flex: none; }
+.sw-tog span::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: .2s; }
+.sw-tog input:checked + span { background: var(--accent); }
+.sw-tog input:checked + span::after { left: 19px; }
+.hi-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.hi-top b { flex: 1; }
+.hi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.hi-s { display: flex; gap: 6px; }
+.hi-s span { width: 16px; color: var(--muted); font-size: 12px; text-align: right; }
+.hi-s .pv { flex: 1; aspect-ratio: 16 / 9; position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 4px; }
+.dlg .dbody { max-height: 64vh; overflow-y: auto; margin: 0 -6px; padding: 0 6px; }
+.pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.pick { position: relative; border-radius: 8px; overflow: hidden; background: var(--band); aspect-ratio: 16 / 10; border: 2px solid transparent; text-align: left; }
+.pick:hover { border-color: var(--accent); }
+.pick img, .pick video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.pick .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 8px 6px; background: linear-gradient(transparent, rgba(0,0,0,.75)); color: #fff; font-size: 12.5px; line-height: 1.25; }
+.pick .cap b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick .pl { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.65); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+.pick-search { display: flex; gap: 8px; margin-bottom: 12px; }
+.pick-search input { min-height: 0; height: 38px; background: var(--page); }
+.pick-search button { padding: 0 16px; border-radius: 19px; background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.dlg .fields { display: flex; gap: 12px; }
+.dlg .fields label { flex: 1; font-size: calc(13px * var(--ts, 1)); color: var(--muted); }
+.dlg .hint { font-size: calc(12.5px * var(--ts, 1)); color: var(--muted); margin-top: 8px; }
+
+/* menu, dialog, toast */
+.menu { position: fixed; z-index: 97; min-width: 210px; background: var(--menu); border-radius: 8px; box-shadow: var(--shadow); padding: 6px 0; }
+.menu button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 16px; text-align: left; font-size: calc(14px * var(--ts, 1)); }
+.menu button:hover { background: var(--hover); }
+.menu button.danger { color: var(--bad); }
+.menu .sep { height: 1px; background: var(--line); margin: 6px 0; }
+.scrim { position: fixed; inset: 0; z-index: 95; background: rgba(0,0,0,.45); display: grid; place-items: center; padding: 20px; }
+.dlg { width: 100%; max-width: 440px; background: var(--menu); border-radius: 12px; padding: 22px 24px 18px; box-shadow: 0 16px 50px rgba(0,0,0,.35); }
+.dlg h3 { font-size: calc(19px * var(--ts, 1)); font-weight: 500; margin: 0 0 12px; }
+.dlg p { color: var(--muted); }
+.dlg input, .dlg select { margin-top: 4px; background: var(--page); }
+.dlg .foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.dlg .b { height: 38px; padding: 0 18px; border-radius: 19px; font-weight: 600; }
+.dlg .b.plain { color: var(--accent); }
+.dlg .b.plain:hover { background: var(--hover); }
+.dlg .b.main { background: var(--accent); color: var(--accent-fg); }
+.dlg .b.main.danger { background: var(--bad); color: #fff; }
+.dlg .b:disabled { opacity: .55; cursor: default; }
+.dlg .err { color: var(--bad); font-size: calc(13px * var(--ts, 1)); margin-top: 8px; min-height: 1em; }
+.toast { position: fixed; left: 24px; bottom: 24px; z-index: 96; background: #323232; color: #fff; padding: 12px 18px; border-radius: 6px; font-size: calc(14px * var(--ts, 1)); opacity: 0; transform: translateY(10px); transition: .2s; pointer-events: none; }
+.toast.on { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+<div id="app"><div class="spinner"></div></div>
+
+<script src="/sdk/site.js"></script>
+<script src="render.js"></script>
+<script>
+(function () {
+    var esc = Site.esc;
+    var app = document.getElementById('app');
+    var IC = {
+        search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+        x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+        dots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>',
+        back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+        folderAdd: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg>',
+    };
+
+    // ------------------------------------------------------------------ slide renderer (render.js, shared with the TV page)
+    var R = window.PresentoRender;
+    var renderSlide = R.renderSlide, elNode = R.elNode, FONTS = R.FONTS, num = R.num, safeColor = R.safeColor, safeUrl = R.safeUrl, ytThumb = R.ytThumb;
+
+    // ------------------------------------------------------------------ small UI helpers
+    var toastEl, toastTimer;
+    function toast(msg) {
+        if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+        toastEl.textContent = msg;
+        toastEl.classList.add('on');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toastEl.classList.remove('on'); }, 2600);
+    }
+
+    var openMenu = null, menuAt = 0;
+    function closeMenu() { if (openMenu) { openMenu.remove(); openMenu = null; } }
+    document.addEventListener('mousedown', function (e) { if (openMenu && !openMenu.contains(e.target)) closeMenu(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
+    window.addEventListener('scroll', function (e) { if (openMenu && openMenu.contains(e.target)) return; if (Date.now() - menuAt > 250) closeMenu(); }, true);
+    // A floating panel under (or above) `anchor`. `at` = { x, y } places it at a point instead (right-click menus).
+    function popup(anchor, node, at) {
+        closeMenu();
+        node.classList.add('menu');
+        document.body.appendChild(node);
+        var x, y;
+        if (at) { x = at.x; y = at.y; }
+        else {
+            var r = anchor.getBoundingClientRect();
+            x = r.left; y = r.bottom + 4;
+            if (y + node.offsetHeight > window.innerHeight - 8) y = Math.max(8, r.top - node.offsetHeight - 4);
+        }
+        x = Math.min(x, window.innerWidth - node.offsetWidth - 8);
+        if (at && y + node.offsetHeight > window.innerHeight - 8) y = Math.max(8, window.innerHeight - node.offsetHeight - 8);
+        node.style.left = Math.max(8, x) + 'px'; node.style.top = y + 'px';
+        openMenu = node;
+        menuAt = Date.now();
+        return node;
+    }
+    // items: [{ label, run, danger, on, disabled }] or '-' for a line
+    function menu(anchor, items, at) {
+        var m = document.createElement('div');
+        items.forEach(function (it) {
+            if (it === '-') { m.appendChild(Object.assign(document.createElement('div'), { className: 'sep' })); return; }
+            var b = document.createElement('button');
+            b.textContent = (it.on ? '✓ ' : '') + it.label;
+            if (it.danger) b.className = 'danger';
+            if (it.disabled) { b.disabled = true; b.style.opacity = '.4'; }
+            b.onclick = function (e) { e.stopPropagation(); closeMenu(); it.run(); };
+            m.appendChild(b);
+        });
+        if (!at) {
+            popup(anchor, m);
+            var r = anchor.getBoundingClientRect();
+            if (anchor.classList.contains('kebab')) m.style.left = Math.max(8, Math.min(r.right - m.offsetWidth, window.innerWidth - m.offsetWidth - 8)) + 'px';
+            return m;
+        }
+        return popup(null, m, at);
+    }
+
+    // dialog({ title, body, hint, input: { value, max, placeholder }, select: { options, value },
+    //          selects: [{ label, options, value }], ok, danger, run(value) -> Promise })
+    function dialog(o) {
+        var scrim = document.createElement('div');
+        scrim.className = 'scrim';
+        function opts(list, val) {
+            return list.map(function (op) {
+                return '<option value="' + esc(op.value) + '"' + (String(op.value) === String(val) ? ' selected' : '') + '>' + esc(op.label) + '</option>';
+            }).join('');
+        }
+        var h = '<div class="dlg' + (o.wide ? ' wide' : '') + '"><h3>' + esc(o.title) + '</h3>';
+        if (o.body) h += '<p>' + esc(o.body) + '</p>';
+        if (o.input) h += '<input type="text" id="dlgIn" maxlength="' + (o.input.max || 100) + '" value="' + esc(o.input.value || '') + '" placeholder="' + esc(o.input.placeholder || t('presento.d.name')) + '">';
+        if (o.select) h += '<select id="dlgIn">' + opts(o.select.options, o.select.value) + '</select>';
+        if (o.selects) h += '<div class="fields">' + o.selects.map(function (f, i) {
+            return '<label>' + esc(f.label) + '<select data-f="' + i + '">' + opts(f.options, f.value) + '</select></label>';
+        }).join('') + '</div>';
+        if (o.html != null) h += '<div class="dbody" id="dlgBody">' + o.html + '</div>';
+        if (o.hint) h += '<div class="hint">' + esc(o.hint) + '</div>';
+        h += '<div class="err" id="dlgErr"></div><div class="foot"><button class="b plain" id="dlgNo">' + esc(o.noOk ? t('presento.d.done') : t('presento.d.cancel')) + '</button>' +
+            (o.noOk ? '' : '<button class="b main' + (o.danger ? ' danger' : '') + '" id="dlgOk">' + esc(o.ok || t('presento.d.ok')) + '</button>') + '</div></div>';
+        scrim.innerHTML = h;
+        document.body.appendChild(scrim);
+        var input = scrim.querySelector('#dlgIn'), okB = scrim.querySelector('#dlgOk'), err = scrim.querySelector('#dlgErr');
+        function close() { scrim.remove(); }
+        function submit() {
+            var v = input ? input.value : true;
+            if (o.input && !String(v).trim()) { err.textContent = t('presento.err.needName'); return; }
+            if (o.selects) {
+                var picked = Array.prototype.map.call(scrim.querySelectorAll('[data-f]'), function (s) { return s.value; });
+                v = o.input ? { text: v, selects: picked } : picked;
+            }
+            okB.disabled = true;
+            err.textContent = '';
+            Promise.resolve(o.run(v)).then(close, function (e) { okB.disabled = false; err.textContent = e.message; });
+        }
+        scrim.querySelector('#dlgNo').onclick = close;
+        scrim.addEventListener('mousedown', function (e) { if (e.target === scrim) close(); });
+        scrim.addEventListener('keydown', function (e) {
+            e.stopPropagation();
+            if (e.key === 'Escape') close();
+            if (e.key === 'Enter' && okB && e.target.tagName !== 'SELECT' && !e.target.hasAttribute('data-own-enter')) submit();
+        });
+        if (okB) okB.onclick = submit;
+        if (o.onOpen) o.onOpen(scrim.querySelector('#dlgBody'), close, function (m) { err.textContent = m || ''; });
+        if (input) { input.focus(); if (input.select && o.input) input.select(); } else if (okB) okB.focus();
+    }
+
+    function plural(key, n) { return t(key + (n === 1 ? '.one' : '.other'), n); }
+
+    // ------------------------------------------------------------------ home
+    var S = { view: 'recent', folder: null, q: '', data: null, me: '' };
+
+    function topBar(q) {
+        return '<header class="top"><div class="inner">' +
+            '<button class="logo" id="goHome"><span class="mark"></span>Presento</button>' +
+            '<div class="search">' + IC.search + '<input type="text" id="q" placeholder="' + esc(t('presento.searchPh')) + '" value="' + esc(q || '') + '">' +
+            (q ? '<button class="x" id="qx" title="' + esc(t('presento.clearSearch')) + '">' + IC.x + '</button>' : '') + '</div>' +
+            '<div class="avatar" title="' + esc(S.me) + '">' + esc((S.me || '?').charAt(0).toUpperCase()) + '</div>' +
+            '</div></header>';
+    }
+    function wireTop() {
+        document.getElementById('goHome').onclick = function () { Site.go('/'); };
+        var q = document.getElementById('q');
+        q.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { var v = q.value.trim(); Site.go(v ? '/search/' + encodeURIComponent(v) : '/'); }
+        });
+        var qx = document.getElementById('qx');
+        if (qx) qx.onclick = function () { Site.go('/'); };
+    }
+
+    function deckCard(d) {
+        var metaTxt = d.role === 'owner' ? t('presento.edited', Site.date(d.updated)) : t('presento.ownedBy', d.owner || '?');
+        var el = document.createElement('div');
+        el.className = 'deck';
+        el.innerHTML = '<div class="pv"></div><div class="info"><div class="grow"><div class="tt">' + esc(d.title) + '</div>' +
+            '<div class="meta"><span class="mk"></span><span>' + esc(metaTxt) + '</span></div></div>' +
+            '<button class="kebab">' + IC.dots + '</button></div>';
+        var pv = el.querySelector('.pv');
+        if (d.thumb) renderSlide(d.thumb, pv); else pv.innerHTML = '<span class="noth">📊</span>';
+        el.onclick = function () { Site.go('/d/' + d.id); };
+        var kb = el.querySelector('.kebab');
+        kb.onclick = function (e) { e.stopPropagation(); menu(kb, deckMenu(d)); };
+        return el;
+    }
+
+    function deckMenu(d) {
+        var items = [{ label: t('presento.m.open'), run: function () { Site.go('/d/' + d.id); } }];
+        if (d.role !== 'viewer') items.push({ label: t('presento.m.rename'), run: function () { renameDeck(d); } });
+        if (d.role === 'owner') items.push({ label: t('presento.m.move'), run: function () { moveDeck(d); } });
+        if (d.role === 'owner') items.push({ label: t('presento.sh5.share'), run: function () { shareDialog(d.id, d.title); } });
+        items.push({ label: t('presento.m.copy'), run: function () { copyDeck(d); } });
+        items.push('-');
+        if (d.role === 'owner') items.push({ label: t('presento.m.delete'), danger: true, run: function () { deleteDeck(d); } });
+        else items.push({ label: t('presento.m.leave'), danger: true, run: function () { leaveDeck(d); } });
+        return items;
+    }
+
+    function renameDeck(d) {
+        dialog({ title: t('presento.d.rename'), input: { value: d.title, max: 100 }, ok: t('presento.d.save'), run: function (v) {
+            return Site.call('rename', { id: d.id, title: v }).then(function () { toast(t('presento.t.renamed')); reload(); });
+        } });
+    }
+    function moveDeck(d) {
+        var opts = [{ value: '', label: t('presento.d.noFolder') }].concat((S.data.folders || []).map(function (f) { return { value: f.id, label: f.name }; }));
+        dialog({ title: t('presento.d.move', d.title), select: { options: opts, value: d.folder == null ? '' : d.folder }, ok: t('presento.d.move.go'), run: function (v) {
+            return Site.call('move', { id: d.id, folder: v === '' ? null : Number(v) }).then(function () { toast(t('presento.t.moved')); reload(); });
+        } });
+    }
+    function copyDeck(d) {
+        Site.call('copy', { id: d.id }).then(function () { toast(t('presento.t.copied')); reload(); }, function (e) { toast(e.message); });
+    }
+    function deleteDeck(d) {
+        dialog({ title: t('presento.d.delete', d.title), body: t('presento.d.deleteBody'), ok: t('presento.d.deleteGo'), danger: true, run: function () {
+            return Site.call('delete', { id: d.id }).then(function () { toast(t('presento.t.deleted')); reload(); });
+        } });
+    }
+    function leaveDeck(d) {
+        dialog({ title: t('presento.d.leave', d.title), body: t('presento.d.leaveBody'), ok: t('presento.d.leaveGo'), danger: true, run: function () {
+            return Site.call('leave', { id: d.id }).then(function () { toast(t('presento.t.removed')); reload(); });
+        } });
+    }
+    function newFolder() {
+        dialog({ title: t('presento.d.newFolder'), input: { value: '', max: 40 }, ok: t('presento.d.create'), run: function (v) {
+            return Site.call('folderCreate', { name: v }).then(function () { toast(t('presento.t.folderMade')); reload(); });
+        } });
+    }
+    function folderMenu(f) {
+        return [
+            { label: t('presento.m.renameFolder'), run: function () {
+                dialog({ title: t('presento.d.renameFolder'), input: { value: f.name, max: 40 }, ok: t('presento.d.save'), run: function (v) {
+                    return Site.call('folderRename', { id: f.id, name: v }).then(function () { toast(t('presento.t.renamed')); reload(); });
+                } });
+            } },
+            '-',
+            { label: t('presento.m.deleteFolder'), danger: true, run: function () {
+                dialog({ title: t('presento.d.deleteFolder', f.name), body: t('presento.d.deleteFolderBody'), ok: t('presento.d.deleteGo'), danger: true, run: function () {
+                    return Site.call('folderDelete', { id: f.id }).then(function () {
+                        toast(t('presento.t.deleted'));
+                        if (S.folder === f.id) Site.go('/mine'); else reload();
+                    });
+                } });
+            } },
+        ];
+    }
+    // Import a public Google Slides deck. The server finds the slides in the background and the dialog polls it.
+    //   As pictures: the server builds the deck itself (one picture per slide).
+    //   Editable:    the server hands over each slide's SVG in pieces; this page lays it out in a hidden element,
+    //                reads every text line and picture, and builds normal slides on top of a background picture
+    //                (the slide minus its text and pictures, served by the game server), then saves them.
+    function importDialog() {
+        var folder = S.view === 'mine' && S.folder ? S.folder : null;
+        dialog({
+            title: t('presento.im.title'), input: { value: '', max: 500, placeholder: 'https://docs.google.com/presentation/d/…' },
+            selects: [{ label: t('presento.im.mode'), value: 'editable', options: [
+                { value: 'editable', label: t('presento.im.modeEdit') }, { value: 'pictures', label: t('presento.im.modePic') }] }],
+            hint: t('presento.im.hint'), ok: t('presento.im.go'),
+            run: function (v) {
+                var hint = document.querySelector('.scrim .hint');
+                function say(msg) { if (hint) hint.textContent = msg; }
+                var mode = v.selects[0] === 'pictures' ? 'pictures' : 'editable';
+                return Site.call('importGoogle', { url: String(v.text).trim(), folder: folder, mode: mode }).then(function () {
+                    return new Promise(function (resolve, reject) {
+                        (function poll() {
+                            Site.call('importStatus', {}).then(function (st) {
+                                if (st.state === 'done') return resolve(st.id);
+                                if (st.state === 'ready') return resolve(importBuild(st, folder, say));
+                                if (st.state === 'error' || st.state === 'none') return reject(new Error(st.err || t('presento.err.importNone')));
+                                say(st.found ? t('presento.im.found', st.found) : t('presento.im.looking'));
+                                setTimeout(poll, 1500);
+                            }, reject);
+                        })();
+                    });
+                }).then(function (id) {
+                    Site.go('/d/' + id);
+                    toast(t(mode === 'pictures' ? 'presento.im.done' : 'presento.im.doneEdit'));
+                }).catch(function (e) {
+                    Site.call('importDone', {}).catch(function () {});
+                    say(t('presento.im.hint'));
+                    throw e;
+                });
+            },
+        });
+    }
+
+    // Spaced-out calls: as-browser allows about 20 requests per 5 seconds per site.
+    function importPaced(name, data) {
+        return new Promise(function (r) { setTimeout(r, 270); }).then(function () { return Site.call(name, data); });
+    }
+
+    function importBuild(st, folder, say) {
+        var n = st.slides || 0, slides = [], noBg = !st.hasBg;
+        var chain = Promise.resolve();
+        for (var i = 1; i <= n; i++) (function (i) {
+            chain = chain.then(function () {
+                say(t('presento.im.reading', i, n));
+                return importPaced('importPart', { slide: i, part: 1 }).then(function (first) {
+                    var texts = [first.text || ''], more = Promise.resolve();
+                    for (var p = 2; p <= (first.parts || 1); p++) (function (p) {
+                        more = more.then(function () { return importPaced('importPart', { slide: i, part: p }).then(function (r) { texts[p - 1] = r.text || ''; }); });
+                    })(p);
+                    return more.then(function () { slides.push(svgToSlide(texts.join(''), first.bg, first.png)); });
+                });
+            });
+        })(i);
+        var deckId;
+        return chain.then(function () {
+            say(t('presento.im.creating'));
+            return importPaced('importCreate', { folder: folder });
+        }).then(function (r) {
+            deckId = r.id;
+            var sids = [], save = Promise.resolve();
+            slides.forEach(function (sl, idx) {
+                var sid = uid('s');
+                sids.push(sid);
+                save = save.then(function () {
+                    say(t('presento.im.saving', idx + 1, slides.length));
+                    return importPaced('saveSlide', { id: deckId, sid: sid, data: sl });
+                });
+            });
+            return save.then(function () { return importPaced('order', { id: deckId, sids: sids }); });
+        }).then(function () {
+            Site.call('importDone', {}).catch(function () {});
+            if (noBg) setTimeout(function () { toast(t('presento.im.noBg')); }, 2500);
+            return deckId;
+        });
+    }
+
+    // ---- reading Google's SVG export ------------------------------------------------------------------
+    function cssHex(c, d) {
+        var m = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(String(c || ''));
+        if (!m) return /^#[0-9a-f]{3,8}$/i.test(c || '') ? c : d;
+        return '#' + [m[1], m[2], m[3]].map(function (x) { return ('0' + Number(x).toString(16)).slice(-2); }).join('');
+    }
+    function mapFont(f) {
+        f = String(f || '').toLowerCase();
+        if (/mono|courier|consolas|code/.test(f)) return 'mono';
+        if (/impact|oswald|bebas|anton|league gothic|archivo black|black ops/.test(f)) return 'display';
+        if (/trebuchet|comfortaa|nunito|varela|quicksand|poppins|montserrat|raleway/.test(f)) return 'round';
+        if (/serif/.test(f) && !/sans/.test(f)) return 'serif';
+        if (/georgia|times|merriweather|playfair|lora|garamond|libre baskerville|pt serif/.test(f)) return 'serif';
+        return 'sans';
+    }
+    function pictureSlide(png) {
+        return { bg: '#000000', els: png ? [{ id: 'e1', type: 'image', src: png, fit: 'contain', x: 0, y: 0, w: 1280, h: 720, rot: 0 }] : [] };
+    }
+    function clipRect(el, base) {
+        var ref = el.closest && el.closest('[clip-path]');
+        if (!ref) return null;
+        var m = /url\(\s*["']?#([^"')]+)/.exec(ref.getAttribute('clip-path') || '');
+        var cp = m && ref.ownerSVGElement && ref.ownerSVGElement.getElementById ? ref.ownerSVGElement.getElementById(m[1]) : null;
+        var shape = cp && cp.firstElementChild;
+        if (!shape || !shape.getBBox) return null;
+        try {
+            var bb = shape.getBBox(), ctm = ref.getScreenCTM(), xs = [], ys = [];
+            [[bb.x, bb.y], [bb.x + bb.width, bb.y], [bb.x, bb.y + bb.height], [bb.x + bb.width, bb.y + bb.height]].forEach(function (c) {
+                xs.push(ctm.a * c[0] + ctm.c * c[1] + ctm.e - base.left);
+                ys.push(ctm.b * c[0] + ctm.d * c[1] + ctm.f - base.top);
+            });
+            return { x: Math.min.apply(null, xs), y: Math.min.apply(null, ys), r: Math.max.apply(null, xs), b: Math.max.apply(null, ys) };
+        } catch (e) { return null; }
+    }
+    function svgToSlide(svgText, bgUrl, png) {
+        if (!svgText) return pictureSlide(png);
+        var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+        var src = doc.documentElement;
+        if (!src || src.nodeName.toLowerCase() !== 'svg' || doc.getElementsByTagName('parsererror').length) return pictureSlide(png);
+        var vb = (src.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+        var vw = vb[2] || parseFloat(src.getAttribute('width')) || 960, vh = vb[3] || parseFloat(src.getAttribute('height')) || 540;
+        var k = Math.min(1280 / vw, 720 / vh), cw = vw * k, ch = vh * k, ox = (1280 - cw) / 2, oy = (720 - ch) / 2;
+        var host = document.createElement('div');
+        host.style.cssText = 'position:fixed;left:-30000px;top:0;width:1280px;height:720px;overflow:hidden;visibility:hidden;pointer-events:none';
+        document.body.appendChild(host);
+        var node = document.importNode(src, true);
+        node.setAttribute('width', cw); node.setAttribute('height', ch);
+        node.style.position = 'absolute'; node.style.left = ox + 'px'; node.style.top = oy + 'px';
+        host.appendChild(node);
+        var base = host.getBoundingClientRect(), runs = [], images = [];
+
+        // every piece of text (a <tspan>, or the <text> itself)
+        node.querySelectorAll('text').forEach(function (tx) {
+            var leaves = Array.prototype.filter.call(tx.querySelectorAll('tspan'), function (ts) { return !ts.querySelector('tspan'); });
+            (leaves.length ? leaves : [tx]).forEach(function (el) {
+                var str = (el.textContent || '').replace(/ /g, ' ');
+                if (!str.trim()) return;
+                var r = el.getBoundingClientRect();
+                if (!r.width || !r.height) return;
+                var cs = getComputedStyle(el), m = el.getScreenCTM(), sc = m ? Math.hypot(m.a, m.b) : 1;
+                var size = (parseFloat(cs.fontSize) || 16) * sc;
+                runs.push({
+                    t: str.replace(/[●▪■]/g, '•'), x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height,
+                    size: size, color: cssHex(cs.fill, '#000000'), font: mapFont(cs.fontFamily),
+                    bold: (parseInt(cs.fontWeight, 10) || 400) >= 600, italic: cs.fontStyle === 'italic', anchor: cs.textAnchor,
+                });
+            });
+        });
+        // linked pictures (pasted-in ones stayed in the background)
+        node.querySelectorAll('image').forEach(function (im) {
+            var href = im.getAttribute('href') || im.getAttributeNS('http://www.w3.org/1999/xlink', 'href') || '';
+            if (!/^https:\/\/[^\s"'<>]+$/.test(href)) return;
+            var r = im.getBoundingClientRect();
+            var box = { x: r.left - base.left, y: r.top - base.top, r: r.right - base.left, b: r.bottom - base.top };
+            var c = clipRect(im, base);
+            if (c) box = { x: Math.max(box.x, c.x), y: Math.max(box.y, c.y), r: Math.min(box.r, c.r), b: Math.min(box.b, c.b) };
+            if (box.r - box.x < 4 || box.b - box.y < 4) return;
+            images.push({ type: 'image', src: href, fit: 'cover', x: box.x, y: box.y, w: box.r - box.x, h: box.b - box.y });
+        });
+        host.remove();
+
+        // runs -> lines (same baseline, next to each other)
+        runs.sort(function (a, b) { return (a.y + a.h / 2) - (b.y + b.h / 2) || a.x - b.x; });
+        var lines = [];
+        runs.forEach(function (r) {
+            var last = lines[lines.length - 1];
+            if (last && Math.abs((last.y + last.h / 2) - (r.y + r.h / 2)) < r.size * 0.35 && r.x - (last.x + last.w) < r.size * 1.2 && r.x - (last.x + last.w) > -r.size * 0.5) {
+                var gap = r.x - (last.x + last.w);
+                if (gap > r.size * 0.15 && !/\s$/.test(last.t) && !/^\s/.test(r.t)) last.t += ' ';
+                last.t += r.t;
+                last.w = Math.max(last.x + last.w, r.x + r.w) - last.x;
+                last.h = Math.max(last.h, r.h);
+            } else lines.push(Object.assign({}, r));
+        });
+        // lines -> text boxes (same look, stacked closely, overlapping horizontally)
+        lines.sort(function (a, b) { return a.y - b.y || a.x - b.x; });
+        var boxes = [];
+        lines.forEach(function (l) {
+            var hit = null;
+            for (var i = boxes.length - 1; i >= 0; i--) {
+                var bx = boxes[i];
+                var sameLook = Math.abs(bx.size - l.size) <= bx.size * 0.15 && bx.color === l.color && bx.font === l.font;
+                var gapY = l.y - bx.bottom;
+                var overlapX = l.x < bx.right + l.size && l.x + l.w > bx.left - l.size;
+                if (sameLook && gapY > -l.size * 0.4 && gapY < l.size * 0.9 && overlapX) { hit = bx; break; }
+            }
+            if (hit) {
+                hit.lines.push(l);
+                hit.left = Math.min(hit.left, l.x); hit.right = Math.max(hit.right, l.x + l.w); hit.bottom = Math.max(hit.bottom, l.y + l.h);
+            } else boxes.push({ lines: [l], left: l.x, right: l.x + l.w, top: l.y, bottom: l.y + l.h, size: l.size, color: l.color, font: l.font, bold: l.bold, italic: l.italic, anchor: l.anchor });
+        });
+
+        var els = [];
+        if (bgUrl) els.push({ type: 'image', src: bgUrl, fit: 'cover', x: ox, y: oy, w: cw, h: ch });
+        images.forEach(function (im) { els.push(im); });
+        boxes.forEach(function (bx) {
+            var ls = bx.lines, align = 'left';
+            if (ls.length > 1) {
+                var lefts = ls.map(function (l) { return l.x; }), rights = ls.map(function (l) { return l.x + l.w; });
+                var centers = ls.map(function (l) { return l.x + l.w / 2; });
+                var spread = function (a) { return Math.max.apply(null, a) - Math.min.apply(null, a); };
+                if (spread(lefts) > bx.size * 0.5 && spread(centers) < bx.size * 0.6) align = 'center';
+                else if (spread(lefts) > bx.size * 0.5 && spread(rights) < bx.size * 0.4) align = 'right';
+            } else if (bx.anchor === 'middle') align = 'center';
+            else if (bx.anchor === 'end') align = 'right';
+            var tw = bx.right - bx.left, W = tw * 1.08 + 24, H = (bx.bottom - bx.top) + 12 + bx.size * 0.25;
+            var x = align === 'center' ? bx.left + tw / 2 - W / 2 : align === 'right' ? bx.right - W + 12 : bx.left - 12;
+            els.push({
+                type: 'text', text: ls.map(function (l) { return l.t.replace(/\s+$/, ''); }).join('\n'),
+                x: x, y: bx.top - 8, w: W, h: H, size: Math.max(6, Math.round(bx.size * 0.96)),
+                font: bx.font, color: bx.color, bold: bx.bold || undefined, italic: bx.italic || undefined, align: align, valign: 'top',
+            });
+        });
+        if (!runs.length && !images.length) return pictureSlide(png);   // nothing readable (text drawn as shapes)
+
+        var slide = { bg: ox > 1 || oy > 1 ? '#000000' : '#ffffff', els: els.slice(0, (window.PRESENTO_MAX_ELS || 80)).map(function (e, i) {
+            e.id = 'e' + (i + 1); e.rot = 0;
+            ['x', 'y', 'w', 'h'].forEach(function (key) { e[key] = Math.round(e[key] * 10) / 10; });
+            return e;
+        }) };
+        if (unescape(encodeURIComponent(JSON.stringify(slide))).length > 14500) return pictureSlide(png);
+        if (!bgUrl) slide.bg = '#ffffff';
+        return slide;
+    }
+
+    function createDeck(template) {
+        var folder = S.view === 'mine' && S.folder ? S.folder : null;
+        Site.call('create', { folder: folder, template: template || null }).then(function (r) { Site.go('/d/' + r.id); }, function (e) { toast(e.message); });
+    }
+
+    function drawHome() {
+        var d = S.data;
+        S.me = d.me || S.me;
+        var html = topBar(S.q);
+        html += '<section class="band"><div class="inner"><h3>' + esc(t('presento.startNew')) + '</h3><div class="starts">' +
+            '<button class="start" id="newBlank"><div class="pv"><span class="plus"></span></div><span>' + esc(t('presento.blank')) + '</span></button>' +
+            (d.canImport ? '<button class="start" id="importG"><div class="pv gs"><span class="gsl"></span></div><span>' + esc(t('presento.im.card')) + '</span></button>' : '') +
+            (d.templates || []).map(function (tp, i) { return '<button class="start tpl" data-tpl="' + i + '"><div class="pv"></div><span>' + esc(tp.name) + '</span></button>'; }).join('') +
+            '</div></div></section>';
+        html += '<main class="inner">';
+        if (S.q) {
+            html += '<div class="crumbs"><b>' + esc(t('presento.resultsFor', S.q)) + '</b></div>';
+        } else {
+            html += '<div class="bar">' +
+                ['recent', 'mine', 'shared'].map(function (v) {
+                    return '<button class="tab' + (S.view === v ? ' on' : '') + '" data-view="' + v + '">' + esc(t('presento.tab.' + v)) + '</button>';
+                }).join('') +
+                '<span class="sp"></span>' +
+                (S.view === 'mine' && !S.folder ? '<button class="pbtn" id="newFolder">' + IC.folderAdd + esc(t('presento.newFolder')) + '</button>' : '') +
+                '</div>';
+            if (S.view === 'mine' && d.folder) {
+                html += '<div class="crumbs"><a data-go="/mine">' + esc(t('presento.tab.mine')) + '</a><span>›</span><b>' + esc(d.folder.name) + '</b>' +
+                    '<button class="kebab" id="folderKebab">' + IC.dots + '</button></div>';
+            }
+            if (S.view === 'mine' && !S.folder && d.folders.length) {
+                html += '<div class="sec">' + esc(t('presento.folders')) + '</div><div class="folders" id="folders"></div>';
+            }
+            if (S.view === 'mine' && !S.folder && d.folders.length) html += '<div class="sec">' + esc(t('presento.decks')) + '</div>';
+        }
+        html += '<div class="grid" id="grid"></div></main>';
+        app.innerHTML = html;
+        wireTop();
+
+        document.getElementById('newBlank').onclick = function () { createDeck(); };
+        if (document.getElementById('importG')) document.getElementById('importG').onclick = importDialog;
+        app.querySelectorAll('[data-tpl]').forEach(function (b) {
+            var tp = d.templates[Number(b.getAttribute('data-tpl'))];
+            if (tp.slide) renderSlide(tp.slide, b.querySelector('.pv'));
+            b.onclick = function () { createDeck(tp.key); };
+        });
+        app.querySelectorAll('[data-view]').forEach(function (b) {
+            b.onclick = function () { Site.go(b.dataset.view === 'recent' ? '/' : '/' + b.dataset.view); };
+        });
+        app.querySelectorAll('[data-go]').forEach(function (a) { a.onclick = function () { Site.go(a.dataset.go); }; });
+        var nf = document.getElementById('newFolder');
+        if (nf) nf.onclick = newFolder;
+        var fk = document.getElementById('folderKebab');
+        if (fk) fk.onclick = function (e) { e.stopPropagation(); menu(fk, folderMenu(d.folder)); };
+
+        var fw = document.getElementById('folders');
+        if (fw) d.folders.forEach(function (f) {
+            var b = document.createElement('div');
+            b.className = 'folder';
+            b.style.cursor = 'pointer';
+            b.innerHTML = '<span class="fi">📁</span><div class="fn">' + esc(f.name) + '<div class="fc">' + esc(plural('presento.decksIn', Number(f.count) || 0)) + '</div></div><button class="kebab">' + IC.dots + '</button>';
+            b.onclick = function () { Site.go('/mine/' + f.id); };
+            var kb = b.querySelector('.kebab');
+            kb.onclick = function (e) { e.stopPropagation(); menu(kb, folderMenu(f)); };
+            fw.appendChild(b);
+        });
+
+        var grid = document.getElementById('grid');
+        if (!d.decks.length) {
+            var key = S.q ? 'search' : (S.view === 'mine' ? (S.folder ? 'folder' : 'mine') : S.view);
+            if (!(S.view === 'mine' && !S.folder && !S.q && d.folders.length)) {
+                grid.outerHTML = '<div class="empty"><div class="big">📊</div>' + esc(t('presento.empty.' + key)) + '</div>';
+            }
+            return;
+        }
+        d.decks.forEach(function (deck) { grid.appendChild(deckCard(deck)); });
+    }
+
+    function loadHome() {
+        Site.title('Presento');
+        Site.call('home', { view: S.view, folder: S.folder, q: S.q }).then(function (d) {
+            S.data = d;
+            drawHome();
+        }, function (e) {
+            if (S.folder) { Site.go('/mine'); return; }
+            app.innerHTML = topBar(S.q) + '<div class="inner"><div class="empty"><div class="big">⚠️</div>' + esc(e.message || t('presento.err.load')) + '</div></div>';
+            wireTop();
+        });
+    }
+    function reload() { loadHome(); }
+
+    // ================================================================== editor
+    // Slides are saved one at a time (as-browser caps a request at 16 KB): `saveSlide` for each changed
+    // slide, then `order` when slides were added, removed or moved. Undo/redo keeps whole-deck snapshots.
+    var E = null;
+    var EI = {
+        undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>',
+        redo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg>',
+        text: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8M12 9v7"/></svg>',
+        image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/></svg>',
+        shape: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="5"/><rect x="11" y="11" width="10" height="10" rx="1"/></svg>',
+        line: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19 19 5"/></svg>',
+        table: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/></svg>',
+        video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="15" height="14" rx="2"/><path d="m17 10 5-3v10l-5-3z"/></svg>',
+        play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>',
+        share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>',
+        history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>',
+        theme: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1.3" fill="currentColor"/><circle cx="12" cy="7.5" r="1.3" fill="currentColor"/><circle cx="16" cy="10" r="1.3" fill="currentColor"/><path d="M12 21a3 3 0 0 1 0-6h3"/></svg>',
+        stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>',
+        bg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 11-8-8-8.5 8.5a2 2 0 0 0 0 2.8L7.7 19.5a2 2 0 0 0 2.8 0Z"/><path d="M5 2l5 5M2 13h15M22 20a2 2 0 1 1-4 0c0-1.6 2-4 2-4s2 2.4 2 4z"/></svg>',
+        fcol: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 17 12 4l6 13M8.5 12h7"/></svg>',
+        fill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 11-8-8-8.5 8.5a2 2 0 0 0 0 2.8L7.7 19.5a2 2 0 0 0 2.8 0Z"/><path d="M5 2l5 5M2 13h15"/></svg>',
+        pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+        al: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h10M4 14h16M4 18h10"/></svg>',
+        ac: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 10h10M4 14h16M7 18h10"/></svg>',
+        ar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M10 10h10M4 14h16M10 18h10"/></svg>',
+        aj: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>',
+        layer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>',
+        dup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>',
+        del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15"/></svg>',
+        plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>',
+        down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>',
+        rowAdd: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="10" rx="1"/><path d="M12 16v6M9 19h6"/></svg>',
+        rowDel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="10" rx="1"/><path d="M9 19h6"/></svg>',
+        colAdd: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="10" height="18" rx="1"/><path d="M16 12h6M19 9v6"/></svg>',
+        colDel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="10" height="18" rx="1"/><path d="M16 12h6"/></svg>',
+    };
+    var SWATCHES = ['#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#d9d9d9', '#efefef', '#ffffff',
+        '#980000', '#ff0000', '#ff9900', '#ffff00', '#00ff00', '#00ffff', '#4a86e8', '#9900ff',
+        '#e6b8af', '#f4cccc', '#fce5cd', '#fff2cc', '#d9ead3', '#d0e0e3', '#c9daf8', '#d9d2e9',
+        '#1f2937', '#ff7a1a', '#cc0000', '#e69138', '#38761d', '#0b5394', '#351c75', '#741b47'];
+
+    function $(id) { return document.getElementById(id); }
+    function uid(p) { var c = 'abcdefghijkmnpqrstuvwxyz23456789', s = p; for (var i = 0; i < 9; i++) s += c.charAt(Math.floor(Math.random() * c.length)); return s; }
+    function clone(o) { return JSON.parse(JSON.stringify(o)); }
+    function r1(v) { return Math.round(v * 10) / 10; }
+    function bytes(s) { return unescape(encodeURIComponent(s)).length; }
+    function isField(el) { return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable); }
+    function cur() { return E.slides[E.cur]; }
+    function curData() { return E.slides[E.cur].data; }
+    function findEl(id) { var els = curData().els; for (var i = 0; i < els.length; i++) if (els[i].id === id) return els[i]; return null; }
+    function selEl() { return E.sel ? findEl(E.sel) : null; }
+
+    // ------------------------------------------------------------------ layouts for new slides
+    function tbox(o) {
+        var th = theme(), kind = o.ph === 'title' ? 't' : o.ph === 'subtitle' ? 's' : 'b';
+        return Object.assign({ id: uid('e'), type: 'text', rot: 0, text: '', font: kind === 't' ? th.tf : th.bf,
+            color: kind === 't' ? th.tc : kind === 's' ? th.sc : th.bc, align: 'left', valign: 'top', size: 24 }, o);
+    }
+    function layout(kind, bg) {
+        var els;
+        if (kind === 'blank') els = [];
+        else if (kind === 'title') els = [tbox({ x: 120, y: 250, w: 1040, h: 130, ph: 'title', size: 56, bold: true, align: 'center', valign: 'middle' }),
+            tbox({ x: 120, y: 390, w: 1040, h: 70, ph: 'subtitle', size: 26, align: 'center' })];
+        else if (kind === 'section') els = [tbox({ x: 100, y: 280, w: 1080, h: 160, ph: 'title', size: 60, bold: true, valign: 'middle' })];
+        else els = [tbox({ x: 80, y: 50, w: 1120, h: 110, ph: 'title', size: 42, bold: true, valign: 'middle' }),
+            tbox({ x: 80, y: 180, w: 1120, h: 480, ph: 'body', size: 26 })];
+        return { bg: bg || theme().bg, els: els };
+    }
+    var LAYOUTS = ['body', 'title', 'section', 'blank'];
+
+    // ------------------------------------------------------------------ undo / redo
+    function snap() { return JSON.stringify(E.slides); }
+    function beginChange() {
+        E.undo.push(snap());
+        if (E.undo.length > 60) E.undo.shift();
+        E.redo = [];
+    }
+    function applySnap(str) {
+        var before = {};
+        E.slides.forEach(function (s) { before[s.sid] = JSON.stringify(s.data); });
+        var oldOrder = E.slides.map(function (s) { return s.sid; }).join(',');
+        E.slides = JSON.parse(str);
+        E.slides.forEach(function (s) { if (before[s.sid] !== JSON.stringify(s.data)) E.dirty[s.sid] = true; });
+        if (E.slides.map(function (s) { return s.sid; }).join(',') !== oldOrder) E.orderDirty = true;
+        if (E.cur >= E.slides.length) E.cur = E.slides.length - 1;
+        if (E.sel && !findEl(E.sel)) E.sel = null;
+        E.editing = null;
+        schedule();
+        drawStrip(); drawCanvas(); drawTools();
+    }
+    function undo() { if (!E.undo.length) return; commitEditing(); E.redo.push(snap()); applySnap(E.undo.pop()); }
+    function redo() { if (!E.redo.length) return; commitEditing(); E.undo.push(snap()); applySnap(E.redo.pop()); }
+
+    // Changes to the current slide: change(function () { ...edit curData()... })
+    function change(fn, keepTools) {
+        beginChange();
+        fn();
+        touched();
+        drawCanvas();
+        if (!keepTools) drawTools();
+    }
+    function syncUndo() {
+        var u = document.querySelector('#edTools [data-a=undo]'), r = document.querySelector('#edTools [data-a=redo]');
+        if (u) u.disabled = !E.undo.length;
+        if (r) r.disabled = !E.redo.length;
+    }
+    function touched(sid) {
+        sid = sid || cur().sid;
+        E.dirty[sid] = true;
+        schedule();
+        syncUndo();
+        var i = E.slides.findIndex(function (s) { return s.sid === sid; });
+        if (i >= 0) refreshThumb(i);
+    }
+
+    // ------------------------------------------------------------------ saving
+    function setStatus(kind, msg) {
+        if (!E || !E.statusEl) return;
+        E.statusEl.className = 'ed-status' + (kind === 'error' ? ' err' : '');
+        E.statusEl.textContent = msg || t('presento.s.' + kind);
+    }
+    function schedule(delay) {
+        if (!E) return;
+        setStatus('unsaved');
+        clearTimeout(E.saveT);
+        E.saveT = setTimeout(function () { flush(E); }, delay || 900);
+    }
+    function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+    function callRetry(name, data, tries) {
+        return Site.call(name, data).catch(function (e) {
+            if ((tries || 0) >= 2) throw e;
+            return wait(1500).then(function () { return callRetry(name, data, (tries || 0) + 1); });
+        });
+    }
+    function flush(ed) {
+        ed = ed || E;
+        if (!ed || ed.ro) return Promise.resolve();
+        clearTimeout(ed.saveT);
+        if (ed.saving) { ed.again = true; return ed.saving; }
+        var sids = Object.keys(ed.dirty), order = ed.orderDirty;
+        if (!sids.length && !order) { if (ed === E) setStatus(ed.bigSlide ? 'error' : 'saved', ed.bigSlide ? t('presento.err.slideTooBigN', ed.bigSlide) : null); return Promise.resolve(); }
+        ed.dirty = {}; ed.orderDirty = false; ed.bigSlide = null;
+        if (ed === E) setStatus('saving');
+        var failed = false, lastErr = null, chain = Promise.resolve();
+        sids.forEach(function (sid) {
+            chain = chain.then(function () {
+                var i = ed.slides.findIndex(function (s) { return s.sid === sid; });
+                if (i < 0) return;
+                var json = JSON.stringify(ed.slides[i].data);
+                if (bytes(json) > ed.cfg.maxSlideBytes) { ed.bigSlide = i + 1; return; }
+                return callRetry('saveSlide', { id: ed.deck.id, sid: sid, data: ed.slides[i].data })
+                    .then(function () { return wait(120); }, function (e) { failed = true; lastErr = e; ed.dirty[sid] = true; });
+            });
+        });
+        chain = chain.then(function () {
+            if (!order) return;
+            return callRetry('order', { id: ed.deck.id, sids: ed.slides.map(function (s) { return s.sid; }) }).catch(function (e) {
+                failed = true; lastErr = e;
+                ed.orderDirty = true;
+                ed.slides.forEach(function (s) { ed.dirty[s.sid] = true; });   // out of sync: send every slide again
+            });
+        });
+        ed.saving = chain.then(function () {
+            ed.saving = null;
+            if (failed) {
+                // Deck deleted, access removed or someone else took over editing: stop retrying and reopen it.
+                var msg = lastErr && lastErr.message || '', lockTail = t('presento.err.lockedBy', '');
+                if (ed === E && (msg === t('presento.err.notFound') || msg === t('presento.err.noEdit') || (lockTail && msg.slice(-lockTail.length) === lockTail))) {
+                    toast(msg);
+                    reopenDeck(ed.deck.id, true);
+                    return;
+                }
+                if (ed === E) { setStatus('error', msg); clearTimeout(ed.saveT); ed.saveT = setTimeout(function () { flush(ed); }, 6000); }
+                return;
+            }
+            if (ed.again || Object.keys(ed.dirty).length || ed.orderDirty) { ed.again = false; return flush(ed); }
+            if (ed === E) setStatus(ed.bigSlide ? 'error' : 'saved', ed.bigSlide ? t('presento.err.slideTooBigN', ed.bigSlide) : null);
+        });
+        return ed.saving;
+    }
+
+    // ------------------------------------------------------------------ open
+    // Opening a deck. Editors take the edit lock; if someone else has it the deck opens view only and
+    // checks every 10 s until it is free. The lock is renewed every cfg.lockBeat seconds while open.
+    function stopTimers(ed) { if (ed) { clearInterval(ed.beat); clearInterval(ed.poll); } }
+    function reopenDeck(id, keepSlide) {
+        var cur = E ? E.cur : 0;
+        stopTimers(E);
+        E = null;
+        loadDeck(id, keepSlide ? cur : 0);
+    }
+    function loadDeck(id, startAt) {
+        app.innerHTML = '<div class="spinner"></div>';
+        var opened;
+        Site.call('open', { id: id }).then(function (r) {
+            opened = r;
+            if (r.deck.role === 'viewer' || r.deck.lockedBy) return { ok: false, by: r.deck.lockedBy };
+            return Site.call('lock', { id: id }).catch(function () { return { ok: false, by: '?' }; });
+        }).then(function (lk) {
+            var r = opened;
+            if (!r) return;
+            E = {
+                deck: r.deck, canEdit: r.deck.role !== 'viewer', cfg: r.cfg || {},
+                slides: (r.slides || []).map(function (s) { return { sid: s.sid, data: { bg: s.data.bg, els: Array.isArray(s.data.els) ? s.data.els : [], trans: s.data.trans } }; }),
+                cur: 0, sel: null, editing: null, undo: [], redo: [], dirty: {}, orderDirty: false, clip: null, scale: 1,
+            };
+            E.ro = !E.canEdit || !lk.ok;
+            E.lockedBy = E.canEdit && !lk.ok ? (lk.by || '?') : null;
+            E.cur = Math.max(0, Math.min(startAt || 0, E.slides.length - 1));
+            if (!E.slides.length) {
+                if (E.ro) E.slides.push({ sid: 'empty', data: { bg: '#ffffff', els: [] } });
+                else { E.slides.push({ sid: uid('s'), data: layout('title') }); E.dirty[E.slides[0].sid] = true; E.orderDirty = true; }
+            }
+            Site.title(E.deck.title + ' - Presento');
+            drawEditor();
+            var ed = E, beat = Math.max(5, Number(E.cfg.lockBeat) || 20) * 1000;
+            if (!E.ro) {
+                E.beat = setInterval(function () {
+                    if (E !== ed) return stopTimers(ed);
+                    Site.call('lock', { id: id }).then(function (res) {
+                        if (E !== ed || res.ok) return;
+                        toast(t('presento.lk.lost', res.by || '?'));
+                        flush(ed);
+                        reopenDeck(id, true);
+                    }, function () { /* try again next beat */ });
+                }, beat);
+            } else if (E.lockedBy) {
+                E.poll = setInterval(function () {
+                    if (E !== ed) return stopTimers(ed);
+                    Site.call('lock', { id: id }).then(function (res) {
+                        if (E !== ed || !res.ok) return;
+                        toast(t('presento.lk.free'));
+                        reopenDeck(id, true);
+                    }, function () { /* ignore */ });
+                }, 10000);
+            }
+        }).catch(function (e) {
+            app.innerHTML = topBar('') + '<div class="inner"><div class="empty"><div class="big">🔒</div>' + esc(e.message) + '</div></div>';
+            wireTop();
+        });
+    }
+    function leaveEditor() {
+        if (PR) prExit();
+        if (!E) return;
+        commitEditing();
+        var ed = E;
+        E = null;
+        stopTimers(ed);
+        flush(ed).then(function () { if (!ed.ro) Site.call('unlock', { id: ed.deck.id }).catch(function () { /* the lock times out anyway */ }); });
+    }
+
+    // ------------------------------------------------------------------ layout
+    function drawEditor() {
+        app.innerHTML = '<div class="ed' + (E.ro ? '' : ' can') + '" id="ed">' +
+            '<div class="ed-top"><button class="back" id="edBack" title="' + esc(t('presento.back')) + '">' + IC.back + '</button><span class="mark"></span>' +
+            '<div class="grow"><input type="text" class="ed-title" id="edTitle" maxlength="100" value="' + esc(E.deck.title) + '"' + (E.ro ? ' readonly' : '') + '>' +
+            '<div class="ed-status" id="edStatus"></div></div>' +
+            '<span style="flex:1"></span>' + (E.ro ? '<span class="ro">' + esc(E.lockedBy ? t('presento.lk.badge', E.lockedBy) : t('presento.viewOnly')) + '</span>' : '') +
+            (E.canEdit && !E.ro ? '<button class="ed-ic" id="edHistory" title="' + esc(t('presento.hi.title')) + '">' + EI.history + '</button>' : '') +
+            (E.deck.role === 'owner' ? '<button class="ed-share" id="edShare">' + EI.share + esc(t('presento.sh5.share')) + '</button>' : '') +
+            '<div class="prs"><button id="edPresent" title="' + esc(t('presento.p.fromHere')) + '">' + EI.play + esc(t('presento.p.present')) + '</button>' +
+            '<button id="edPresentMenu">' + EI.down + '</button></div></div>' +
+            (E.ro ? '' : '<div class="ed-tools" id="edTools"></div>') +
+            '<div class="ed-body"><div class="ed-strip" id="edStrip"></div><div class="ed-stage" id="edStage"><div class="ed-canvas" id="edCanvas"></div></div></div></div>';
+        E.statusEl = $('edStatus');
+        setStatus(E.ro ? 'viewer' : (Object.keys(E.dirty).length ? 'unsaved' : 'saved'), E.lockedBy ? t('presento.lk.status', E.lockedBy) : null);
+        if ($('edShare')) $('edShare').onclick = function () { shareDialog(E.deck.id, E.deck.title); };
+        if ($('edHistory')) $('edHistory').onclick = historyDialog;
+        if (E.orderDirty) schedule(200);
+
+        $('edBack').onclick = function () { commitEditing(); var ed = E; flush(ed).then(function () { Site.go('/'); }); };
+        $('edPresent').onclick = function () { present(E.cur); };
+        $('edPresentMenu').onclick = function () {
+            var items = [
+                { label: t('presento.p.fromStart'), run: function () { present(0); } },
+                { label: t('presento.p.fromHere'), run: function () { present(E.cur); } }];
+            if (E.cfg.cast) {
+                items.push('-');
+                items.push({ label: t('presento.c5.menu'), run: castDialog });
+                if (E.cast) items.push({ label: t('presento.c5.stopOn', E.cast.label), danger: true, run: castStop });
+            }
+            menu($('edPresentMenu'), items);
+        };
+        var title = $('edTitle');
+        if (!E.ro) {
+            title.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === 'Escape') { if (e.key === 'Escape') title.value = E.deck.title; title.blur(); } });
+            title.addEventListener('blur', function () {
+                var v = title.value.trim();
+                if (!v || v === E.deck.title) { title.value = E.deck.title; return; }
+                Site.call('rename', { id: E.deck.id, title: v }).then(function (r) {
+                    E.deck.title = r.title; title.value = r.title; Site.title(r.title + ' - Presento');
+                }, function (e) { title.value = E.deck.title; toast(e.message); });
+            });
+            wireTools();
+            wireCanvas();
+        }
+        wireStrip();
+        drawTools(); drawStrip(); fitCanvas(); drawCanvas();
+        if (window.ResizeObserver) new ResizeObserver(function () { if (E && fitCanvas()) drawCanvas(); }).observe($('edStage'));
+    }
+
+    function fitCanvas() {
+        var st = $('edStage'), cv = $('edCanvas');
+        if (!st || !cv) return false;
+        var sc = Math.max(0.1, Math.min((st.clientWidth - 48) / 1280, (st.clientHeight - 48) / 720));
+        var changed = Math.abs(sc - E.scale) > 0.0005;
+        E.scale = sc;
+        cv.style.width = Math.round(1280 * sc) + 'px';
+        cv.style.height = Math.round(720 * sc) + 'px';
+        cv.style.setProperty('--inv', 1 / sc);
+        return changed;
+    }
+
+    // ------------------------------------------------------------------ canvas
+    function drawCanvas() {
+        var cv = $('edCanvas');
+        if (!cv) return;
+        cv.innerHTML = '';
+        if (E.preview && !findEl(E.preview)) E.preview = null;
+        var s = renderSlide(curData(), cv, { ph: !E.ro, scale: E.scale, live: E.preview });
+        E.slideEl = s;
+        if (E.ro) return;
+        var ov = document.createElement('div');
+        ov.className = 'ov';
+        ov.innerHTML = '<div class="guide v" id="gv"></div><div class="guide h" id="gh"></div><div class="selbox" id="selbox" style="display:none"></div>';
+        s.appendChild(ov);
+        drawSel();
+        if (E.editing) startEditingDom();
+    }
+    function nodeFor(id) { return E.slideEl && E.slideEl.querySelector('[data-id="' + id + '"]'); }
+    function drawSel() {
+        var box = $('selbox'), el = selEl();
+        if (!box) return;
+        if (!el) { box.style.display = 'none'; return; }
+        box.style.display = '';
+        box.style.left = el.x + 'px'; box.style.top = el.y + 'px';
+        box.style.width = el.w + 'px'; box.style.height = el.h + 'px';
+        box.style.transform = el.rot ? 'rotate(' + el.rot + 'deg)' : '';
+        box.className = 'selbox' + (E.editing === el.id ? ' editing' : '');
+        if (E.editing === el.id) { box.innerHTML = ''; return; }
+        var hs = el.type === 'line' ? ['w', 'e', 'rot'] : ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'rot'];
+        box.innerHTML = hs.map(function (h) { return '<div class="hd" data-h="' + h + '"></div>'; }).join('') +
+            (el.anim ? '<div class="stepchip" title="' + esc(t('presento.an.stepTitle')) + '">' + (el.step || 1) + '</div>' : '');
+    }
+    function redrawEl(el) {
+        var old = nodeFor(el.id), n = elNode(el, { ph: true, live: E.preview });
+        if (old && n) old.replaceWith(n);
+        drawSel();
+    }
+    function select(id) {
+        if (E.sel === id) return;
+        commitEditing();
+        if (E.preview && E.preview !== id) { E.preview = null; E.sel = id; drawCanvas(); drawTools(); return; }
+        E.sel = id;
+        drawSel();
+        drawTools();
+    }
+    function slidePoint(ev) {
+        var r = $('edCanvas').getBoundingClientRect();
+        return { x: (ev.clientX - r.left) / E.scale, y: (ev.clientY - r.top) / E.scale };
+    }
+
+    function wireCanvas() {
+        var stage = $('edStage'), lastDown = { id: null, at: 0 };
+        stage.addEventListener('pointerdown', function (ev) {
+            if (ev.button !== 0 || !E || E.ro) return;
+            if (E.preview) {
+                var pn = nodeFor(E.preview);
+                if (pn && pn.contains(ev.target)) return;      // using the playing video's controls
+            }
+            if (E.editing) {
+                var en = nodeFor(E.editing);
+                if (en && en.contains(ev.target)) return;      // clicking inside the box being typed in
+                commitEditing();
+            }
+            var h = ev.target.closest && ev.target.closest('.hd');
+            if (h) { ev.preventDefault(); return startDrag(ev, h.getAttribute('data-h') === 'rot' ? 'rotate' : 'resize', h.getAttribute('data-h')); }
+            var node = ev.target.closest && ev.target.closest('.slide [data-id]');
+            if (!node) { lastDown.id = null; return select(null); }
+            ev.preventDefault();
+            var id = node.getAttribute('data-id'), now = Date.now();
+            // second press on the same text box / table = start typing (a preventDefault'd pointerdown blocks dblclick)
+            if (lastDown.id === id && now - lastDown.at < 450) {
+                lastDown.id = null;
+                var el = findEl(id);
+                if (el && (el.type === 'text' || el.type === 'table')) return startEditing(id);
+            }
+            lastDown.id = id; lastDown.at = now;
+            select(id);
+            startDrag(ev, 'move');
+        });
+    }
+
+    function startDrag(ev, mode, handle) {
+        var el = selEl();
+        if (!el) return;
+        var start = clone(el), sx = ev.clientX, sy = ev.clientY, moved = false;
+        var gv = $('gv'), gh = $('gh');
+        var dirs = { nw: [-1, -1], n: [0, -1], ne: [1, -1], e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0] }[handle] || [0, 0];
+        function mv(e) {
+            var dx = (e.clientX - sx) / E.scale, dy = (e.clientY - sy) / E.scale;
+            if (!moved && Math.abs(dx) + Math.abs(dy) < 3 / E.scale) return;
+            if (!moved) { moved = true; beginChange(); }
+            if (mode === 'move') {
+                var nx = start.x + dx, ny = start.y + dy, cx = nx + start.w / 2, cy = ny + start.h / 2, snapV = null, snapH = null, tol = 6 / E.scale;
+                if (!e.altKey) {
+                    if (Math.abs(cx - 640) < tol) { nx = 640 - start.w / 2; snapV = 640; }
+                    else if (Math.abs(nx) < tol) { nx = 0; snapV = 0; }
+                    else if (Math.abs(nx + start.w - 1280) < tol) { nx = 1280 - start.w; snapV = 1280; }
+                    if (Math.abs(cy - 360) < tol) { ny = 360 - start.h / 2; snapH = 360; }
+                    else if (Math.abs(ny) < tol) { ny = 0; snapH = 0; }
+                    else if (Math.abs(ny + start.h - 720) < tol) { ny = 720 - start.h; snapH = 720; }
+                }
+                gv.style.display = snapV == null ? 'none' : 'block'; if (snapV != null) gv.style.left = snapV + 'px';
+                gh.style.display = snapH == null ? 'none' : 'block'; if (snapH != null) gh.style.top = snapH + 'px';
+                el.x = r1(nx); el.y = r1(ny);
+            } else if (mode === 'resize') {
+                var rad = (start.rot || 0) * Math.PI / 180, cos = Math.cos(rad), sin = Math.sin(rad);
+                var lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;
+                var w = start.w + dirs[0] * lx, hh = start.h + dirs[1] * ly;
+                if (e.shiftKey && dirs[0] && dirs[1]) { var k = Math.max(w / start.w, hh / start.h); w = start.w * k; hh = start.h * k; }
+                w = Math.max(10, w); hh = el.type === 'line' ? start.h : Math.max(10, hh);
+                var cxl = dirs[0] * (w - start.w) / 2, cyl = dirs[1] * (hh - start.h) / 2;
+                var ccx = start.x + start.w / 2 + cxl * cos - cyl * sin, ccy = start.y + start.h / 2 + cxl * sin + cyl * cos;
+                el.w = r1(w); el.h = r1(hh); el.x = r1(ccx - w / 2); el.y = r1(ccy - hh / 2);
+            } else if (mode === 'rotate') {
+                var p = slidePoint(e), ocx = start.x + start.w / 2, ocy = start.y + start.h / 2;
+                var ang = Math.atan2(p.y - ocy, p.x - ocx) * 180 / Math.PI + 90;
+                if (e.shiftKey) ang = Math.round(ang / 15) * 15;
+                else { var nearest = Math.round(ang / 90) * 90; if (Math.abs(ang - nearest) < 4) ang = nearest; }
+                ang = ((ang % 360) + 360) % 360; if (ang > 180) ang -= 360;
+                el.rot = r1(ang);
+            }
+            redrawEl(el);
+        }
+        function up() {
+            document.removeEventListener('pointermove', mv);
+            document.removeEventListener('pointerup', up);
+            if (gv) gv.style.display = 'none';
+            if (gh) gh.style.display = 'none';
+            if (moved) { touched(); drawSel(); }
+        }
+        document.addEventListener('pointermove', mv);
+        document.addEventListener('pointerup', up);
+    }
+
+    // ------------------------------------------------------------------ typing in text boxes and tables
+    function startEditing(id) {
+        var el = findEl(id);
+        if (!el) return;
+        E.sel = id;
+        E.editing = id;
+        drawCanvas();
+        drawTools();
+    }
+    function caretEnd(node) {
+        try { var r = document.createRange(); r.selectNodeContents(node); r.collapse(false); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) { /* ignore */ }
+    }
+    function editable(node) { try { node.contentEditable = 'plaintext-only'; } catch (e) { node.contentEditable = 'true'; } if (node.contentEditable !== 'plaintext-only') node.contentEditable = 'true'; }
+    function startEditingDom() {
+        var el = findEl(E.editing), node = nodeFor(E.editing);
+        if (!el || !node) { E.editing = null; return; }
+        drawSel();
+        if (el.type === 'text') {
+            var inner = node.firstChild;
+            if (inner.classList.contains('ph')) { inner.className = ''; inner.textContent = ''; }
+            editable(inner);
+            inner.focus();
+            caretEnd(inner);
+            inner.addEventListener('blur', function () { setTimeout(commitEditing, 0); });
+        } else if (el.type === 'table') {
+            var tds = node.querySelectorAll('td');
+            tds.forEach(function (td) { editable(td); });
+            if (tds[0]) { tds[0].focus(); caretEnd(tds[0]); }
+            node.addEventListener('focusout', function (ev) { if (!ev.relatedTarget || !node.contains(ev.relatedTarget)) setTimeout(commitEditing, 0); });
+        }
+    }
+    function commitEditing() {
+        if (!E || !E.editing) return;
+        var id = E.editing, el = findEl(id), node = nodeFor(id);
+        E.editing = null;
+        if (!el || !node) return;
+        var changed = false, next;
+        if (el.type === 'text') {
+            next = (node.firstChild.innerText || '').replace(/\n$/, '').slice(0, 2000);
+            changed = next !== (el.text || '');
+        } else if (el.type === 'table') {
+            next = Array.prototype.map.call(node.querySelectorAll('tr'), function (tr) {
+                return Array.prototype.map.call(tr.cells, function (td) { return (td.innerText || '').replace(/\n$/, '').slice(0, 300); });
+            });
+            changed = JSON.stringify(next) !== JSON.stringify(el.cells);
+        }
+        if (changed) {
+            beginChange();
+            if (el.type === 'text') el.text = next; else el.cells = next;
+            touched();
+        }
+        drawCanvas();
+        drawTools();
+    }
+
+    // ------------------------------------------------------------------ adding things
+    function canAdd() {
+        if (curData().els.length >= (E.cfg.maxElements || 80)) { toast(t('presento.err.tooManyEls', E.cfg.maxElements || 80)); return false; }
+        return true;
+    }
+    function addEl(el, edit) {
+        if (!canAdd()) return;
+        el.id = uid('e');
+        el.rot = el.rot || 0;
+        change(function () { curData().els.push(el); });
+        E.sel = el.id;
+        if (edit) startEditing(el.id); else { drawSel(); drawTools(); }
+    }
+    function addText() { addEl(tbox({ x: 390, y: 310, w: 500, h: 100, size: 28 }), true); }
+    function addShape(shape) { addEl({ type: 'shape', shape: shape, x: 540, y: 260, w: 200, h: 200, fill: '#4a86e8', stroke: 0, strokeColor: '#1f2937' }); }
+    function addLine(arrow) { addEl({ type: 'line', x: 440, y: 350, w: 400, h: 20, stroke: 4, color: '#1f2937', arrow: arrow || undefined }); }
+    function hostOk(url) {
+        var m = /^https:\/\/([^\/?#:]+)/i.exec(url || '');
+        if (!m) return false;
+        var host = m[1].toLowerCase();
+        return (E.cfg.imageHosts || []).some(function (h) {
+            h = String(h).toLowerCase();
+            if (h.indexOf('*.') === 0) { var b = h.slice(2); return host === b || host.slice(-(b.length + 1)) === '.' + b; }
+            return host === h;
+        });
+    }
+    function loadImage(url, trusted) {
+        return new Promise(function (resolve, reject) {
+            url = String(url || '').trim();
+            if (!/^https:\/\/[^\s"'<>]+$/.test(url) || (!trusted && !hostOk(url))) return reject(new Error(t('presento.err.imageHost')));
+            var img = new Image(), done = false;
+            var timer = setTimeout(function () { if (!done) { done = true; reject(new Error(t('presento.err.imageLoad'))); } }, 10000);
+            img.onload = function () { if (done) return; done = true; clearTimeout(timer); resolve({ url: url, w: img.naturalWidth || 640, h: img.naturalHeight || 360 }); };
+            img.onerror = function () { if (done) return; done = true; clearTimeout(timer); reject(new Error(t('presento.err.imageLoad'))); };
+            img.src = url;
+        });
+    }
+    function imageDialog(replace) {
+        dialog({
+            title: t(replace ? 'presento.i.replace' : 'presento.i.title'),
+            input: { value: '', max: 500, placeholder: 'https://' },
+            hint: t('presento.i.hint', (E.cfg.imageHosts || []).join(', ')),
+            ok: t(replace ? 'presento.i.replaceGo' : 'presento.i.insert'),
+            run: function (v) {
+                return loadImage(v).then(function (im) {
+                    if (replace) { change(function () { var el = selEl(); if (el) el.src = im.url; }); return; }
+                    var k = Math.min(1, 800 / im.w, 540 / im.h), w = Math.round(im.w * k), h = Math.round(im.h * k);
+                    addEl({ type: 'image', src: im.url, fit: 'cover', x: Math.round(640 - w / 2), y: Math.round(360 - h / 2), w: w, h: h });
+                });
+            },
+        });
+    }
+    function tableDialog() {
+        var rows = [], cols = [];
+        for (var i = 1; i <= (E.cfg.maxTableRows || 12); i++) rows.push({ value: i, label: String(i) });
+        for (var j = 1; j <= (E.cfg.maxTableCols || 8); j++) cols.push({ value: j, label: String(j) });
+        dialog({
+            title: t('presento.tbl.title'), ok: t('presento.i.insert'),
+            selects: [{ label: t('presento.tbl.rows'), options: rows, value: 3 }, { label: t('presento.tbl.cols'), options: cols, value: 3 }],
+            run: function (v) {
+                var r = Number(v[0]) || 3, c = Number(v[1]) || 3, cells = [];
+                for (var i = 0; i < r; i++) { var row = []; for (var j = 0; j < c; j++) row.push(''); cells.push(row); }
+                var w = Math.min(1120, c * 180), h = Math.min(600, r * 56);
+                addEl({ type: 'table', cells: cells, size: 20, color: '#1f2937', headFill: '#e8eaed', strokeColor: '#9aa0a6', x: Math.round(640 - w / 2), y: Math.round(360 - h / 2), w: w, h: h });
+            },
+        });
+    }
+
+    // ------------------------------------------------------------------ video + phone photos + ClipZone
+    function addVideo(v) {
+        addEl(Object.assign({ type: 'video', x: 240, y: 135, w: 800, h: 450 }, v));
+    }
+    function parseYouTube(u) {
+        u = String(u || '').trim();
+        var m = /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/))([\w-]{11})/i.exec(u);
+        var vid = m ? m[1] : (/^[\w-]{11}$/.test(u) ? u : null);
+        if (!vid) return null;
+        var start = 0, tm = /[?&#](?:t|start)=(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?/.exec(u);
+        if (tm) start = (Number(tm[1]) || 0) * 3600 + (Number(tm[2]) || 0) * 60 + (Number(tm[3]) || 0);
+        return { vid: vid, start: start };
+    }
+    function youtubeDialog() {
+        dialog({
+            title: t('presento.v.ytTitle'), input: { value: '', max: 300, placeholder: 'https://www.youtube.com/watch?v=…' },
+            hint: t('presento.v.ytHint'), ok: t('presento.i.insert'),
+            run: function (v) {
+                var y = parseYouTube(v);
+                if (!y) return Promise.reject(new Error(t('presento.err.youtube')));
+                addVideo({ src: 'youtube', vid: y.vid, start: y.start || undefined });
+            },
+        });
+    }
+    function clipPicker() {
+        dialog({
+            title: t('presento.v.clipTitle'), wide: true, noOk: true,
+            html: '<div class="pick-search"><input type="text" id="clipQ" data-own-enter="1" placeholder="' + esc(t('presento.v.clipSearch')) + '"><button id="clipGo">' + esc(t('presento.v.search')) + '</button></div><div id="clipList"><div class="spinner"></div></div>',
+            onOpen: function (body, close, setErr) {
+                var list = body.querySelector('#clipList'), q = body.querySelector('#clipQ');
+                function load() {
+                    list.innerHTML = '<div class="spinner"></div>';
+                    Site.call('clips', { q: q.value }).then(function (r) {
+                        var clips = r.clips || [];
+                        if (!clips.length) { list.innerHTML = '<div class="empty">' + esc(t('presento.v.noClips')) + '</div>'; return; }
+                        list.innerHTML = '<div class="pick-grid">' + clips.map(function (c, i) {
+                            var th = safeUrl(c.thumb);
+                            return '<button class="pick" data-i="' + i + '">' + (th ? '<img src="' + esc(th) + '" alt="">' : '<div style="width:100%;height:100%;background:#111"></div>') +
+                                '<span class="cap"><b>' + esc(c.title) + '</b>' + esc(c.channel || '') + '</span></button>';
+                        }).join('') + '</div>';
+                        list.querySelectorAll('.pick').forEach(function (b) {
+                            b.onclick = function () {
+                                var c = clips[Number(b.getAttribute('data-i'))];
+                                close();
+                                addVideo({ src: 'clip', clip: c.id, url: c.url, thumb: c.thumb, title: c.title });
+                            };
+                        });
+                    }, function (e) { list.innerHTML = ''; setErr(e.message); });
+                }
+                body.querySelector('#clipGo').onclick = load;
+                q.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); load(); } });
+                q.focus();
+                load();
+            },
+        });
+    }
+    function phonePicker(mode) {
+        dialog({
+            title: t(mode === 'video' ? 'presento.v.phoneTitle' : 'presento.i.phoneTitle'), wide: true, noOk: true,
+            html: '<div class="spinner"></div>',
+            onOpen: function (body, close, setErr) {
+                Site.call('phoneList', { id: E.deck.id }).then(function (r) {
+                    var list = (r.photos || []).filter(function (p) { return mode === 'video' ? p.isVideo : !p.isVideo; });
+                    if (!list.length) { body.innerHTML = '<div class="empty">' + esc(t(mode === 'video' ? 'presento.v.noPhoneVideos' : 'presento.i.noPhotos')) + '</div>'; return; }
+                    body.innerHTML = '<div class="pick-grid">' + list.map(function (p, i) {
+                        var u = safeUrl(p.url);
+                        return '<button class="pick" data-i="' + i + '">' + (p.isVideo ? '<video src="' + esc(u) + '" preload="metadata" muted></video><span class="pl">▶</span>' : '<img src="' + esc(u) + '" alt="" loading="lazy">') + '</button>';
+                    }).join('') + '</div>';
+                    body.querySelectorAll('.pick').forEach(function (b) {
+                        b.onclick = function () {
+                            var p = list[Number(b.getAttribute('data-i'))];
+                            setErr('');
+                            Site.call('phoneAttach', { id: E.deck.id, photo: p.id }).then(function (res) {
+                                if (res.isVideo) { close(); return addVideo({ src: 'file', url: res.url }); }
+                                return loadImage(res.url, true).then(function (im) {
+                                    close();
+                                    var k = Math.min(1, 800 / im.w, 540 / im.h), w = Math.round(im.w * k), h = Math.round(im.h * k);
+                                    addEl({ type: 'image', src: im.url, fit: 'cover', x: Math.round(640 - w / 2), y: Math.round(360 - h / 2), w: w, h: h });
+                                });
+                            }).catch(function (e) { setErr(e.message); });
+                        };
+                    });
+                }, function (e) { body.innerHTML = ''; setErr(e.message); });
+            },
+        });
+    }
+
+    // ------------------------------------------------------------------ editing the selection
+    function setProp(prop, val) {
+        var el = selEl();
+        if (!el) return;
+        change(function () { if (val === undefined || val === null) delete el[prop]; else el[prop] = val; });
+    }
+    function deleteSel() {
+        var el = selEl();
+        if (!el) return;
+        change(function () { var els = curData().els; els.splice(els.indexOf(el), 1); });
+        E.sel = null; drawSel(); drawTools();
+    }
+    function duplicateSel() {
+        var el = selEl();
+        if (!el || !canAdd()) return;
+        var c = clone(el); c.x += 20; c.y += 20;
+        addEl(c);
+    }
+    function arrange(how) {
+        var el = selEl();
+        if (!el) return;
+        change(function () {
+            var els = curData().els, i = els.indexOf(el);
+            els.splice(i, 1);
+            if (how === 'front') els.push(el);
+            else if (how === 'back') els.unshift(el);
+            else if (how === 'forward') els.splice(Math.min(els.length, i + 1), 0, el);
+            else els.splice(Math.max(0, i - 1), 0, el);
+        });
+    }
+    function tableEdit(what) {
+        var el = selEl();
+        if (!el || el.type !== 'table') return;
+        var rows = el.cells.length, cols = el.cells[0] ? el.cells[0].length : 0;
+        if (what === 'rowAdd' && rows >= (E.cfg.maxTableRows || 12)) return toast(t('presento.err.tableMax'));
+        if (what === 'colAdd' && cols >= (E.cfg.maxTableCols || 8)) return toast(t('presento.err.tableMax'));
+        if ((what === 'rowDel' && rows <= 1) || (what === 'colDel' && cols <= 1)) return;
+        change(function () {
+            if (what === 'rowAdd') { el.cells.push(el.cells[0].map(function () { return ''; })); el.h = r1(el.h + el.h / rows); }
+            if (what === 'rowDel') { el.cells.pop(); el.h = r1(Math.max(20, el.h - el.h / rows)); }
+            if (what === 'colAdd') el.cells.forEach(function (r) { r.push(''); });
+            if (what === 'colDel') el.cells.forEach(function (r) { r.pop(); });
+        });
+    }
+
+    function palette(anchor, current, allowNone, cb) {
+        var p = document.createElement('div');
+        p.className = 'pal';
+        var h = '';
+        if (allowNone) h += '<button class="none" data-c="transparent">⃠ ' + esc(t('presento.c.none')) + '</button>';
+        h += '<div class="sws">' + SWATCHES.map(function (c) {
+            return '<button class="sw' + (String(current).toLowerCase() === c ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" title="' + c + '"></button>';
+        }).join('') + '</div>';
+        h += '<div class="hex"><input type="text" maxlength="7" value="' + esc(/^#/.test(current || '') ? current : '#') + '"><button>' + esc(t('presento.d.ok')) + '</button></div>';
+        p.innerHTML = h;
+        p.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-c]');
+            if (b) { closeMenu(); cb(b.getAttribute('data-c')); }
+        });
+        var inp = p.querySelector('.hex input');
+        function applyHex() { var v = inp.value.trim(); if (/^#[0-9a-fA-F]{6}$/.test(v) || /^#[0-9a-fA-F]{3}$/.test(v)) { closeMenu(); cb(v.toLowerCase()); } }
+        p.querySelector('.hex button').onclick = applyHex;
+        inp.addEventListener('keydown', function (e) { e.stopPropagation(); if (e.key === 'Enter') applyHex(); });
+        popup(anchor, p);
+    }
+
+    // ------------------------------------------------------------------ toolbar
+    function tb(a, icon, title, extra) {
+        extra = extra || {};
+        return '<button class="tb' + (extra.on ? ' on' : '') + (extra.cls ? ' ' + extra.cls : '') + '" data-a="' + a + '" title="' + esc(title) + '"' + (extra.disabled ? ' disabled' : '') + '>' +
+            icon + (extra.label ? '<span>' + esc(extra.label) + '</span>' : '') + (extra.bar ? '<span class="bar" style="background:' + esc(extra.bar === 'transparent' ? 'transparent' : extra.bar) + '"></span>' : '') + '</button>';
+    }
+    var SEP = '<span class="tsep"></span>';
+    function selOpts(list, val) {
+        return list.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(val) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('');
+    }
+    function drawTools() {
+        var bar = $('edTools');
+        if (!bar || !E) return;
+        var el = selEl(), h = '';
+        h += tb('undo', EI.undo, t('presento.tb.undo'), { disabled: !E.undo.length });
+        h += tb('redo', EI.redo, t('presento.tb.redo'), { disabled: !E.redo.length });
+        h += SEP;
+        h += tb('addText', EI.text, t('presento.tb.text'));
+        h += tb('addImage', EI.image + EI.down.replace('<svg', '<svg style="width:12px;height:12px"'), t('presento.tb.image'));
+        h += tb('addShape', EI.shape + EI.down.replace('<svg', '<svg style="width:12px;height:12px"'), t('presento.tb.shape'));
+        h += tb('addLine', EI.line + EI.down.replace('<svg', '<svg style="width:12px;height:12px"'), t('presento.tb.line'));
+        h += tb('addTable', EI.table, t('presento.tb.table'));
+        h += tb('addVideo', EI.video + EI.down.replace('<svg', '<svg style="width:12px;height:12px"'), t('presento.tb.video'));
+        h += SEP;
+        if (!el) {
+            h += tb('bg', EI.bg, t('presento.tb.background'), { label: t('presento.tb.background'), bar: curData().bg || '#ffffff' });
+            h += tb('theme', EI.theme, t('presento.tb.theme'), { label: t('presento.tb.theme') });
+            h += SEP;
+            h += '<select class="tsel" data-s="trans" title="' + esc(t('presento.tb.transition')) + '">' + selOpts([['', t('presento.tr.none')], ['fade', t('presento.tr.fade')], ['slide', t('presento.tr.slide')], ['zoom', t('presento.tr.zoom')]], curData().trans || '') + '</select>';
+            h += tb('transAll', '<span>⇉</span>', t('presento.tr.all'), { label: t('presento.tr.all') });
+            h += SEP;
+            h += tb('layoutMenu', EI.plus, t('presento.tb.newSlide'), { label: t('presento.tb.newSlide') });
+        } else {
+            if (el.type === 'text') {
+                h += '<select class="tsel" data-s="font" title="' + esc(t('presento.tb.font')) + '">' + selOpts([['sans', 'Segoe UI'], ['serif', 'Georgia'], ['mono', 'Consolas'], ['display', 'Impact'], ['round', 'Trebuchet']], el.font || 'sans') + '</select>';
+                h += '<input type="number" class="tsel tnum" data-s="size" min="6" max="300" value="' + esc(el.size || 24) + '" title="' + esc(t('presento.tb.size')) + '">';
+                h += SEP;
+                h += tb('bold', '<b>B</b>', t('presento.tb.bold'), { on: el.bold });
+                h += tb('italic', '<i>I</i>', t('presento.tb.italic'), { on: el.italic });
+                h += tb('underline', '<u>U</u>', t('presento.tb.underline'), { on: el.underline });
+                h += tb('color', EI.fcol, t('presento.tb.textColor'), { cls: 'clr', bar: el.color || '#1f2937' });
+                h += tb('tfill', EI.fill, t('presento.tb.fill'), { cls: 'clr', bar: el.fill || 'transparent' });
+                h += SEP;
+                h += tb('align-left', EI.al, t('presento.tb.left'), { on: (el.align || 'left') === 'left' });
+                h += tb('align-center', EI.ac, t('presento.tb.center'), { on: el.align === 'center' });
+                h += tb('align-right', EI.ar, t('presento.tb.right'), { on: el.align === 'right' });
+                h += tb('align-justify', EI.aj, t('presento.tb.justify'), { on: el.align === 'justify' });
+                h += '<select class="tsel" data-s="valign" title="' + esc(t('presento.tb.valign')) + '">' + selOpts([['top', t('presento.tb.vTop')], ['middle', t('presento.tb.vMiddle')], ['bottom', t('presento.tb.vBottom')]], el.valign || 'top') + '</select>';
+            } else if (el.type === 'shape') {
+                h += tb('fill', EI.fill, t('presento.tb.fill'), { cls: 'clr', bar: el.fill || '#4285f4' });
+                h += tb('strokeColor', EI.pen, t('presento.tb.border'), { cls: 'clr', bar: el.strokeColor || '#1f2937' });
+                h += '<select class="tsel" data-s="stroke" title="' + esc(t('presento.tb.borderWidth')) + '">' + selOpts([[0, t('presento.tb.noBorder')], [1, '1 px'], [2, '2 px'], [4, '4 px'], [8, '8 px'], [16, '16 px']], el.stroke || 0) + '</select>';
+                h += '<select class="tsel" data-s="shape" title="' + esc(t('presento.tb.shape')) + '">' + selOpts([['rect', t('presento.sh.rect')], ['round', t('presento.sh.round')], ['ellipse', t('presento.sh.ellipse')]], el.shape || 'rect') + '</select>';
+            } else if (el.type === 'line') {
+                h += tb('lineColor', EI.pen, t('presento.tb.lineColor'), { cls: 'clr', bar: el.color || '#1f2937' });
+                h += '<select class="tsel" data-s="stroke" title="' + esc(t('presento.tb.lineWidth')) + '">' + selOpts([[1, '1 px'], [2, '2 px'], [4, '4 px'], [6, '6 px'], [10, '10 px'], [16, '16 px']], el.stroke || 4) + '</select>';
+                h += tb('arrow', '<span>→</span>', t('presento.tb.arrow'), { on: el.arrow, label: t('presento.tb.arrow') });
+            } else if (el.type === 'image') {
+                h += tb('imgReplace', EI.image, t('presento.i.replace'), { label: t('presento.i.replace') });
+                h += '<select class="tsel" data-s="fit" title="' + esc(t('presento.tb.fit')) + '">' + selOpts([['cover', t('presento.tb.fitCover')], ['contain', t('presento.tb.fitContain')]], el.fit || 'cover') + '</select>';
+            } else if (el.type === 'video') {
+                var playing = E.preview === el.id;
+                h += tb('preview', playing ? EI.stop : EI.play, t(playing ? 'presento.v.stop' : 'presento.v.play'), { on: playing, label: t(playing ? 'presento.v.stop' : 'presento.v.play') });
+                if (el.src === 'youtube') h += '<input type="number" class="tsel tnum" data-s="start" min="0" max="86400" value="' + esc(el.start || 0) + '" title="' + esc(t('presento.v.start')) + '">';
+                h += tb('muted', '<span>🔇</span>', t('presento.v.muted'), { on: el.muted, label: t('presento.v.muted') });
+                h += tb('loop', '<span>🔁</span>', t('presento.v.loop'), { on: el.loop, label: t('presento.v.loop') });
+            } else if (el.type === 'table') {
+                h += tb('rowAdd', EI.rowAdd, t('presento.tbl.rowAdd'));
+                h += tb('rowDel', EI.rowDel, t('presento.tbl.rowDel'));
+                h += tb('colAdd', EI.colAdd, t('presento.tbl.colAdd'));
+                h += tb('colDel', EI.colDel, t('presento.tbl.colDel'));
+                h += '<input type="number" class="tsel tnum" data-s="size" min="6" max="120" value="' + esc(el.size || 20) + '" title="' + esc(t('presento.tb.size')) + '">';
+                h += tb('color', EI.fcol, t('presento.tb.textColor'), { cls: 'clr', bar: el.color || '#1f2937' });
+                h += tb('headFill', EI.fill, t('presento.tbl.head'), { cls: 'clr', bar: el.headFill || '#e8eaed' });
+                h += tb('strokeColor', EI.pen, t('presento.tb.border'), { cls: 'clr', bar: el.strokeColor || '#9aa0a6' });
+            }
+            h += SEP;
+            h += '<select class="tsel" data-s="anim" title="' + esc(t('presento.an.title')) + '">' + selOpts([['', t('presento.an.none')], ['fade', t('presento.an.fade')], ['left', t('presento.an.left')], ['right', t('presento.an.right')], ['up', t('presento.an.up')], ['zoom', t('presento.an.zoom')]], el.anim || '') + '</select>';
+            if (el.anim) {
+                var stepOpts = [];
+                for (var si = 1; si <= 20; si++) stepOpts.push([si, t('presento.an.step', si)]);
+                h += '<select class="tsel" data-s="step" title="' + esc(t('presento.an.stepTitle')) + '">' + selOpts(stepOpts, el.step || 1) + '</select>';
+            }
+            h += SEP;
+            h += tb('arrange', EI.layer, t('presento.tb.arrange'));
+            h += tb('dup', EI.dup, t('presento.tb.duplicate'));
+            h += tb('del', EI.del, t('presento.tb.delete'));
+        }
+        bar.innerHTML = h;
+    }
+
+    function wireTools() {
+        var bar = $('edTools');
+        bar.addEventListener('mousedown', function (e) { if (E && E.editing && e.target.closest('.tb')) e.preventDefault(); });  // keep typing focus
+        bar.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-a]');
+            if (!b || b.disabled || !E) return;
+            var a = b.getAttribute('data-a'), el = selEl();
+            if (E.editing && ['bold', 'italic', 'underline', 'color', 'tfill', 'align-left', 'align-center', 'align-right', 'align-justify'].indexOf(a) < 0) commitEditing();
+            el = selEl();
+            switch (a) {
+                case 'undo': return undo();
+                case 'redo': return redo();
+                case 'addText': return addText();
+                case 'addImage':
+                    if (!E.cfg.phone) return imageDialog(false);
+                    return menu(b, [
+                        { label: t('presento.i.byLink'), run: function () { imageDialog(false); } },
+                        { label: t('presento.i.fromPhone'), run: function () { phonePicker('image'); } }]);
+                case 'addVideo': {
+                    var vm = [{ label: t('presento.v.youtube'), run: youtubeDialog }];
+                    if (E.cfg.clipzone) vm.push({ label: t('presento.v.clipzone'), run: clipPicker });
+                    if (E.cfg.phone) vm.push({ label: t('presento.v.phone'), run: function () { phonePicker('video'); } });
+                    return menu(b, vm);
+                }
+                case 'preview': E.preview = E.preview === (el && el.id) ? null : (el && el.id); drawCanvas(); return drawTools();
+                case 'addTable': return tableDialog();
+                case 'addShape': return menu(b, [
+                    { label: t('presento.sh.rect'), run: function () { addShape('rect'); } },
+                    { label: t('presento.sh.round'), run: function () { addShape('round'); } },
+                    { label: t('presento.sh.ellipse'), run: function () { addShape('ellipse'); } }]);
+                case 'addLine': return menu(b, [
+                    { label: t('presento.ln.line'), run: function () { addLine(false); } },
+                    { label: t('presento.ln.arrow'), run: function () { addLine(true); } }]);
+                case 'bg': return palette(b, curData().bg, false, function (c) { change(function () { curData().bg = c; }); });
+                case 'layoutMenu': return layoutMenu(b);
+                case 'theme': return themePicker(b);
+                case 'transAll': {
+                    var tr = curData().trans;
+                    commitEditing(); beginChange();
+                    E.slides.forEach(function (sl) { if (sl.data.trans !== tr) { if (tr) sl.data.trans = tr; else delete sl.data.trans; E.dirty[sl.sid] = true; } });
+                    schedule(); syncUndo();
+                    return toast(t('presento.tr.applied'));
+                }
+                case 'imgReplace': return imageDialog(true);
+                case 'arrange': return menu(b, [
+                    { label: t('presento.ar.front'), run: function () { arrange('front'); } },
+                    { label: t('presento.ar.forward'), run: function () { arrange('forward'); } },
+                    { label: t('presento.ar.backward'), run: function () { arrange('backward'); } },
+                    { label: t('presento.ar.back'), run: function () { arrange('back'); } }]);
+                case 'dup': return duplicateSel();
+                case 'del': return deleteSel();
+                case 'rowAdd': case 'rowDel': case 'colAdd': case 'colDel': return tableEdit(a);
+            }
+            if (!el) return;
+            var editing = E.editing === el.id;
+            function set(prop, val) {
+                if (editing) commitEditing();
+                setProp(prop, val);
+                if (editing) startEditing(el.id);
+            }
+            switch (a) {
+                case 'bold': case 'italic': case 'underline': return set(a, el[a] ? undefined : true);
+                case 'align-left': case 'align-center': case 'align-right': case 'align-justify': return set('align', a.slice(6));
+                case 'color': return palette(b, el.color, false, function (c) { set('color', c); });
+                case 'tfill': return palette(b, el.fill, true, function (c) { set('fill', c === 'transparent' ? undefined : c); });
+                case 'fill': return palette(b, el.fill, true, function (c) { setProp('fill', c); });
+                case 'strokeColor': return palette(b, el.strokeColor, false, function (c) { setProp('strokeColor', c); if (el.type === 'shape' && !el.stroke) setProp('stroke', 2); });
+                case 'lineColor': return palette(b, el.color, false, function (c) { setProp('color', c); });
+                case 'headFill': return palette(b, el.headFill, true, function (c) { setProp('headFill', c); });
+                case 'arrow': return setProp('arrow', el.arrow ? undefined : true);
+                case 'muted': return setProp('muted', el.muted ? undefined : true);
+                case 'loop': return setProp('loop', el.loop ? undefined : true);
+            }
+        });
+        bar.addEventListener('change', function (e) {
+            var s = e.target.getAttribute && e.target.getAttribute('data-s');
+            if (s === 'trans') { var tv = e.target.value; return change(function () { if (tv) curData().trans = tv; else delete curData().trans; }); }
+            if (!s || !selEl()) return;
+            var v = e.target.value;
+            if (s === 'anim') {
+                var ae = selEl();
+                return change(function () {
+                    if (!v) { delete ae.anim; delete ae.step; return; }
+                    if (!ae.anim) { var mx = 0; curData().els.forEach(function (x) { if (x.anim && x !== ae) mx = Math.max(mx, x.step || 1); }); ae.step = Math.min(20, mx + 1); }
+                    ae.anim = v;
+                });
+            }
+            if (s === 'step') v = Math.max(1, Math.min(20, Number(v) || 1));
+            if (s === 'size' || s === 'stroke' || s === 'start') {
+                v = Number(v);
+                if (!isFinite(v)) return drawTools();
+                v = s === 'size' ? Math.max(6, Math.min(300, Math.round(v))) : s === 'start' ? Math.max(0, Math.min(86400, Math.round(v))) : Math.max(0, Math.min(40, v));
+                if (s === 'stroke' && selEl().type === 'line') v = Math.max(1, v);
+            }
+            setProp(s, v);
+        });
+        bar.addEventListener('keydown', function (e) { if (e.target.tagName === 'INPUT' && e.key === 'Enter') e.target.blur(); });
+    }
+
+    // ------------------------------------------------------------------ slide strip
+    function drawStrip() {
+        var st = $('edStrip');
+        if (!st || !E) return;
+        var h = E.ro ? '' : '<div class="st-add"><button data-sa="new">' + EI.plus + esc(t('presento.tb.newSlide')) + '</button><button data-sa="layouts">' + EI.down + '</button></div>';
+        h += E.slides.map(function (s, i) {
+            return '<div class="st' + (i === E.cur ? ' on' : '') + '" data-i="' + i + '"' + (E.ro ? '' : ' draggable="true"') + '><span class="n">' + (i + 1) + '</span><div class="pv"></div></div>';
+        }).join('');
+        st.innerHTML = h;
+        E.slides.forEach(function (s, i) { refreshThumb(i); });
+        var on = st.querySelector('.st.on');
+        if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
+    }
+    function refreshThumb(i) {
+        var box = document.querySelector('#edStrip .st[data-i="' + i + '"] .pv');
+        if (!box || !E.slides[i]) return;
+        box.innerHTML = '';
+        renderSlide(E.slides[i].data, box);
+    }
+    function goSlide(i) {
+        if (!E || i < 0 || i >= E.slides.length) return;
+        commitEditing();
+        E.cur = i; E.sel = null; E.preview = null;
+        document.querySelectorAll('#edStrip .st').forEach(function (n) { n.classList.toggle('on', Number(n.getAttribute('data-i')) === i); });
+        var on = document.querySelector('#edStrip .st.on');
+        if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
+        drawCanvas(); drawTools();
+    }
+    function slideChange(fn) {
+        commitEditing();
+        beginChange();
+        fn();
+        E.orderDirty = true;
+        E.sel = null;
+        schedule();
+        drawStrip(); drawCanvas(); drawTools();
+    }
+    function newSlide(kind) {
+        if (E.slides.length >= (E.cfg.maxSlides || 50)) return toast(t('presento.err.tooManySlides', E.cfg.maxSlides || 50));
+        slideChange(function () {
+            var s = { sid: uid('s'), data: layout(kind, curData().bg) };
+            if (curData().trans) s.data.trans = curData().trans;
+            E.slides.splice(E.cur + 1, 0, s);
+            E.cur++;
+            E.dirty[s.sid] = true;
+        });
+    }
+    function dupSlide(i) {
+        if (E.slides.length >= (E.cfg.maxSlides || 50)) return toast(t('presento.err.tooManySlides', E.cfg.maxSlides || 50));
+        slideChange(function () {
+            var s = { sid: uid('s'), data: clone(E.slides[i].data) };
+            E.slides.splice(i + 1, 0, s);
+            E.cur = i + 1;
+            E.dirty[s.sid] = true;
+        });
+    }
+    function delSlide(i) {
+        if (E.slides.length <= 1) return toast(t('presento.err.lastSlide'));
+        slideChange(function () {
+            E.slides.splice(i, 1);
+            if (E.cur >= E.slides.length) E.cur = E.slides.length - 1;
+            else if (E.cur > i) E.cur--;
+        });
+    }
+    function moveSlide(from, to) {
+        if (from === to || to < 0 || to >= E.slides.length) return;
+        slideChange(function () {
+            var s = E.slides.splice(from, 1)[0];
+            E.slides.splice(to, 0, s);
+            E.cur = to;
+        });
+    }
+    function layoutMenu(anchor) {
+        menu(anchor, LAYOUTS.map(function (k) { return { label: t('presento.lay.' + k), run: function () { newSlide(k); } }; }));
+    }
+    function slideMenu(i, at) {
+        menu(null, [
+            { label: t('presento.sl.new'), run: function () { goSlide(i); newSlide('body'); } },
+            { label: t('presento.sl.dup'), run: function () { dupSlide(i); } },
+            '-',
+            { label: t('presento.sl.up'), disabled: i === 0, run: function () { moveSlide(i, i - 1); } },
+            { label: t('presento.sl.down'), disabled: i === E.slides.length - 1, run: function () { moveSlide(i, i + 1); } },
+            '-',
+            { label: t('presento.sl.del'), danger: true, disabled: E.slides.length <= 1, run: function () { delSlide(i); } },
+        ], at);
+    }
+    function wireStrip() {
+        var st = $('edStrip'), dragFrom = null;
+        st.addEventListener('click', function (e) {
+            var sa = e.target.closest('[data-sa]');
+            if (sa) { if (sa.getAttribute('data-sa') === 'new') newSlide('body'); else layoutMenu(sa); return; }
+            var it = e.target.closest('.st');
+            if (it) goSlide(Number(it.getAttribute('data-i')));
+        });
+        if (E.ro) return;
+        st.addEventListener('contextmenu', function (e) {
+            var it = e.target.closest('.st');
+            if (!it) return;
+            e.preventDefault();
+            var i = Number(it.getAttribute('data-i'));
+            goSlide(i);
+            slideMenu(i, { x: e.clientX, y: e.clientY });
+        });
+        st.addEventListener('dragstart', function (e) {
+            var it = e.target.closest('.st');
+            if (!it) return;
+            dragFrom = Number(it.getAttribute('data-i'));
+            try { e.dataTransfer.setData('text/plain', String(dragFrom)); e.dataTransfer.effectAllowed = 'move'; } catch (x) { /* ignore */ }
+        });
+        function clearMarks() { st.querySelectorAll('.dropA,.dropB').forEach(function (n) { n.classList.remove('dropA', 'dropB'); }); }
+        st.addEventListener('dragover', function (e) {
+            var it = e.target.closest('.st');
+            if (dragFrom == null || !it) return;
+            e.preventDefault();
+            clearMarks();
+            var r = it.getBoundingClientRect();
+            it.classList.add(e.clientY < r.top + r.height / 2 ? 'dropB' : 'dropA');
+        });
+        st.addEventListener('dragleave', function (e) { if (!st.contains(e.relatedTarget)) clearMarks(); });
+        st.addEventListener('drop', function (e) {
+            var it = e.target.closest('.st');
+            if (dragFrom == null || !it) return;
+            e.preventDefault();
+            var i = Number(it.getAttribute('data-i')), after = it.classList.contains('dropA');
+            clearMarks();
+            var to = i + (after ? 1 : 0);
+            if (to > dragFrom) to--;
+            var from = dragFrom;
+            dragFrom = null;
+            moveSlide(from, to);
+        });
+        st.addEventListener('dragend', function () { dragFrom = null; clearMarks(); });
+    }
+
+    // ================================================================== sharing + version history
+    function shareDialog(deckId, title) {
+        dialog({
+            title: t('presento.sh5.title', title), wide: true, noOk: true,
+            html: '<div class="spinner"></div>',
+            onOpen: function (body, close, setErr) {
+                var st = null, results = [], findT = null, lastQ = '';
+                function linkUrl() { return (Site.domain || 'presento.co.uk') + '/v/' + st.link; }
+                function roleSel(val, attr) {
+                    return '<select class="tsel" ' + attr + '>' + ['viewer', 'editor'].map(function (r) {
+                        return '<option value="' + r + '"' + (r === val ? ' selected' : '') + '>' + esc(t('presento.role.' + r)) + '</option>';
+                    }).join('') + '</select>';
+                }
+                function draw() {
+                    var h = '<div class="sh-add"><input type="text" id="shQ" data-own-enter="1" placeholder="' + esc(t('presento.sh5.findPh')) + '" value="' + esc(lastQ) + '"></div>';
+                    h += '<div class="sh-res" id="shRes">' + results.map(function (p, i) {
+                        return '<div class="sh-row"><span class="dot' + (p.online ? ' on' : '') + '"></span><div class="grow"><b>' + esc(p.name) + '</b><small>' + esc(p.cid) + '</small></div>' +
+                            roleSel('viewer', 'data-rr="' + i + '"') + '<button class="sh-btn" data-add="' + i + '">' + esc(t('presento.sh5.add')) + '</button></div>';
+                    }).join('') + '</div>';
+                    h += '<div class="sh-h">' + esc(t('presento.sh5.people')) + '</div><div class="sh-list">';
+                    h += '<div class="sh-row"><span class="av">' + esc((st.owner || '?').charAt(0).toUpperCase()) + '</span><div class="grow"><b>' + esc(st.owner) + '</b></div><span class="sh-own">' + esc(t('presento.sh5.owner')) + '</span></div>';
+                    st.people.forEach(function (p, i) {
+                        h += '<div class="sh-row"><span class="av">' + esc((p.name || '?').charAt(0).toUpperCase()) + '</span><div class="grow"><b>' + esc(p.name) + '</b><small>' + esc(p.cid) +
+                            (p.via === 'link' ? ' · ' + esc(t('presento.sh5.viaLink')) : '') + '</small></div>' +
+                            roleSel(p.role, 'data-pr="' + i + '"') + '<button class="sh-x" data-rm="' + i + '" title="' + esc(t('presento.sh5.remove')) + '">✕</button></div>';
+                    });
+                    if (!st.people.length) h += '<div class="sh-none">' + esc(t('presento.sh5.nobody')) + '</div>';
+                    h += '</div><div class="sh-h">' + esc(t('presento.sh5.link')) + '</div><div class="sh-link">' +
+                        '<label class="sw-tog"><input type="checkbox" id="shLink"' + (st.link ? ' checked' : '') + '><span></span>' + esc(t(st.link ? 'presento.sh5.linkOn' : 'presento.sh5.linkOff')) + '</label>' +
+                        (st.link ? '<div class="sh-url"><code>' + esc(linkUrl()) + '</code><button class="sh-btn" id="shCopy">' + esc(t('presento.sh5.copy')) + '</button></div>' : '') + '</div>';
+                    body.innerHTML = h;
+                    var q = body.querySelector('#shQ');
+                    q.addEventListener('input', function () {
+                        clearTimeout(findT);
+                        lastQ = q.value;
+                        findT = setTimeout(function () {
+                            if (q.value.trim().length < 2) { results = []; return redrawResults(); }
+                            Site.call('shareFind', { id: deckId, q: q.value.trim() }).then(function (r) { results = r.people || []; redrawResults(); }, function (e) { setErr(e.message); });
+                        }, 350);
+                    });
+                    body.querySelectorAll('[data-pr]').forEach(function (sel) {
+                        sel.onchange = function () { act('shareRole', { cid: st.people[Number(sel.getAttribute('data-pr'))].cid, role: sel.value }); };
+                    });
+                    body.querySelectorAll('[data-rm]').forEach(function (b) {
+                        b.onclick = function () { act('shareRemove', { cid: st.people[Number(b.getAttribute('data-rm'))].cid }); };
+                    });
+                    body.querySelector('#shLink').onchange = function (e) { act('linkSet', { on: e.target.checked }); };
+                    var cp = body.querySelector('#shCopy');
+                    if (cp) cp.onclick = function () { Site.copy(linkUrl()); toast(t('presento.sh5.copied')); };
+                    wireResults();
+                }
+                function redrawResults() {
+                    var box = body.querySelector('#shRes'), focus = document.activeElement && document.activeElement.id === 'shQ';
+                    if (!box) return;
+                    draw();
+                    if (focus) { var q = body.querySelector('#shQ'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+                }
+                function wireResults() {
+                    body.querySelectorAll('[data-add]').forEach(function (b) {
+                        b.onclick = function () {
+                            var i = Number(b.getAttribute('data-add')), p = results[i];
+                            var role = body.querySelector('[data-rr="' + i + '"]').value;
+                            results.splice(i, 1);
+                            act('shareAdd', { cid: p.cid, role: role }, t('presento.sh5.added', p.name));
+                        };
+                    });
+                }
+                function act(name, data, okMsg) {
+                    setErr('');
+                    data.id = deckId;
+                    return Site.call(name, data).then(function (r) { st = r; draw(); if (okMsg) toast(okMsg); }, function (e) { setErr(e.message); draw(); });
+                }
+                Site.call('shareList', { id: deckId }).then(function (r) { st = r; draw(); body.querySelector('#shQ').focus(); }, function (e) { body.innerHTML = ''; setErr(e.message); });
+            },
+        });
+    }
+
+    function historyDialog() {
+        if (!E) return;
+        var deckId = E.deck.id;
+        dialog({
+            title: t('presento.hi.title'), wide: true, noOk: true,
+            html: '<div class="spinner"></div>',
+            onOpen: function (body, close, setErr) {
+                function list() {
+                    body.innerHTML = '<div class="spinner"></div>';
+                    Site.call('versions', { id: deckId }).then(function (r) {
+                        var vs = r.versions || [];
+                        if (!vs.length) { body.innerHTML = '<div class="empty">' + esc(t('presento.hi.none')) + '</div>'; return; }
+                        body.innerHTML = '<div class="sh-hint">' + esc(t('presento.hi.hint')) + '</div><div class="sh-list">' + vs.map(function (v, i) {
+                            return '<div class="sh-row"><div class="grow"><b>' + esc(Site.datetime(v.at)) + '</b><small>' + esc(t('presento.hi.by', v.by || '?')) + ' · ' + esc(plural('presento.slides', Number(v.slides) || 0)) + '</small></div>' +
+                                '<button class="sh-btn" data-v="' + i + '">' + esc(t('presento.hi.preview')) + '</button></div>';
+                        }).join('') + '</div>';
+                        body.querySelectorAll('[data-v]').forEach(function (b) { b.onclick = function () { preview(vs[Number(b.getAttribute('data-v'))]); }; });
+                    }, function (e) { body.innerHTML = ''; setErr(e.message); });
+                }
+                function preview(v) {
+                    body.innerHTML = '<div class="spinner"></div>';
+                    Site.call('versionGet', { id: deckId, vid: v.id }).then(function (r) {
+                        body.innerHTML = '<div class="hi-top"><button class="sh-btn plain" id="hiBack">‹ ' + esc(t('presento.hi.back')) + '</button><b>' + esc(Site.datetime(v.at)) + '</b>' +
+                            (E && !E.ro ? '<button class="sh-btn" id="hiRestore">' + esc(t('presento.hi.restore')) + '</button>' : '') + '</div><div class="hi-grid" id="hiGrid"></div>';
+                        var g = body.querySelector('#hiGrid');
+                        (r.slides || []).forEach(function (s, i) {
+                            var w = document.createElement('div');
+                            w.className = 'hi-s';
+                            w.innerHTML = '<span>' + (i + 1) + '</span><div class="pv"></div>';
+                            g.appendChild(w);
+                            renderSlide(s, w.querySelector('.pv'));
+                        });
+                        body.querySelector('#hiBack').onclick = list;
+                        var rb = body.querySelector('#hiRestore');
+                        if (rb) rb.onclick = function () {
+                            rb.disabled = true;
+                            commitEditing();
+                            flush(E).then(function () { return Site.call('versionRestore', { id: deckId, vid: v.id }); }).then(function () {
+                                close();
+                                toast(t('presento.hi.restored'));
+                                reopenDeck(deckId);
+                            }, function (e) { rb.disabled = false; setErr(e.message); });
+                        };
+                    }, function (e) { setErr(e.message); list(); });
+                }
+                list();
+            },
+        });
+    }
+
+    // ================================================================== casting to in-game TVs (as-computer)
+    // The TV follows this page while presenting: every slide / click step is sent with castGo. The presenter can
+    // also walk up to the TV and use the clicker keys (Page Down / Page Up by default); the cast keeps running
+    // after present mode closes, until it is stopped, the presenter leaves, or nobody moves it on for a while.
+    function castSync() {
+        if (!E || !E.cast || !PR || PR.end) return;
+        var key = PR.i + ':' + PR.step;
+        if (E.cast.sent === key) return;
+        E.cast.sent = key;
+        Site.call('castGo', { tv: E.cast.tv, slide: PR.i + 1, step: PR.step }).catch(function (e) { toast(e.message); });
+    }
+    function castStart(tv) {
+        var slide = (PR ? PR.i : E.cur) + 1, step = PR ? PR.step : 0;
+        return Site.call('castStart', { id: E.deck.id, tv: tv.id, slide: slide, step: step }).then(function () {
+            if (!PR) present(E.cur);   // before E.cast is set, so present() doesn't send castStart a second time
+            E.cast = { tv: tv.id, label: tv.label, sent: (slide - 1) + ':' + step };
+            toast(t('presento.c5.started', tv.label));
+            prCastUi();
+        });
+    }
+    function castStop() {
+        if (!E || !E.cast) return;
+        var tv = E.cast.tv;
+        E.cast = null;
+        prCastUi();
+        Site.call('castStop', { tv: tv }).then(function () { toast(t('presento.c5.stopped')); }, function (e) { toast(e.message); });
+    }
+    function prCastUi() {
+        var b = document.querySelector('.pr-bar [data-p=cast]');
+        if (b) b.classList.toggle('on', !!(E && E.cast));
+    }
+    function castDialog() {
+        dialog({
+            title: t('presento.c5.title'), noOk: true, html: '<div class="spinner"></div>',
+            onOpen: function (body, close, setErr) {
+                Site.call('castTargets', {}).then(function (r) {
+                    var tvs = r.tvs || [], h = '';
+                    if (E.cast) h += '<div class="sh-row"><span class="av">📺</span><div class="grow"><b>' + esc(t('presento.c5.showing', E.cast.label)) + '</b></div><button class="sh-btn" id="castStop">' + esc(t('presento.c5.stop')) + '</button></div>';
+                    if (!tvs.length) h += '<div class="empty">' + esc(t('presento.c5.none')) + '</div>';
+                    else h += '<div class="sh-list">' + tvs.map(function (v, i) {
+                        var note = v.mine ? t('presento.c5.mine') : v.busy ? t('presento.c5.busy', v.showing || '') : '';
+                        return '<div class="sh-row"><span class="av">📺</span><div class="grow"><b>' + esc(v.label) + '</b><small>' + esc(t('presento.c5.dist', Math.round(v.dist))) + (note ? ' · ' + esc(note) : '') + '</small></div>' +
+                            '<button class="sh-btn" data-tv="' + i + '"' + (v.busy ? ' disabled' : '') + '>' + esc(t('presento.c5.show')) + '</button></div>';
+                    }).join('') + '</div>';
+                    h += '<div class="sh-hint">' + esc(t('presento.c5.hint')) + '</div>';
+                    body.innerHTML = h;
+                    var st = body.querySelector('#castStop');
+                    if (st) st.onclick = function () { close(); castStop(); };
+                    body.querySelectorAll('[data-tv]').forEach(function (b) {
+                        b.onclick = function () {
+                            b.disabled = true;
+                            castStart(tvs[Number(b.getAttribute('data-tv'))]).then(close, function (e) { b.disabled = false; setErr(e.message); });
+                        };
+                    });
+                }, function (e) { body.innerHTML = ''; setErr(e.message); });
+            },
+        });
+    }
+
+    // ================================================================== present mode
+    // Full screen inside the Scout window. Next: click, Space, Enter, Right, Down, Page Down.
+    // Back: Left, Up, Page Up, Backspace. Esc leaves. Elements with an animation appear one click step at a time.
+    var PR = null;
+    function animSteps(slide) {
+        var seen = {};
+        (slide.els || []).forEach(function (e) { if (e.anim) seen[e.step || 1] = true; });
+        return Object.keys(seen).map(Number).sort(function (a, b) { return a - b; });
+    }
+    function present(from) {
+        if (!E || PR) return;
+        commitEditing();
+        E.preview = null;
+        var root = document.createElement('div');
+        root.className = 'pr';
+        root.innerHTML = '<div class="pr-stage" id="prStage"></div>' +
+            '<div class="pr-bar" id="prBar"><button data-p="prev" title="' + esc(t('presento.p.prev')) + '">‹</button><span id="prCount"></span>' +
+            '<button data-p="next" title="' + esc(t('presento.p.next')) + '">›</button><span class="pr-sep"></span>' +
+            (E.cfg.cast ? '<button data-p="cast" title="' + esc(t('presento.c5.menu')) + '">📺</button>' : '') +
+            '<button data-p="exit" title="' + esc(t('presento.p.exit')) + '">✕ ' + esc(t('presento.p.exit')) + '</button></div>';
+        document.body.appendChild(root);
+        PR = { root: root, slides: clone(E.slides.map(function (s) { return s.data; })), i: -1, step: 0, cur: null, hideT: null, end: false };
+        root.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-p]');
+            if (b) { e.stopPropagation(); var a = b.getAttribute('data-p'); if (a === 'prev') prPrev(); else if (a === 'next') prNext(); else if (a === 'cast') castDialog(); else prExit(); return; }
+            if (e.target.closest('video,iframe')) return;
+            prNext();
+        });
+        root.addEventListener('contextmenu', function (e) { e.preventDefault(); prPrev(); });
+        root.addEventListener('mousemove', function () {
+            root.classList.add('ui');
+            clearTimeout(PR && PR.hideT);
+            if (PR) PR.hideT = setTimeout(function () { if (PR) PR.root.classList.remove('ui'); }, 2200);
+        });
+        PR.onResize = function () { if (PR && !PR.end) prShow(PR.i, 0, PR.step); };
+        window.addEventListener('resize', PR.onResize);
+        var first = Math.max(0, Math.min(from || 0, PR.slides.length - 1));
+        if (E.cast) {   // already showing on a TV: send the latest slides and start where we are
+            E.cast.sent = first + ':0';
+            Site.call('castStart', { id: E.deck.id, tv: E.cast.tv, slide: first + 1, step: 0 }).catch(function (e) { toast(e.message); E.cast = null; prCastUi(); });
+        }
+        prShow(first, 0, 0);
+        prCastUi();
+    }
+    function prFit() {
+        var st = document.getElementById('prStage');
+        return Math.min(st.clientWidth / 1280, st.clientHeight / 720);
+    }
+    // Draw slide i. dir = 1 forward, -1 back, 0 no transition. revealed = how many click steps are already shown.
+    function prShow(i, dir, revealed) {
+        var st = document.getElementById('prStage'), sc = prFit(), data = PR.slides[i];
+        var wrap = document.createElement('div');
+        wrap.className = 'pr-slide';
+        wrap.style.width = Math.round(1280 * sc) + 'px';
+        wrap.style.height = Math.round(720 * sc) + 'px';
+        var s = renderSlide(data, wrap, { scale: sc, live: true });
+        var steps = animSteps(data);
+        (data.els || []).forEach(function (e) {
+            if (!e.anim) return;
+            var idx = steps.indexOf(e.step || 1);
+            if (idx >= revealed) { var n = s.querySelector('[data-id="' + e.id + '"]'); if (n) { n.style.visibility = 'hidden'; prPause(n); } }
+        });
+        var old = PR.cur;
+        st.appendChild(wrap);
+        if (dir && data.trans) {
+            wrap.classList.add('tr-' + data.trans);
+            if (dir < 0) wrap.classList.add('back');
+            setTimeout(function () { if (old) old.remove(); }, 650);
+        } else if (old) old.remove();
+        if (old) prPauseAll(old);
+        PR.cur = wrap; PR.i = i; PR.step = revealed; PR.steps = steps; PR.end = false;
+        document.getElementById('prCount').textContent = (i + 1) + ' / ' + PR.slides.length;
+        castSync();
+    }
+    function prPause(n) {
+        if (n.tagName === 'VIDEO') { try { n.pause(); n.autoplay = false; } catch (e) { /* ignore */ } }
+        if (n.tagName === 'IFRAME') { n.dataset.src = n.src; n.src = 'about:blank'; }
+    }
+    function prPauseAll(root) { root.querySelectorAll('video,iframe').forEach(prPause); }
+    var FLY = { fade: [0, 0, 1], left: [-420, 0, 1], right: [420, 0, 1], up: [0, 300, 1], zoom: [0, 0, 0.3] };
+    function prReveal(stepNo, animate) {
+        (PR.slides[PR.i].els || []).forEach(function (e) {
+            if (!e.anim || (e.step || 1) !== stepNo) return;
+            var n = PR.cur.querySelector('[data-id="' + e.id + '"]');
+            if (!n) return;
+            n.style.visibility = '';
+            if (n.tagName === 'VIDEO') { try { n.play(); } catch (x) { /* ignore */ } }
+            if (n.tagName === 'IFRAME' && n.dataset.src) n.src = n.dataset.src;
+            if (!animate || !n.animate) return;
+            var f = FLY[e.anim] || FLY.fade, base = n.style.transform || '';
+            n.animate([
+                { opacity: 0, transform: 'translate(' + f[0] + 'px,' + f[1] + 'px) scale(' + f[2] + ') ' + base },
+                { opacity: 1, transform: 'translate(0,0) scale(1) ' + base },
+            ], { duration: 550, easing: 'cubic-bezier(.2,.7,.2,1)' });
+        });
+    }
+    function prNext() {
+        if (!PR) return;
+        if (PR.end) return prExit();
+        if (PR.step < PR.steps.length) { prReveal(PR.steps[PR.step], true); PR.step++; castSync(); return; }
+        if (PR.i < PR.slides.length - 1) return prShow(PR.i + 1, 1, 0);
+        // end screen
+        prPauseAll(PR.cur);
+        PR.cur.remove();
+        var endEl = document.createElement('div');
+        endEl.className = 'pr-end';
+        endEl.textContent = t('presento.p.end');
+        document.getElementById('prStage').appendChild(endEl);
+        PR.cur = endEl; PR.end = true;
+    }
+    function prPrev() {
+        if (!PR) return;
+        if (PR.end) return prShow(PR.i, 0, PR.steps.length);
+        if (PR.step > 0) {
+            PR.step--;
+            var stepNo = PR.steps[PR.step];
+            (PR.slides[PR.i].els || []).forEach(function (e) {
+                if (!e.anim || (e.step || 1) !== stepNo) return;
+                var n = PR.cur.querySelector('[data-id="' + e.id + '"]');
+                if (n) { n.style.visibility = 'hidden'; prPause(n); }
+            });
+            castSync();
+            return;
+        }
+        if (PR.i > 0) prShow(PR.i - 1, -1, animSteps(PR.slides[PR.i - 1]).length);
+    }
+    function prGo(i) { if (PR && i >= 0 && i < PR.slides.length) prShow(i, 0, 0); }
+    function prExit() {
+        if (!PR) return;
+        var i = PR.i;
+        prPauseAll(PR.root);
+        window.removeEventListener('resize', PR.onResize);
+        clearTimeout(PR.hideT);
+        PR.root.remove();
+        PR = null;
+        if (E) goSlide(Math.min(i, E.slides.length - 1));
+    }
+    document.addEventListener('keydown', function (e) {
+        if (!PR || document.querySelector('.scrim')) return;
+        var k = e.key;
+        if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter', 'n', 'N'].indexOf(k) >= 0) { e.preventDefault(); prNext(); }
+        else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace', 'p', 'P'].indexOf(k) >= 0) { e.preventDefault(); prPrev(); }
+        else if (k === 'Home') { e.preventDefault(); prGo(0); }
+        else if (k === 'End') { e.preventDefault(); prGo(PR.slides.length - 1); }
+        else if (k === 'Escape') { e.preventDefault(); prExit(); }
+        e.stopImmediatePropagation();
+    }, true);
+
+    // ================================================================== themes
+    var THEMES = {
+        default:   { bg: '#ffffff', tf: 'sans',    tc: '#1f2937', bf: 'sans',  bc: '#4b5563', sc: '#6b7280', accent: '#ff7a1a' },
+        dark:      { bg: '#16181d', tf: 'sans',    tc: '#ffffff', bf: 'sans',  bc: '#c9ced6', sc: '#9aa3b0', accent: '#ff8a33' },
+        police:    { bg: '#0b1f44', tf: 'sans',    tc: '#ffffff', bf: 'sans',  bc: '#cfd8e8', sc: '#cfd8e8', accent: '#3d8bfd' },
+        medical:   { bg: '#f4fbfb', tf: 'sans',    tc: '#0f5257', bf: 'sans',  bc: '#35565a', sc: '#35565a', accent: '#d93a3a' },
+        corporate: { bg: '#f5f6f8', tf: 'serif',   tc: '#1d2a3a', bf: 'sans',  bc: '#46505e', sc: '#46505e', accent: '#e8742a' },
+        bold:      { bg: '#111111', tf: 'display', tc: '#ffd400', bf: 'sans',  bc: '#f2f2f2', sc: '#f2f2f2', accent: '#ffd400' },
+        retro:     { bg: '#2b1055', tf: 'display', tc: '#ff5fd2', bf: 'round', bc: '#7ef9ff', sc: '#7ef9ff', accent: '#ffe45e' },
+        paper:     { bg: '#fbf6ea', tf: 'serif',   tc: '#3b2f22', bf: 'serif', bc: '#5b4a37', sc: '#5b4a37', accent: '#a4502a' },
+    };
+    function theme() { return THEMES[E && E.deck.theme] || THEMES.default; }
+    function applyTheme(key) {
+        var th = THEMES[key];
+        if (!th) return;
+        commitEditing();
+        beginChange();
+        E.slides.forEach(function (s) {
+            s.data.bg = th.bg;
+            s.data.els.forEach(function (e) {
+                if (e.type !== 'text' || !e.ph) return;
+                if (e.ph === 'title') { e.font = th.tf; e.color = th.tc; }
+                else if (e.ph === 'subtitle') { e.font = th.bf; e.color = th.sc; }
+                else { e.font = th.bf; e.color = th.bc; }
+            });
+            E.dirty[s.sid] = true;
+        });
+        E.deck.theme = key;
+        schedule();
+        syncUndo();
+        drawStrip(); drawCanvas(); drawTools();
+        Site.call('setTheme', { id: E.deck.id, theme: key }).catch(function (e) { toast(e.message); });
+    }
+    function themePicker(anchor) {
+        var p = document.createElement('div');
+        p.className = 'thp';
+        p.innerHTML = Object.keys(THEMES).map(function (k) {
+            var th = THEMES[k];
+            return '<button class="thc' + ((E.deck.theme || 'default') === k ? ' on' : '') + '" data-th="' + k + '"><span class="sw" style="background:' + th.bg + '">' +
+                '<b style="color:' + th.tc + ';font-family:' + FONTS[th.tf] + '">Aa</b><i style="background:' + th.accent + '"></i></span>' + esc(t('presento.th.' + k)) + '</button>';
+        }).join('');
+        p.addEventListener('click', function (e) { var b = e.target.closest('[data-th]'); if (b) { closeMenu(); applyTheme(b.getAttribute('data-th')); } });
+        popup(anchor, p);
+    }
+
+    // ------------------------------------------------------------------ keyboard
+    var lastNudge = 0;
+    document.addEventListener('keydown', function (e) {
+        if (!E || PR || document.querySelector('.scrim')) return;
+        var k = e.key, mod = e.ctrlKey || e.metaKey, field = isField(e.target);
+        if (mod && k === 'Enter' && !field) { e.preventDefault(); present(e.shiftKey ? 0 : E.cur); return; }
+        if (E.ro) {
+            if (!field && (k === 'ArrowDown' || k === 'PageDown')) { e.preventDefault(); goSlide(E.cur + 1); }
+            if (!field && (k === 'ArrowUp' || k === 'PageUp')) { e.preventDefault(); goSlide(E.cur - 1); }
+            return;
+        }
+        if (mod && (k === 'z' || k === 'Z') && !field) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+        if (mod && (k === 'y' || k === 'Y') && !field) { e.preventDefault(); redo(); return; }
+        if (field) {
+            if (k === 'Escape' && E.editing) { e.preventDefault(); e.target.blur(); }
+            return;
+        }
+        var el = selEl();
+        if (mod && (k === 'm' || k === 'M')) { e.preventDefault(); newSlide('body'); return; }
+        if (mod && (k === 'v' || k === 'V') && E.clip) {
+            e.preventDefault();
+            var c = clone(E.clip); c.x += 20; c.y += 20; E.clip = clone(c);
+            addEl(c);
+            return;
+        }
+        if (!el) {
+            if (k === 'ArrowDown' || k === 'PageDown') { e.preventDefault(); goSlide(E.cur + 1); }
+            if (k === 'ArrowUp' || k === 'PageUp') { e.preventDefault(); goSlide(E.cur - 1); }
+            return;
+        }
+        if (k === 'Delete' || k === 'Backspace') { e.preventDefault(); deleteSel(); return; }
+        if (k === 'Escape') { select(null); return; }
+        if (k === 'Enter' && (el.type === 'text' || el.type === 'table')) { e.preventDefault(); startEditing(el.id); return; }
+        if (mod && (k === 'd' || k === 'D')) { e.preventDefault(); duplicateSel(); return; }
+        if (mod && (k === 'c' || k === 'C')) { e.preventDefault(); E.clip = clone(el); toast(t('presento.t.copiedEl')); return; }
+        if (mod && (k === 'x' || k === 'X')) { e.preventDefault(); E.clip = clone(el); deleteSel(); return; }
+        var step = e.shiftKey ? 10 : 1, d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[k];
+        if (d) {
+            e.preventDefault();
+            if (Date.now() - lastNudge > 700) beginChange();
+            lastNudge = Date.now();
+            el.x = r1(el.x + d[0]); el.y = r1(el.y + d[1]);
+            redrawEl(el);
+            touched();
+        }
+    });
+
+    // ------------------------------------------------------------------ routes
+    //   /                recent          /mine            my presentations (root)
+    //   /mine/<folder>   one folder      /shared          shared with me
+    //   /search/<q>      search          /d/<id>          open a deck
+    Site.onRoute(function (path) {
+        closeMenu();
+        var parts = path.split('/').filter(Boolean);
+        if (E && !(parts[0] === 'd' && parts[1] === E.deck.id)) leaveEditor();
+        if (parts[0] === 'd' && parts[1]) { if (E && E.deck.id === parts[1]) return; return loadDeck(parts[1]); }
+        if (parts[0] === 'v' && parts[1]) {
+            app.innerHTML = '<div class="spinner"></div>';
+            return Site.call('linkOpen', { token: parts[1] }).then(function (r) { Site.go('/d/' + r.id); }, function (e) {
+                app.innerHTML = topBar('') + '<div class="inner"><div class="empty"><div class="big">🔗</div>' + esc(e.message) + '</div></div>';
+                wireTop();
+            });
+        }
+        S.q = ''; S.folder = null; S.view = 'recent';
+        if (parts[0] === 'mine') { S.view = 'mine'; S.folder = parts[1] ? Number(parts[1]) || null : null; }
+        else if (parts[0] === 'shared') S.view = 'shared';
+        else if (parts[0] === 'search' && parts[1]) { try { S.q = decodeURIComponent(parts[1]); } catch (e) { S.q = parts[1]; } }
+        loadHome();
+    });
+})();
+</script>
+</body>
+</html>

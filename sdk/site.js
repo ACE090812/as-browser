@@ -271,8 +271,51 @@
             setTheme(d.theme);
         } else if (d.type === 'textsize') {
             setTextScale(d.scale);
+        } else if (d.type === 'snapshot') {
+            snapshot(d.id, Number(d.w) || 640);
         }
     });
+
+    // ---------------------------------------------------------------- snapshots
+    // as-computer's live monitor view asks the page for a picture of what is on screen (about once a second
+    // while someone uses the computer). html-to-image is loaded the first time it is needed.
+    var SDK_BASE = (document.currentScript && document.currentScript.src || '/sdk/site.js').replace(/site\.js(\?.*)?$/, '');
+    var h2i = null, snapBusy = false;
+    var PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAMzMzAAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==';
+    function loadH2i() {
+        if (h2i) return h2i;
+        h2i = new Promise(function (resolve, reject) {
+            if (window.htmlToImage) return resolve(window.htmlToImage);
+            var sc = document.createElement('script');
+            sc.src = SDK_BASE + 'html-to-image.js';
+            sc.onload = function () { resolve(window.htmlToImage); };
+            sc.onerror = function () { h2i = null; reject(new Error('no html-to-image')); };
+            document.head.appendChild(sc);
+        });
+        return h2i;
+    }
+    function snapshot(id, w) {
+        if (snapBusy) return post({ type: 'snapshot', id: id, data: null });
+        snapBusy = true;
+        var vw = window.innerWidth, vh = window.innerHeight, sy = window.scrollY || 0;
+        var bg = getComputedStyle(document.body).backgroundColor || '#ffffff';
+        loadH2i().then(function (lib) {
+            return lib.toJpeg(document.body, {
+                width: vw, height: vh, canvasWidth: Math.round(w), canvasHeight: Math.round(w * vh / vw), pixelRatio: 1,
+                quality: 0.6, skipFonts: true, cacheBust: false, imagePlaceholder: PLACEHOLDER, backgroundColor: bg,
+                style: { margin: '0', transform: 'translateY(' + (-sy) + 'px)', transformOrigin: '0 0', minHeight: vh + 'px' },
+                filter: function (n) {
+                    if (n.nodeType !== 1) return true;
+                    if (n.tagName === 'IFRAME') return false;
+                    var rs = n.getClientRects();
+                    if (!rs.length) return false;                              // not displayed
+                    var r = n.getBoundingClientRect();
+                    return r.bottom >= 0 && r.top <= vh && r.right >= 0 && r.left <= vw;   // off screen
+                },
+            });
+        }).then(function (data) { post({ type: 'snapshot', id: id, data: data }); }, function () { post({ type: 'snapshot', id: id, data: null }); })
+            .then(function () { snapBusy = false; });
+    }
 
     // ---------------------------------------------------------------- print buttons
     // Any element with data-print="requestName" (and data-pd='{"id":1}' for its data, data-ptitle for the dialog title) becomes a

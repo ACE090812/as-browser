@@ -471,6 +471,22 @@ A full online-banking website for the same money the phone's Wallet app shows. I
 
 Switch it off with `Config.Sites.bank.enabled = false`; text is in `locales/lsbank_en.lua`. Tested against a mock of sd-phone (`test/test_bank.py`, `test/run_ui_bank.py`); not yet tried in game.
 
+## Presento (presento.co.uk)
+
+A Google Slides-style site for making and presenting slide decks. **Desktop only**: it opens in Scout on as-computer and never on the phone. Decks belong to the character. Settings are in `sites/presento/config.lua`, starter templates in `sites/presento/server_templates.lua`, text in `locales/presento_en.lua`.
+
+- **Home:** Recent, My presentations (with one level of folders), Shared with me, search, and starter templates (Police briefing, Business pitch, EMS training, Event, Team meeting). Deleting a deck is immediate; there is no trash.
+- **Editor:** text boxes, shapes, lines and arrows, tables, images (a link from `imageHosts`, or the player's phone Photos) and video (YouTube, ClipZone clips, phone videos). You can move, resize (Shift keeps the proportions), rotate (Shift snaps to 15°), arrange, duplicate, copy and paste, undo and redo. There are 8 themes, slide transitions and click animations. Up to 50 slides.
+- **Saving:** slides save one at a time, about a second after the last change, so each request stays under `Config.maxPayloadBytes`. The server rebuilds every slide from known fields only (`cleanSlide`), checks image hosts, looks up ClipZone clips and phone photos itself, and keeps YouTube to the video ID.
+- **Present:** fills the Scout window. Click, arrows, Space or Page Down to move on; Esc exits. Ctrl+Enter presents from the current slide.
+- **Sharing:** the owner shares by name or character ID (Can view / Can edit), and can turn on a view link (`presento.co.uk/v/<code>`). People online get a notification, plus a phone email with `shareMail`.
+- **One editor at a time:** the editor holds a lock it renews every `lockBeat` seconds. Anyone else opening the deck sees it view only and becomes an editor when the lock is released (leaving, disconnecting, or `lockSeconds` without renewal).
+- **Version history:** a version is kept when someone starts and finishes editing, and every `versionEvery` seconds during long sessions. The last `maxVersions` are kept, and any of them can be previewed and restored.
+- **Import from Google Slides:** paste a link to a deck shared as "Anyone with the link". *Editable* reads Google's SVG export of each slide. Text becomes normal text boxes (font, size, colour, bold/italic, alignment), and linked pictures become normal images. Shapes, lines, gradients, charts and pasted-in pictures stay as a background picture, which the server serves from its own web address (`server/http.lua`, `web_baseUrl`, table `presento_assets`). *Pictures* makes one picture per slide instead. Layout is close rather than exact (fonts map to Presento's five, bullets become "•", tables become text boxes). Built without access to a real Google deck: if an import misbehaves, set `importDebug = true` and check the server console.
+- **TVs:** with as-computer's placed TVs (see its README, "Placed computers and TVs"), Present ▾ > "Show on a TV…" shows the deck on a TV near the presenter. The TV follows the presenter's slides, and near the TV they can use Page Down / Page Up. `/tvstop` switches it off. The TV page is `sites/presento/tv.html`; videos on TVs are always muted.
+
+Tables (created automatically): `presento_decks`, `presento_slides`, `presento_folders`, `presento_shares`, `presento_links`, `presento_versions`, `presento_media`. Tested in a headless browser with the server calls faked, and the server logic against a mock database; not yet tried in game.
+
 ## Printing (needs `as-printer`)
 
 With the `as-printer` resource running, the sites show a **Print** button next to documents the player owns: MOT booking confirmations (`lsgov.co.uk`), tickets (`lstickets.co.uk`), invoices and the statement (`lsbank.co.uk`), vehicle history reports (`lsvehiclecheck.co.uk`), parts orders (`lspartsdirect.co.uk`) and number plate sales and purchases (`lsplates.co.uk`). Without `as-printer` the buttons stay hidden. To switch printing off anyway, add `Config.Printing = { enabled = false }` to `config.lua`.
