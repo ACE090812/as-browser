@@ -57,8 +57,10 @@ Config.gov = {
         notifyHours   = 6,        -- how often a player in arrears is reminded on their phone (0 = never)
         mailFrom      = { name = 'Los Santos Council', email = 'noreply@lsgov.co.uk' },
         webhook       = '',       -- optional Discord log of payments
-        -- Which housing script to read homes from: 'auto', 'qbx_properties', 'ps-housing', 'qb-houses'
-        -- or 'custom' (then fill in `custom` below).
+        -- Which housing script to read homes from: 'auto', 'nolag_properties', 'qbx_properties',
+        -- 'ps-housing', 'qb-houses', 'rcore_housing', 'brutal_housing' or 'custom' (then fill in
+        -- `custom` below). brutal_housing has no known value column and no renter/keyholder column,
+        -- so it bills the owner only at the flat rentedBill rate - see server_council.lua.
         housing = 'auto',
         custom = {
             table       = 'properties',   -- table with one row per home

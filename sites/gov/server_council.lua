@@ -63,6 +63,68 @@ end
 -- homes of one character (one ? for the character id).
 local candidates = {}
 
+-- Same schema as-postalprime's home-delivery integration already reads (server/housing.lua):
+-- `properties` (label/address, ownerid -> properties_owners, renterid -> properties_renters,
+-- priceid -> properties_prices) - NOT a plain `owner`/`price` column on `properties` itself, so this
+-- needs the character id bound twice (once per LEFT JOIN), unlike the other candidates below.
+candidates['nolag_properties'] = { resource = 'nolag_properties', build = function()
+    local props, owners, prices = columnsOf('properties'), columnsOf('properties_owners'), columnsOf('properties_prices')
+    if not hasAll(props, { 'id', 'ownerid', 'renterid', 'priceid' }) or not hasAll(owners, { 'identifier', 'property_id' }) then
+        return nil
+    end
+    local value = prices.price and 'pp.price' or 'po.purchase_price'
+    -- ownerid/renterid/priceid on `properties` each point at the CURRENT owner/renter/price row
+    -- (properties_owners etc. can hold history too) - the same join shape housing.lua uses.
+    return { id = 'nolag', paramCount = 2, sql = ([[
+        SELECT p.id AS id,
+               COALESCE(NULLIF(p.label, ''), NULLIF(p.address, ''), %s) AS name,
+               COALESCE(%s, 0) AS value,
+               (po.identifier IS NULL AND pr.identifier IS NOT NULL) AS rented
+        FROM properties p
+        LEFT JOIN properties_owners po ON po.id = p.ownerid AND po.type = 'user'
+        LEFT JOIN properties_renters pr ON pr.id = p.renterid AND pr.type = 'user'
+        LEFT JOIN properties_prices pp ON pp.id = p.priceid
+        WHERE po.identifier = ? OR pr.identifier = ?
+    ]]):format(sqlText(T('gov.council.property')), value) }
+end }
+
+-- Same schema as-postalprime's home-delivery integration reads (server/housing.lua, listBrutal). That
+-- schema has no confirmed value/price column and no renter/keyholder identifier column (confirmed
+-- from a real SQL export: `keyid` is a random per-property lock code, not a list of holders) - so this
+-- bills the OWNER only, at the flat `rentedBill` rate rather than a percentage of an unknown value.
+candidates['brutal_housing'] = { resource = 'brutal_housing', build = function()
+    local cols = columnsOf('brutal_housing')
+    if not hasAll(cols, { 'id', 'owner' }) then return nil end
+    local name = '%s'
+    if cols.label and cols.address then name = "COALESCE(NULLIF(label, ''), NULLIF(address, ''), %s)"
+    elseif cols.label then name = "COALESCE(NULLIF(label, ''), %s)"
+    elseif cols.address then name = "COALESCE(NULLIF(address, ''), %s)" end
+    return { id = 'brutal', sql = ('SELECT id AS id, %s AS name, 0 AS value, 0 AS rented FROM brutal_housing WHERE owner = ?')
+        :format(name:format(sqlText(T('gov.council.property')))) }
+end }
+
+-- Same schema as-postalprime reads (server/housing.lua, listRcore): owner/tenant columns on
+-- rcore_housing_properties, plus keyholders in a separate rcore_housing_accesses table. Billed as
+-- "rented" when you're the tenant rather than the owner; an access-only keyholder (neither owner nor
+-- tenant) is listed too but billed at the owner rate, since rcore has no separate "just holds a key"
+-- billing concept to map onto.
+candidates['rcore_housing'] = { resource = 'rcore_housing', build = function()
+    local cols = columnsOf('rcore_housing_properties')
+    if not hasAll(cols, { 'id', 'owner', 'tenant' }) then return nil end
+    local value = cols.price and 'p.price' or '0'
+    local hidden = cols.is_hidden and "AND (p.is_hidden = 0 OR p.is_hidden IS NULL)" or ''
+    local building = cols.is_building and "AND (p.is_building = 0 OR p.is_building IS NULL)" or ''
+    return { id = 'rcore', paramCount = 4, sql = ([[
+        SELECT p.id AS id,
+               COALESCE(NULLIF(NULLIF(p.name, ''), 'Unnamed'), NULLIF(p.address, ''), %s) AS name,
+               %s AS value,
+               (p.owner IS NULL OR p.owner <> ?) AS rented
+        FROM rcore_housing_properties p
+        WHERE (p.owner = ? OR p.tenant = ? OR p.id IN (SELECT property_id FROM rcore_housing_accesses WHERE identifier = ?))
+          %s %s
+    ]]):format(sqlText(T('gov.council.property')), value, hidden, building) }
+end }
+
 candidates['qbx_properties'] = { resource = 'qbx_properties', build = function()
     local cols = columnsOf('properties')
     if not hasAll(cols, { 'id', 'owner', 'price' }) then return nil end
@@ -113,7 +175,7 @@ local function getAdapter()
 
     local order
     if C.housing == 'auto' or C.housing == nil then
-        order = { 'qbx_properties', 'ps-housing', 'qb-houses' }
+        order = { 'nolag_properties', 'qbx_properties', 'ps-housing', 'qb-houses', 'rcore_housing', 'brutal_housing' }
     else
         order = { C.housing }
     end
@@ -141,7 +203,9 @@ end
 local function homesOf(cid)
     local a = getAdapter()
     if not a then return nil end
-    local ok, rows = pcall(function() return MySQL.query.await(a.sql, { cid }) end)
+    local params = {}
+    for i = 1, a.paramCount or 1 do params[i] = cid end
+    local ok, rows = pcall(function() return MySQL.query.await(a.sql, params) end)
     if not ok then
         log('reading homes failed: %s', tostring(rows))
         return nil
