@@ -266,18 +266,18 @@ There are two kinds of key script:
 
 | Kind | Example | What you do |
 | --- | --- | --- |
-| Keys are **items** with the plate in the item's metadata | `acestudios_vehiclekeys`, most "keys as items" scripts | Leave `keys.enabled = true` (the default). LS Plates rewrites the plate in the keys. |
+| Keys are **items** with the plate in the item's metadata | `as-vehiclekeys`, most "keys as items" scripts | Leave `keys.enabled = true` (the default). LS Plates rewrites the plate in the keys. |
 | Keys are rows in **their own table** | many `qb-vehiclekeys` style scripts | Add the table to `extraTables`. |
 | Keys do **not store the plate** (tied to the entity, or matched by a lookup at the time you use them) | some client-side key scripts | Nothing to do. Set `keys.enabled = false`. |
 
-**acestudios_vehiclekeys (tested against its code).** Its key is the item `vehiclekeys` (unique) with the metadata `{ plate = 'AB12 CDE', vehicle = 'Sultan', description = 'Sultan\nPlate: AB12 CDE' }` and it matches keys with the exact plate text. So after a plate change the old key would stop working. With the default `keys` settings, LS Plates:
+**as-vehiclekeys (tested against its code).** Its key is the item `vehiclekeys` (unique) with the metadata `{ plate = 'AB12 CDE', vehicle = 'Sultan', description = 'Sultan\nPlate: AB12 CDE' }` and it matches keys with the exact plate text. So after a plate change the old key would stop working. With the default `keys` settings, LS Plates:
 
 - changes the key of every player who is **online** through `ox_inventory` (`Search` and `SetMetadata`), so their inventory is not overwritten when it next saves;
 - changes the keys of everybody else (offline players, stashes, gloveboxes, trunks) in the `ox_inventory` table;
 - changes the description line (`Plate: ...`) as well;
 - does the same again when the plate is taken off, sold or moved, so keys always match the plate on the car.
 
-Nothing needs to be edited in `acestudios_vehiclekeys` for this. Item keys work the same on ESX as long as your inventory is `ox_inventory` (which ESX supports); the inventory tables above are the ox_inventory ones, so on ESX with the older built-in inventory use `onChanged` instead. Keep its rules in mind: whatever gives keys after buying a car (dealership, garage) must call `GiveKey(src, plate, label)` or `GiveKeys(src, vehicleEntity)` with the plate the car has **now**, and the garage must call `TakeKey` / `RemoveKeys` when a car is stored. Those already work with personalised plates.
+Nothing needs to be edited in `as-vehiclekeys` for this. Item keys work the same on ESX as long as your inventory is `ox_inventory` (which ESX supports); the inventory tables above are the ox_inventory ones, so on ESX with the older built-in inventory use `onChanged` instead. Keep its rules in mind: whatever gives keys after buying a car (dealership, garage) must call `GiveKey(src, plate, label)` or `GiveKeys(src, vehicleEntity)` with the plate the car has **now**, and the garage must call `TakeKey` / `RemoveKeys` when a car is stored. Those already work with personalised plates.
 
 ```lua
 keys = {
@@ -360,7 +360,7 @@ Add any similar table from your own scripts (impound tables that copy the car ou
 
 ### 4. Loose ends, honestly
 
-- **Not tested inside FiveM.** The Lua, the database code and the web pages were run against a mock FiveM and a SQLite copy of the tables (51 tests covering QBCore and ESX, plus a browser test of the pages). Please try each key path on a test server (buy, fit, remove, sell, buy from the market, with a key in the inventory and a key in a glovebox) before you open it to players. The keys are checked against the code of `acestudios_vehiclekeys`, not run with it.
+- **Not tested inside FiveM.** The Lua, the database code and the web pages were run against a mock FiveM and a SQLite copy of the tables (51 tests covering QBCore and ESX, plus a browser test of the pages). Please try each key path on a test server (buy, fit, remove, sell, buy from the market, with a key in the inventory and a key in a glovebox) before you open it to players. The keys are checked against the code of `as-vehiclekeys`, not run with it.
 - **Keys changed only when the plate changes here.** If someone changes a plate with a different script, or an admin edits `player_vehicles`, the keys are not updated by LS Plates.
 - **Item keys are matched by exact text.** The offline update looks for `"plate":"AB12 CDE"` inside the saved inventory. It is exact, so if your key script stores a different format (no space, lower case), set `fields` or use `onChanged`.
 - **`qbx_vehicles` is edited.** It is a third-party resource; see the plate generator note above.
@@ -415,7 +415,7 @@ One place that lists what every kind of script needs from you. Each row points a
 
 | Script type | What to do | Details |
 | --- | --- | --- |
-| **Vehicle keys** (item keys, e.g. `acestudios_vehiclekeys`) | Keep `keys.enabled = true` in `sites/plates/config.lua`; set `keys.item` and `keys.fields` to your key item. | [1. Vehicle key scripts](#1-vehicle-key-scripts) |
+| **Vehicle keys** (item keys, e.g. `as-vehiclekeys`) | Keep `keys.enabled = true` in `sites/plates/config.lua`; set `keys.item` and `keys.fields` to your key item. | [1. Vehicle key scripts](#1-vehicle-key-scripts) |
 | Vehicle keys in their **own table** | Add the table to `extraTables`. | same |
 | Keys with **no stored plate** | Set `keys.enabled = false`. | same |
 | Any script with its own plate update function | Use the `onChanged` hook in `sites/plates/config.lua`. | same |

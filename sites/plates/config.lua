@@ -49,7 +49,7 @@ Config.plates = {
     onChanged     = nil,       -- optional function(oldPlate, newPlate, citizenId, source) run after a registration changes
 
     -- ---- Vehicle KEYS -------------------------------------------------------------------------------------------
-    -- Item based key scripts (acestudios_vehiclekeys, qbx_vehiclekeys with items, most "keys as items" scripts) store the
+    -- Item based key scripts (as-vehiclekeys, qbx_vehiclekeys with items, most "keys as items" scripts) store the
     -- plate INSIDE the key item. When a registration changes, every key with the old plate is rewritten to the new one so
     -- it keeps working. Online players' keys are changed through ox_inventory, everything else (offline players, stashes,
     -- gloveboxes, trunks) directly in the inventory tables.
