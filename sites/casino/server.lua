@@ -325,6 +325,7 @@ local function base()
         rules = { minDeposit = CFG.minDeposit, maxDeposit = CFG.maxDeposit, minLimit = CFG.minLimit, maxLimit = CFG.maxLimit, limitRaiseHours = CFG.limitRaiseHours,
                   reminderChoices = CFG.reminderChoices, crashRate = C.engine.crashRate },
         currency = Config.currency,
+        slots = C.engine.slotInfo(),
     }
 end
 

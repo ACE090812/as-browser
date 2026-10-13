@@ -64,6 +64,27 @@ E.slots = {
     neon = { tune = 0.692, id = 'neon', name = 'Neon Nights', reels = 3, rows = 3, lines = LINES3, pay = PAY3, weights = WEIGHTS3, wildMult = 2, theme = 'Classic' },
 }
 E.slotOrder = { 'diamond', 'gold', 'neptune', 'pharaoh', 'dragon', 'neon' }
+--- What the page needs to draw the paytable: pays as multiples of the TOTAL bet (the line pays are of one line and include the tuning number).
+function E.slotInfo()
+    local out = {}
+    for _, id in ipairs(E.slotOrder) do
+        local m = E.slots[id]
+        local pays = {}
+        for sym, t in pairs(m.pay) do
+            if sym ~= 'J' or m.jackpot then
+                pays[sym] = {}
+                for n, v in pairs(t) do pays[sym][tostring(n)] = floor(v * (m.tune or 1) / #m.lines * 100 + 0.5) / 100 end
+            end
+        end
+        local free
+        if m.free then free = { ['3'] = m.free[3], ['4'] = m.free[4], ['5'] = m.free[5] } end
+        local sc
+        if m.scatter then sc = { ['3'] = m.scatter[3], ['4'] = m.scatter[4], ['5'] = m.scatter[5] } end
+        out[#out + 1] = { id = id, name = m.name, theme = m.theme, reels = m.reels, rows = m.rows, lines = #m.lines, pays = pays, free = free, scatter = sc,
+            freeMult = m.freeMult, freeMultBase = m.freeMultBase, jackpot = m.jackpot or false, wildMult = m.wildMult }
+    end
+    return out
+end
 E.maxSlotWin = 5000   -- most one spin (free spins included) can pay, as a multiple of the bet
 
 local function slotTable(m)
