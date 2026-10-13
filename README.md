@@ -13,6 +13,7 @@ Built-in sites (all fictional, all roleplay):
 | plates | `lsplates.co.uk` | LS Plates: buy, fit, move, take off and sell personalised number plates (see [LS Plates](#ls-plates-lsplatescouk)) |
 | vehiclecheck | `lsvehiclecheck.co.uk` | LS Vehicle Check: vehicle history reports in Basic / Standard / Full plans |
 | parts | LS Parts Direct | Parts shop for vehicles and mechanics |
+| casino | `diamondonline.co.uk` | Diamond Online: slots (six machines), blackjack, roulette, crash, video poker, baccarat, higher or lower (see [Diamond Online](#diamond-online-diamondonlinecouk)) |
 | bank | `lsbank.co.uk` | LS Bank: online banking that shares the phone's Wallet (see [LS Bank](#ls-bank-lsbankcouk)) |
 
 ## Install
@@ -575,3 +576,17 @@ sd-phone's Passwords app only accepts a fixed list of app ids and has no public 
 | `as-birthcert` | Birth certificates |
 | `as-fines` | Fines, `/fine` command, pay on the gov site |
 | `as-registry` | Marriage and business registration and certificates |
+
+## Diamond Online (`diamondonline.co.uk`)
+
+A casino website. Players open an account (one per character) with a username and password. The age check uses the character's date of birth (`Config.casino.minAge`, default 18; `requireDob` decides what happens when the framework has no date of birth). Money only moves between the site balance and the character's **in-game bank account**, never cash.
+
+Games: six slot machines (Diamond Reels with a progressive jackpot, Gold Rush Gulch, Neptune's Fortune, Pharaoh's Vault, Dragon Lantern, and the classic three reel Neon Nights), blackjack, European roulette, crash, Jacks or Better video poker, baccarat and higher or lower. Every spin, card and payout is decided on the server (`sites/casino/server_engine.lua` holds all the maths); the page only draws results. Games with several steps are saved in `casino_rounds`, so closing the browser never loses or doubles a bet. Slot return to player is tuned to about 94 to 96 percent, crash has a 1 percent edge, roulette is the standard single zero edge.
+
+Responsible play: daily deposit limit chosen by the player (lowering works at once, raising waits `limitRaiseHours`), session timer and reminder with wagered / won / net totals, optional "confirm bets over" amount, copy-your-history, and closing the account pays the balance back to the bank (it cannot be reopened). A forgotten password is reset with a 6 digit code sent to the character's Mail app.
+
+Settings are in `sites/casino/config.lua`. Tables are `casino_accounts`, `casino_tx`, `casino_bets`, `casino_daily`, `casino_rounds` and `casino_meta`.
+
+Admins: with `as-computer` running, `/pcadmin` has a Casino tab (emergency stop, per game figures, accounts, freeze). The tab uses the `casinoAdmin` export of this resource, which any resource may call (`overview`, `setOpen`, `accounts`, `freeze`, `bets`). A frozen account cannot bet or deposit but can still withdraw.
+
+Note: the page text of this site is written in English in the page scripts; only server messages and search text are in `locales/casino_en.lua`.

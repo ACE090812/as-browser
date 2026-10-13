@@ -24,7 +24,7 @@
             ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 1;
             for (var i = 1; i < 5; i++) { var yy = H - (H - 30) * (i / 5); ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke(); }
             ctx.beginPath(); ctx.lineWidth = 4; ctx.strokeStyle = crashed ? '#ff8fa3' : '#f2d27a';
-            for (var s = 0; s <= 60; s++) { var t = ms * s / 60, x = 20 + (W - 40) * (t / maxT), y = H - 20 - (H - 50) * ((m(t) - 1) / (maxM - 1)); if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+            for (var s = 0; s <= 60; s++) { var t = ms * s / 60, x = 20 + (W - 40) * (t / maxT), y = H - 20 - (H - 50) * ((Math.exp(rate * t / 1000) - 1) / (maxM - 1)); if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
             ctx.stroke();
         }
         function setMult(v, cls) { mult.textContent = v.toFixed(2) + '×'; mult.className = 'cr-mult' + (cls ? ' ' + cls : ''); }
@@ -100,7 +100,7 @@
                     var r = await Site.call('poker', { a: 'draw', hold: hold });
                     cards = r.cards; phase = 'done'; result = r; evalNow = null; draw();
                     var m = $('#vmsg', root); m.style.display = ''; m.className = 'do-note ' + (r.win ? 'good' : '');
-                    m.innerHTML = r.win ? '<b>' + esc(r.handName) + '</b> · You won ' + DO.money(r.win - r.bet) : 'No win this time.';
+                    m.innerHTML = r.win ? '<b>' + esc(r.handName) + '</b> · Paid ' + DO.money(r.win) : 'No win this time.';
                     DO.sfx(r.win ? (r.win >= r.bet * 9 ? 'big' : 'win') : 'lose'); DO.setBal(r.balance);
                 } else {
                     var b = bb.get(); if (DO.bal() < b) { DO.noFunds(b); busy = false; btn.disabled = false; return; }
