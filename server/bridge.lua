@@ -195,6 +195,23 @@ function Bridge.addMoney(source, account, amount, reason)
     return true
 end
 
+--- The character's date of birth as text (qb/qbx: charinfo.birthdate, esx: dateofbirth), or nil when the framework has none.
+function Bridge.getBirthdate(source)
+    ensureCore()
+    if framework == 'qb' or framework == 'qbx' then
+        local p = getPlayer(source)
+        local ci = p and p.PlayerData.charinfo
+        if ci and ci.birthdate and tostring(ci.birthdate) ~= '' then return tostring(ci.birthdate) end
+    elseif framework == 'esx' and ESX then
+        local x = ESX.GetPlayerFromId(source)
+        if x then
+            local ok, v = pcall(function() return x.get('dateofbirth') end)
+            if ok and v and tostring(v) ~= '' then return tostring(v) end
+        end
+    end
+    return nil
+end
+
 --- The player's Discord id if the server exposes it, for application embeds.
 function Bridge.getDiscordId(source)
     local id = GetPlayerIdentifierByType and GetPlayerIdentifierByType(source, 'discord')

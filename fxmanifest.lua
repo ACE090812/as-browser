@@ -42,6 +42,7 @@ files {
     'ui/**/*',
     'sdk/*',
     'sites/**/*.html',
+    'sites/**/*.css',
     'sites/**/*.js',           -- Presento's shared slide renderer (sites/presento/render.js)
     -- Sites that ship their own images or scripts: add 'sites/**/*.css', 'sites/**/*.js', 'sites/**/*.png' etc.
     -- Never add .lua here, site configs can hold webhooks.
