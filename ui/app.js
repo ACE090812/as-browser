@@ -144,6 +144,13 @@
         var host = s.split(/[\/#?]/)[0].toLowerCase();
         if (state.byDomain[host]) return host + s.slice(host.length);
         if (/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(s)) return 'about:error?e=notfound&u=' + encodeURIComponent(host);
+        return searchUrl(q);
+    }
+
+    // Typed words go to the search engine site (Findr) when it is on, else to the built-in search page
+    function searchUrl(q) {
+        var eng = state.sites.filter(function (x) { return x.engine; })[0];
+        if (eng) return String(eng.domain).toLowerCase() + '/search?q=' + encodeURIComponent(q.slice(0, 60));
         return 'about:search?q=' + encodeURIComponent(q);
     }
 

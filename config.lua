@@ -42,6 +42,7 @@ Config.Sites = {
     bank       = { enabled = true, domain = 'lsbank.co.uk' },          -- online banking: balance, statements, send money, standing orders, invoices (shares sd-phone's Wallet data)
     clipzone   = { enabled = true, domain = 'clipzone.co.uk' },       -- lore-friendly video site: upload, watch, subscribe, view-based payouts (sites/clipzone/config.lua)
     casino     = { enabled = true, domain = 'diamondonline.co.uk' },     -- Diamond Online casino: slots, blackjack, roulette, crash, video poker, baccarat, higher or lower (sites/casino/config.lua)
+    findr      = { enabled = true, domain = 'findr.co.uk' },          -- Findr: the search engine. Address-bar searches go here; shows sites, news, marketplace adverts and images (sites/findr/config.lua)
     presento   = { enabled = true, domain = 'presento.co.uk' },       -- slide decks, Google Slides style (desktop browser only, sites/presento/config.lua)
 }
 

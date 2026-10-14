@@ -95,6 +95,7 @@ function Browser.defineSite(key, def)
         page        = def.page or ('sites/' .. key .. '/index.html'),
         pages       = def.pages or {},
         featured    = def.featured ~= false,
+        engine      = def.engine == true,        -- the search engine: shells send address-bar searches here
         desktopOnly = def.desktopOnly == true,   -- only reachable from a desktop browser (as-computer's Scout), never the phone
         enabled     = cfg.enabled ~= false,
         external    = false,
@@ -116,7 +117,7 @@ local function publicSite(s)
     return {
         domain = s.domain, title = s.title, description = s.description, keywords = s.keywords,
         category = s.category, icon = s.icon, color = s.color, resource = s.resource,
-        page = s.page, pages = s.pages, featured = s.featured,
+        page = s.page, pages = s.pages, featured = s.featured, engine = s.engine == true,
     }
 end
 
@@ -230,6 +231,7 @@ local function siteCall(desktop, src, domain, name, data)
         if #encoded > (Config.maxPayloadBytes or 16384) then return { ok = false, error = T('shell.err.tooLarge') } end
     end
 
+    Browser.callDesktop = desktop == true    -- handlers can tell phone from desktop browser (Findr hides desktop-only sites from phones)
     local ok, result, err = pcall(handler, src, data or {})
     if not ok then
         log('handler %s/%s failed: %s', key, name, tostring(result))

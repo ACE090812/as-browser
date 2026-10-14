@@ -14,6 +14,7 @@ Built-in sites (all fictional, all roleplay):
 | vehiclecheck | `lsvehiclecheck.co.uk` | LS Vehicle Check: vehicle history reports in Basic / Standard / Full plans |
 | parts | LS Parts Direct | Parts shop for vehicles and mechanics |
 | casino | `diamondonline.co.uk` | Diamond Online: slots (six machines), blackjack, roulette, crash, video poker, baccarat, higher or lower (see [Diamond Online](#diamond-online-diamondonlinecouk)) |
+| findr | `findr.co.uk` | Findr: the search engine. Searches typed in the address bar (phone Browser and the computer's Scout) go here. Sites, news, marketplace adverts and images, recent and trending searches, suggestions as you type (see [Findr](#findr-findrcouk)) |
 | bank | `lsbank.co.uk` | LS Bank: online banking that shares the phone's Wallet (see [LS Bank](#ls-bank-lsbankcouk)) |
 
 ## Install
@@ -590,3 +591,13 @@ Settings are in `sites/casino/config.lua`. Tables are `casino_accounts`, `casino
 Admins: with `as-computer` running, `/pcadmin` has a Casino tab (emergency stop, per game figures, accounts, freeze). The tab uses the `casinoAdmin` export of this resource, which any resource may call (`overview`, `setOpen`, `accounts`, `freeze`, `bets`). A frozen account cannot bet or deposit but can still withdraw.
 
 Note: the page text of this site is written in English in the page scripts; only server messages and search text are in `locales/casino_en.lua`.
+
+
+## Findr (`findr.co.uk`)
+
+The search engine. Anything typed in the address bar that is not a site address opens `findr.co.uk/search?q=...` (switch the site off and the old built-in search page is used again).
+
+- **Home:** the Findr logo, a search box with suggestions as you type (your recent searches, trending searches, site and page names, keywords), your recent searches (remove one or clear all) and the trending searches of the last `trendingDays` days.
+- **Results:** tabs All, Sites, News, Marketplace and Images with counts. Sites are every enabled site and its pages, ranked by title, address and keywords. Desktop-only sites are hidden from the phone.
+- **Other sites add results:** `Browser.findrProvider(tab, fn)` inside this resource, or `exports['as-browser']:registerSearchProvider(tab, fn)` from another resource, with `tab` = `news`, `market` or `images`, and `fn(query, limit, source)` returning `{ { title, url, desc, image, tag } ... }`. The marketplace and news sites use this.
+- **Settings:** `sites/findr/config.lua` (recent and trending counts, days kept, results per tab, blocked words). Searches are kept in `browser_findr_log` and deleted after `keepLogDays`.
